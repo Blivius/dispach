@@ -388,7 +388,9 @@ describe("a family row is its own provenance", () => {
         expect(describeWindowSource(windowProvenance("deepseek-v4.1-flash"))).toContain(
             "not this exact model",
         )
-        expect(describeWindowSource(windowProvenance("kimi-k2"))).toContain("no row matched")
+        expect(describeWindowSource(windowProvenance("no-such-model-anywhere"))).toContain(
+            "no row matched",
+        )
     })
 
     test("a precise row is not downgraded by having a family above it", () => {
@@ -422,7 +424,7 @@ describe("a family row is its own provenance", () => {
         // `*` shadows everything by prefix and must not be reported as a net: "no row matched" is a
         // stronger statement than "a broad row matched", and collapsing them loses the stronger one.
         expect(registryShadows()).not.toContain("*")
-        expect(windowProvenance("kimi-k2").source).toBe("fallback")
+        expect(windowProvenance("no-such-model-anywhere").source).toBe("fallback")
     })
 })
 

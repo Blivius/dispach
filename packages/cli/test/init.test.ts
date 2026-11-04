@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -204,6 +204,20 @@ describe("initCommand", () => {
         }
         expect(error?.code).toBe("cli_init_target_exists")
         expect(error?.message).toContain("agent.yaml")
+    })
+
+    test("a directory it cannot create is refused with a hint, not a bare ENOENT", async () => {
+        // A file where the parent directory should be: unwritable for root too, unlike a chmod.
+        const blocker = join(mkdtempSync(join(tmpdir(), "init-blocked-")), "not-a-directory")
+        writeFileSync(blocker, "")
+        let error: HarnessError | undefined
+        try {
+            await initCommand({ ...FLAGS, dir: join(blocker, "agent") })
+        } catch (thrown) {
+            if (thrown instanceof HarnessError) error = thrown
+        }
+        expect(error?.code).toBe("cli_init_target_unwritable")
+        expect(error?.hint).toContain("unset shell variable")
     })
 
     test("ollama generates a keyless manifest that loads without any stub", async () => {

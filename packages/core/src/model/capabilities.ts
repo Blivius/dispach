@@ -408,6 +408,60 @@ export const CAPABILITY_REGISTRY: readonly CapabilityEntry[] = [
         note: "Reasoning is billed to the output budget, like the deepseek rows.",
         verified: "2026-10-21 via OpenRouter, provider z-ai/fp8",
     },
+    // The next three were measured through Otari (api.otari.ai) on 2026-11-04. Without them gpt-oss
+    // and kimi fell back to an 8,192 window, which init's own reserveOutput does not fit, so an agent
+    // on either could not be created; qwen3-coder took `qwen*`'s 32,768. Windows and output caps are
+    // what the endpoint's `GET /models` publishes: an over-range probe could not name a limit, because
+    // Otari's budget check refuses it on estimated cost before any provider sees it. Tool calling and
+    // reasoning come from one streamed call each asking for the weather in two cities.
+    {
+        pattern: "gpt-oss*",
+        capabilities: {
+            nativeTools: true,
+            strictSchema: false,
+            // Streams `reasoning` and `reasoning_content` beside `content`; nothing to replay.
+            thinking: "deepseek",
+            promptCache: "none",
+            // Asked for two cities, it called the tool once.
+            parallelToolCalls: false,
+            contextWindow: 131_072,
+            maxOutput: 16_384,
+        },
+        note: "Reasoning is billed to the output budget. Cheapest tool-calling model on Otari, so the default helper role.",
+        verified: "2026-11-04 via Otari, openai/gpt-oss-20b",
+    },
+    {
+        pattern: "kimi-k2*",
+        capabilities: {
+            nativeTools: true,
+            strictSchema: false,
+            thinking: "deepseek",
+            // Caches on its own: `model probe` saw 992 of 1,040 prompt tokens cached on a repeat.
+            promptCache: "none",
+            // Two cities, two tool calls in one response.
+            parallelToolCalls: true,
+            contextWindow: 262_144,
+            maxOutput: 16_384,
+        },
+        note: "Reasoning is billed to the output budget.",
+        verified: "2026-11-04 via Otari, moonshotai/kimi-k2.6",
+    },
+    {
+        pattern: "qwen3-coder*",
+        capabilities: {
+            nativeTools: true,
+            strictSchema: false,
+            // No reasoning field in the stream: unlike qwen3.5, this one does not think out loud.
+            thinking: "none",
+            // 1,008 of 1,040 prompt tokens cached on a repeat.
+            promptCache: "none",
+            parallelToolCalls: true,
+            contextWindow: 262_144,
+            // Otari publishes 66,536, which reads as a typo for 65,536; the lower is the safe one.
+            maxOutput: 65_536,
+        },
+        verified: "2026-11-04 via Otari, alibaba/qwen3-coder-480b-a35b-instruct-turbo",
+    },
     {
         // The same model through a gateway (`qwen/qwen3.5-9b`), where the window is the endpoint's, not
         // Ollama's. The row below was measured on local Ollama, which serves qwen3.5 at 32,768; applied

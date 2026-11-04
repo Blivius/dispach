@@ -24,6 +24,9 @@
 
 - `init --help` named `none` as the `--daemon` default; it is `service`.
 - The refusal to bind a public address without a token names `DISPACH_API_TOKEN`.
+- Capability rows for `gpt-oss*`, `kimi-k2*` and `qwen3-coder*`, measured through Otari. gpt-oss and kimi fell back to an 8,192 window that `init`'s own `reserveOutput` does not fit, so an agent on either could not be created; qwen3-coder took `qwen*`'s 32,768.
+- `init` refuses a directory it cannot create by naming the path and the likely cause, rather than printing a bare `ENOENT: mkdir`.
+- `init --preset otari`'s next steps no longer ask for a `TAVILY_API_KEY` the agent does not use.
 
 ## 0.2.3 — 2026-11-02
 

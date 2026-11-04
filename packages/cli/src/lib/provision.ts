@@ -378,11 +378,23 @@ export function writeAgentFiles(targetDir: string, files: readonly GeneratedFile
 
     for (const file of files) {
         const path = join(targetDir, file.relPath)
-        mkdirSync(dirname(path), { recursive: true })
-        writeFileSync(path, file.contents, {
-            encoding: "utf8",
-            ...(file.relPath === ".env" ? { mode: 0o600 } : {}),
-        })
+        try {
+            mkdirSync(dirname(path), { recursive: true })
+            writeFileSync(path, file.contents, {
+                encoding: "utf8",
+                ...(file.relPath === ".env" ? { mode: 0o600 } : {}),
+            })
+        } catch (cause) {
+            // A bare `ENOENT: mkdir '/agent'` names a syscall, not the problem: on macOS `/` is
+            // read-only, and `--dir /agent` is what an unset `$D` in `--dir $D/agent` becomes.
+            const code = (cause as NodeJS.ErrnoException).code ?? "unknown"
+            throw new HarnessError({
+                code: "cli_init_target_unwritable",
+                message: `init cannot write ${path} (${code}).`,
+                hint: `Check that ${resolve(targetDir)} is the directory you meant — a path built from an unset shell variable lands at the filesystem root — and that you can write to its parent. Files written before this one are left in place.`,
+                cause,
+            })
+        }
     }
 }
 
