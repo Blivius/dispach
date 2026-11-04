@@ -1110,3 +1110,39 @@ describe("a typed error keeps its code and hint across packages", () => {
         expect(offenders).toEqual([])
     })
 })
+
+describe("the root build", () => {
+    // Bun's --filter does not wait for a workspace dependency here, so packages that others import
+    // build in an earlier tier, and a tier glob can leave one out (`tools-[!m]*` skips tools-mcp). This
+    // asserts the tiers still cover every package with a build script, or the binary runs a stale dist.
+    test("every workspace package with a build script is named by some --filter tier", () => {
+        const root = resolve(import.meta.dirname, "..", "..", "..")
+        const script =
+            (
+                JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+                    scripts: Record<string, string>
+                }
+            ).scripts.build ?? ""
+        const tiers = [...script.matchAll(/--filter='([^']+)'/g)].map(
+            ([, glob]) =>
+                new RegExp(
+                    `^${(glob ?? "")
+                        .replace(/[.+^${}()|\\/]/g, "\\$&")
+                        .replace(/\[!/g, "[^")
+                        .replace(/\*/g, ".*")}$`,
+                ),
+        )
+        const unbuilt = readdirSync(join(root, "packages")).flatMap((dir) => {
+            const path = join(root, "packages", dir, "package.json")
+            if (!existsSync(path)) return []
+            const pkg = JSON.parse(readFileSync(path, "utf8")) as {
+                name: string
+                scripts?: Record<string, string>
+            }
+            return pkg.scripts?.build === undefined || tiers.some((tier) => tier.test(pkg.name))
+                ? []
+                : [pkg.name]
+        })
+        expect(unbuilt).toEqual([])
+    })
+})

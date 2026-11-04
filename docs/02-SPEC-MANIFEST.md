@@ -374,6 +374,13 @@ small model the search runs inside). Its `web_search` shares the slug with `web`
 resolving one slug fail the load — so beside it, `web: { search: false }` keeps `web_fetch` alone.
 `dispach init --preset otari` writes that pairing, and asks `--sandbox none|otari`.
 
+`tools.providers.otari.mcp` maps a slug prefix to the id of an MCP server registered in the Otari
+workspace (`mcp: { deepwiki: <server id> }`); its tools are pinned as `deepwiki__<tool>`, the same
+slugs `tools.providers.mcp` would give them. Otari holds the server's URL and credential, and this
+runtime's policy is the authorization: discovery (`GET /mcp/servers/{id}/tools`) runs after readiness
+into `.dispach/otari-mcp.cache.json`, boot resolves from it, and each call is one `POST /mcp/execute`
+carrying the discovered `server_revision`, never retried. A cold cache names `tools --warm`.
+
 `tools.providers.system` accepts `writeRoots` (extra writable directories) and `protect` (extra
 refused paths). Both widen their respective set; nothing narrows either.
 

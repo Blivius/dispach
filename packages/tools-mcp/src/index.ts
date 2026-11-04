@@ -26,7 +26,7 @@ export {
     mcpRequestFailed,
     mcpToolFailed,
 } from "./errors.ts"
-export { isMutating, SEPARATOR, slugOf, toSpec } from "./map.ts"
+export { isMutating, SEPARATOR, slugOf, summaryOf, toSpec } from "./map.ts"
 export {
     McpProvider,
     type McpProviderOptions,

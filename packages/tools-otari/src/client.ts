@@ -27,11 +27,34 @@ export interface Posted {
     readonly headers: Headers
 }
 
-export async function post(
+/** What a call needs from its caller: a tool's context, or a refresh's own signal and deadline. */
+export type CallScope = Pick<ToolContext, "signal" | "deadlineMs">
+
+export function post(
     client: OtariClient,
     path: string,
     payload: unknown,
-    context: ToolContext,
+    context: CallScope,
+    capMs: number,
+): Promise<Posted> {
+    return request(client, "POST", path, payload, context, capMs)
+}
+
+export function get(
+    client: OtariClient,
+    path: string,
+    context: CallScope,
+    capMs: number,
+): Promise<Posted> {
+    return request(client, "GET", path, undefined, context, capMs)
+}
+
+async function request(
+    client: OtariClient,
+    method: "GET" | "POST",
+    path: string,
+    payload: unknown,
+    context: CallScope,
     capMs: number,
 ): Promise<Posted> {
     const key = client.env[client.apiKeyEnv] ?? ""
@@ -52,9 +75,12 @@ export async function post(
     )
     try {
         const response = await client.fetch(`${client.baseUrl}${path}`, {
-            method: "POST",
-            headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-            body: JSON.stringify(payload),
+            method,
+            headers: {
+                authorization: `Bearer ${key}`,
+                ...(payload === undefined ? {} : { "content-type": "application/json" }),
+            },
+            ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
             signal: controller.signal,
         })
         const text = await response.text()
@@ -90,6 +116,8 @@ export function failure(status: number, headers: Headers, text: string, path: st
     if (named !== undefined) {
         return new ToolError({ code: named.code, message: named.message, hint: named.hint })
     }
+    const mcp = mcpFailure(status, text, path)
+    if (mcp !== undefined) return mcp
     return new ToolError({
         code: "otari_tool_http_error",
         message: `Otari refused ${path} with HTTP ${status}: ${detailOf(text)}`,
@@ -97,6 +125,41 @@ export function failure(status: number, headers: Headers, text: string, path: st
             status === 401
                 ? "The key was not accepted. Check it is a current Otari key, the one the model uses."
                 : "Otari's own words are above. A 4xx is about this request and repeating it unchanged will fail the same way; a 5xx is worth one more try.",
+    })
+}
+
+/**
+ * Otari's MCP routes say on every error whether the call was dispatched (`execution_state`). The one
+ * that matters is `outcome_unknown`: the tool may have run, so this must never read as an ordinary
+ * failure the model would simply repeat — Otari does not deduplicate, and neither does this.
+ */
+function mcpFailure(status: number, text: string, path: string): ToolError | undefined {
+    let body: { code?: unknown; execution_state?: unknown }
+    try {
+        body = JSON.parse(text) as typeof body
+    } catch {
+        return undefined
+    }
+    if (typeof body.execution_state !== "string") return undefined
+    const code = typeof body.code === "string" ? body.code : "unknown"
+    if (body.execution_state === "outcome_unknown") {
+        return new ToolError({
+            code: "otari_mcp_outcome_unknown",
+            message: `The MCP call through Otari was sent and no result came back (${code}, HTTP ${status}). It may or may not have taken effect.`,
+            hint: "Do not repeat it blindly: if the tool changes something, check whether the change happened first. A read-only tool is safe to call again.",
+        })
+    }
+    return new ToolError({
+        code: `otari_${code}`,
+        message: `Otari refused ${path} before running anything: ${detailOf(text)} (${code}, HTTP ${status}).`,
+        hint:
+            code === "mcp_server_changed"
+                ? "The server's settings changed in the Otari dashboard since this agent read its tools. Restart the agent (or run `tools --warm`) so it reads them again."
+                : code === "mcp_server_not_found"
+                  ? "The server id in tools.providers.otari.mcp names no enabled server in this key's workspace. Check it under Tools → MCP servers in the Otari dashboard."
+                  : code === "mcp_tool_not_allowed"
+                    ? "The server's allowlist in the Otari dashboard leaves this tool out. Add it there, or unpin it here."
+                    : "Nothing ran, so this is safe to retry once the cause is fixed.",
     })
 }
 

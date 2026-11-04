@@ -26,7 +26,8 @@
     },
     "dependencies": {
         "@dispach/core": "workspace:*",
-        "@dispach/model-otari": "workspace:*"
+        "@dispach/model-otari": "workspace:*",
+        "@dispach/tools-mcp": "workspace:*"
     },
     "private": true
 }

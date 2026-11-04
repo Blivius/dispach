@@ -21,6 +21,7 @@ import {
     type FetchLike as OtariFetch,
     OtariToolProvider,
     otariToolsFromConfig,
+    parseMcpServers,
 } from "../src/index.ts"
 
 interface Sent {
@@ -302,5 +303,250 @@ limits:
         expect(reply.text).toContain("4950")
         // The far end: the sandbox's output is in the request the model answered from.
         expect(prompts[1]).toContain("stdout:\\n4950")
+    })
+})
+
+const SERVER = "56eb8d19-eca7-4ec3-8f60-62c9c7d9c0a5"
+/** The live discovery answer for DeepWiki on 2026-11-04, trimmed to two tools. */
+const DISCOVERY = {
+    server_id: SERVER,
+    server_revision: "ffd75627319061a7ddc909f7fa37ade3",
+    tools: [
+        {
+            name: "read_wiki_structure",
+            description: "Get a list of documentation topics for a GitHub repository.",
+            input_schema: {
+                type: "object",
+                properties: { repoName: { type: "string", description: "owner/repo" } },
+                required: ["repoName"],
+                additionalProperties: false,
+            },
+            annotations: null,
+        },
+        {
+            name: "ask_wiki_question",
+            description: "Ask any question about a GitHub repository's codebase.",
+            input_schema: {
+                type: "object",
+                properties: { repoName: { type: "string" }, question: { type: "string" } },
+                required: ["repoName", "question"],
+            },
+            annotations: null,
+        },
+    ],
+    warnings: [],
+}
+const MCP = [{ name: "deepwiki", id: SERVER }]
+
+async function warmed(dir: string) {
+    const fetch = async (input: string) => {
+        if (!input.endsWith(`/mcp/servers/${SERVER}/tools`)) throw new Error(`unexpected ${input}`)
+        return json(DISCOVERY)
+    }
+    const provider = new OtariToolProvider({ env: { OTARI_API_KEY: "k" }, dir, mcp: MCP, fetch })
+    return provider.refresh(["deepwiki__read_wiki_structure"])
+}
+
+const refusing: OtariFetch = () => Promise.reject(new Error("boot must not touch the network"))
+
+describe("MCP servers registered in Otari", () => {
+    test("discovery fills a cache, and the next boot resolves from it with no network", async () => {
+        const dir = mkdtempSync(join(tmpdir(), "otari-mcp-"))
+        const refreshed = await warmed(dir)
+        expect(refreshed).toEqual({
+            fetched: 1,
+            missing: [],
+            changed: ["deepwiki__read_wiki_structure"],
+        })
+
+        const booted = new OtariToolProvider({ env: {}, dir, mcp: MCP, fetch: refusing })
+        const [tool] = await booted.resolve(["deepwiki__read_wiki_structure"])
+        expect(tool?.spec).toMatchObject({
+            slug: "deepwiki__read_wiki_structure",
+            provider: "otari",
+            // No readOnlyHint from the server: a write, which is the fail-closed direction.
+            mutating: true,
+        })
+        expect((await booted.available()).map((entry) => entry.slug)).toEqual([
+            "web_search",
+            "run_code",
+            "deepwiki__read_wiki_structure",
+            "deepwiki__ask_wiki_question",
+        ])
+    })
+
+    test("one execute per call, carrying the cached revision and a fresh UUID", async () => {
+        const dir = mkdtempSync(join(tmpdir(), "otari-mcp-"))
+        await warmed(dir)
+        const { fetch, sent } = recording(() =>
+            json({ content: [{ type: "text", text: "- 1 Overview\n- 2 Getting Started" }] }),
+        )
+        const usage: ToolUsage[] = []
+        const [tool] = await new OtariToolProvider({
+            env: { OTARI_API_KEY: "k" },
+            dir,
+            mcp: MCP,
+            fetch,
+        }).resolve(["deepwiki__read_wiki_structure"])
+        const out = await tool?.handler(
+            { repoName: "mozilla-ai/any-llm" },
+            context("local:abc123", usage),
+        )
+
+        expect(out).toBe("- 1 Overview\n- 2 Getting Started")
+        expect(sent[0]?.url).toBe(`${OTARI_BASE_URL}/mcp/execute`)
+        expect(sent[0]?.body).toMatchObject({
+            mcp_server_id: SERVER,
+            tool_name: "read_wiki_structure",
+            arguments: { repoName: "mozilla-ai/any-llm" },
+            server_revision: "ffd75627319061a7ddc909f7fa37ade3",
+        })
+        expect(String(sent[0]?.body.client_execution_id)).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        )
+        expect(usage).toEqual([{ provider: "otari", operation: "mcp", unit: "requests", units: 1 }])
+    })
+
+    test("a call that may have run is never retried, and says it may have run", async () => {
+        const dir = mkdtempSync(join(tmpdir(), "otari-mcp-"))
+        await warmed(dir)
+        const { fetch, sent } = recording(() =>
+            json(
+                {
+                    detail: "MCP execution outcome is unknown",
+                    code: "mcp_outcome_unknown",
+                    execution_state: "outcome_unknown",
+                },
+                504,
+            ),
+        )
+        const [tool] = await new OtariToolProvider({
+            env: { OTARI_API_KEY: "k" },
+            dir,
+            mcp: MCP,
+            fetch,
+        }).resolve(["deepwiki__read_wiki_structure"])
+        const error = await Promise.resolve(tool?.handler({ repoName: "x/y" }, context())).then(
+            () => undefined,
+            (caught: unknown) => caught as { code: string; message: string },
+        )
+        expect(sent.length).toBe(1)
+        expect(error?.code).toBe("otari_mcp_outcome_unknown")
+        expect(error?.message).toContain("may or may not have taken effect")
+    })
+
+    test("the server's own error is a failed call, and a changed server says to re-read it", async () => {
+        const dir = mkdtempSync(join(tmpdir(), "otari-mcp-"))
+        await warmed(dir)
+        const replies = [
+            json({ content: [{ type: "text", text: "Repository not found" }], isError: true }),
+            json(
+                {
+                    detail: "MCP server changed",
+                    code: "mcp_server_changed",
+                    execution_state: "not_started",
+                },
+                409,
+            ),
+        ]
+        const fetch: OtariFetch = () => Promise.resolve(replies.shift() ?? json({}))
+        const [tool] = await new OtariToolProvider({
+            env: { OTARI_API_KEY: "k" },
+            dir,
+            mcp: MCP,
+            fetch,
+        }).resolve(["deepwiki__read_wiki_structure"])
+        const fail = (args: Record<string, unknown>) =>
+            Promise.resolve(tool?.handler(args, context())).then(
+                () => undefined,
+                (caught: unknown) => caught as { code: string; message: string; hint: string },
+            )
+        const toolError = await fail({ repoName: "no/such" })
+        expect(toolError?.code).toBe("mcp_tool_failed")
+        expect(toolError?.message).toContain("Repository not found")
+        const changed = await fail({ repoName: "x/y" })
+        expect(changed?.code).toBe("otari_mcp_server_changed")
+        expect(changed?.hint).toContain("--warm")
+    })
+
+    test("a cold cache names the warm command, and a bad entry is refused at load", async () => {
+        const dir = mkdtempSync(join(tmpdir(), "otari-mcp-"))
+        const cold = new OtariToolProvider({ env: {}, dir, mcp: MCP, fetch: refusing })
+        expect(await cold.resolve(["deepwiki__ask_wiki_question"])).toEqual([])
+        expect(cold.explainUnresolved(["deepwiki__ask_wiki_question", "web_search"])?.code).toBe(
+            "otari_mcp_cache_miss",
+        )
+        expect(cold.explainUnresolved(["config_read"])).toBeUndefined()
+
+        const build = (mcp: unknown) => () =>
+            otariToolsFromConfig({ dir, env: {}, config: { mcp }, agentId: "a" })
+        expect(build({ deepwiki: "https://mcp.deepwiki.com/mcp" })).toThrow(
+            "is not an Otari MCP server id",
+        )
+        expect(build({ Deep_Wiki: SERVER })).toThrow("not usable in a tool slug")
+        expect(build({ deepwiki: SERVER })).not.toThrow()
+    })
+
+    test("a turn: the model calls a DeepWiki tool and reads what it returned", async () => {
+        const dir = mkdtempSync(join(tmpdir(), "otari-mcp-turn-"))
+        await warmed(dir)
+        writeFileSync(
+            join(dir, "agent.yaml"),
+            `apiVersion: ${BRAND.apiVersion}
+id: reader
+model:
+  main:
+    id: z-ai/glm-5.3-flash
+    api: otari
+tools:
+  providers:
+    otari:
+      mcp: { deepwiki: ${SERVER} }
+  pinned: [deepwiki__read_wiki_structure]
+  policy:
+    allow: [deepwiki__read_wiki_structure]
+limits:
+  maxSteps: 3
+  turnTimeoutMs: 10000
+`,
+        )
+        const sse = (text: string) =>
+            new Response(
+                `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`,
+                { headers: { "content-type": "text/event-stream" } },
+            )
+        const prompts: string[] = []
+        const fetch: FetchLike = async (input, init) => {
+            const url = String(input)
+            if (url.endsWith("/mcp/execute")) {
+                return json({ content: [{ type: "text", text: "- 5.2 Tool Calling" }] })
+            }
+            if (url.includes("/mcp/servers/")) return json(DISCOVERY)
+            prompts.push(String(init?.body))
+            return prompts.length === 1
+                ? sse("ACTION: deepwiki__read_wiki_structure\nrepoName: mozilla-ai/any-llm\n")
+                : sse("It has a Tool Calling page.")
+        }
+        const runtime = await Runtime.create({
+            agents: [join(dir, "agent.yaml")],
+            env: { OTARI_API_KEY: "otk_test" },
+            store: ":memory:",
+            fetch,
+            modelTransports: { otari: otariTransport() },
+            toolProviders: {
+                otari: (ctx) =>
+                    new OtariToolProvider({
+                        env: ctx.env,
+                        dir: ctx.dir,
+                        mcp: parseMcpServers(ctx.config.mcp),
+                        fetch,
+                    }),
+            },
+        })
+        const reply = await runtime.agent("reader").send("what does any-llm document?")
+        await runtime.stop()
+
+        expect(reply.text).toContain("Tool Calling")
+        expect(prompts[1]).toContain("5.2 Tool Calling")
     })
 })
