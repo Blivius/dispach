@@ -178,6 +178,11 @@ export type ChatChunk =
           readonly cacheSource?: string
           /** Prompt tokens this call wrote to the cache, when the endpoint says so. Same third state. */
           readonly cacheWriteTokens?: number
+          /**
+           * What the endpoint says this call cost, in US dollars. A measurement, not a price table
+           * (decision 3.16): absent unless the endpoint reported it, never computed here.
+           */
+          readonly costUsd?: number
       }
     /**
      * Which model answered, when it was not the one requested: a fallback (`model/fallback.ts`)

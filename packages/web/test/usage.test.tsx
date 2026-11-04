@@ -14,6 +14,30 @@ const bucket = (over: Partial<Parameters<typeof DayChart>[0]["buckets"][number]>
 })
 
 describe("usage", () => {
+    test("a cost column appears only when an endpoint reported one, and a partial cost says so", () => {
+        const render = (byModel: ReturnType<typeof bucket>[]) =>
+            renderToStaticMarkup(
+                createElement(UsagePanel, {
+                    range: "30d",
+                    onRange: () => undefined,
+                    report: { byDay: [], byModel, bySender: [] },
+                }),
+            )
+        expect(render([bucket({ model: "gpt-4o-mini" })])).not.toContain("<th>cost</th>")
+
+        const html = render([
+            bucket({ model: "z-ai/glm-5.3", calls: 3, costUsd: 0.0123, costedCalls: 3 }),
+            bucket({ model: "openai/gpt-oss-20b", calls: 4, costUsd: 0.000006, costedCalls: 1 }),
+            bucket({ model: "local" }),
+        ])
+        expect(html).toContain("<th>cost</th>")
+        expect(html).toContain("$0.01")
+        expect(html).toContain("$0.0000060")
+        expect(html).toContain("1 of 4 calls")
+        // Not reported is a dash, never $0.
+        expect(html).toContain("<td>—</td>")
+    })
+
     test("compact numbers", () => {
         expect(compact(999)).toBe("999")
         expect(compact(1500)).toBe("1.5k")

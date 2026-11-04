@@ -131,6 +131,8 @@ export interface TranscriptRow {
 export interface TurnStats {
     readonly promptTokens: number
     readonly outputTokens: number
+    /** What the endpoint reported the turn cost. Absent unless it did; never a price-table guess. */
+    readonly costUsd?: number
     readonly durationMs: number
     readonly steps: number
     /** `final` is the only clean ending. The rest are reported as themselves, never as success. */

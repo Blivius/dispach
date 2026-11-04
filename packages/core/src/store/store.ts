@@ -974,6 +974,8 @@ export interface ModelCallRecord {
     readonly cachedPromptTokens?: number
     /** Prompt tokens written to the cache by this call, when reported. Same third state. */
     readonly cacheWriteTokens?: number
+    /** What the endpoint said the call cost, in USD. Absent unless it reported one (migration 36). */
+    readonly costUsd?: number
     readonly outputTokens: number
     readonly outputReported: boolean
     /** The call's own id. Absent only for a row written before migration 20. */
@@ -1025,6 +1027,12 @@ export interface UsageBucket {
      * and a caller billing from them should know how much of the number is a guess.
      */
     readonly estimatedCalls: number
+    /**
+     * USD the endpoints reported, summed over the `costedCalls` that reported one. Both absent when
+     * none did: a missing cost is not a free call, and a total over part of a bucket says how much.
+     */
+    readonly costUsd?: number
+    readonly costedCalls?: number
 }
 
 export interface UsageStore {

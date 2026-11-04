@@ -411,6 +411,8 @@ export interface EventDataMap {
         cachedPromptTokens?: number
         /** Prompt tokens written to cache, when reported. */
         cacheWriteTokens?: number
+        /** What the endpoint said the call cost, in USD. Absent unless it reported one. */
+        costUsd?: number
         /** Who sent the turn this call belongs to, when it was not the operator. */
         sender?: string
     }
@@ -743,7 +745,8 @@ export interface EventDataMap {
     "turn.end": {
         reason: TurnEndReason
         steps: number
-        tokens: { prompt: number; output: number }
+        /** `costUsd`: what the endpoints reported for the turn's calls, summed; absent when none did. */
+        tokens: { prompt: number; output: number; costUsd?: number }
         durationMs: number
         /**
          * The last step's prose alone, when any step wrote some (pilot.14). The reply joins every

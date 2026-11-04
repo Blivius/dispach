@@ -1278,6 +1278,17 @@ CREATE TABLE session_checkpoints (
 );
 `,
     },
+    {
+        version: 36,
+        name: "model_call_cost",
+        /**
+         * The cost an endpoint reported for the call (Otari's `usage.cost_usd`), in USD. NULL when it
+         * reported none, which every row before this did: a measurement, never a price-table guess.
+         */
+        sql: `
+ALTER TABLE model_calls ADD COLUMN cost_usd REAL;
+`,
+    },
 ]
 
 export interface MigrationReport {

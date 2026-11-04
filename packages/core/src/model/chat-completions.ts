@@ -115,6 +115,8 @@ interface DeltaShape {
         /** Anthropic through an OpenAI-shaped shim. Reads are what were served; creation was billed. */
         cache_read_input_tokens?: unknown
         cache_creation_input_tokens?: unknown
+        /** A gateway's own bill for the call (Otari), as a decimal string. */
+        cost_usd?: unknown
     } | null
 }
 
@@ -335,6 +337,16 @@ function asNumber(value: unknown): number | undefined {
     return typeof value === "number" && Number.isFinite(value) ? value : undefined
 }
 
+/**
+ * A number, or a decimal string. Otari sends `cost_usd` as `"0.000006"` beside a float
+ * `estimated_cost`: the string is the exact figure, so `asNumber` alone would drop the one that
+ * is a measurement. Anything else, including a blank or negative string, is not reported.
+ */
+function asDecimal(value: unknown): number | undefined {
+    if (typeof value === "string" && /^\d+(\.\d+)?$/.test(value.trim())) return Number(value)
+    return asNumber(value)
+}
+
 /** `Retry-After` is either seconds or an HTTP date. Both appear in the wild. */
 function retryAfterMs(header: string | null): number | undefined {
     if (header === null) return undefined
@@ -391,6 +403,7 @@ function* chunksFromPayload(payload: DeltaShape, calls: ToolCallBuffer): Generat
     if (usage !== undefined && usage !== null) {
         const cache = cacheUsage(usage)
         const written = asNumber(usage.cache_creation_input_tokens)
+        const cost = asDecimal(usage.cost_usd)
         yield {
             type: "usage",
             promptTokens: asNumber(usage.prompt_tokens) ?? 0,
@@ -401,6 +414,7 @@ function* chunksFromPayload(payload: DeltaShape, calls: ToolCallBuffer): Generat
             // Anthropic-compatible endpoints report what the call wrote to the cache; nothing else
             // does, so absent stays absent rather than a claimed zero.
             ...(written === undefined ? {} : { cacheWriteTokens: written }),
+            ...(cost === undefined ? {} : { costUsd: cost }),
         }
     }
 

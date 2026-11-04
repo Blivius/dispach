@@ -94,7 +94,7 @@ import type { CatalogueEntry } from "#lib/source-cache"
 import { openTap } from "#lib/stdin-tap"
 import type { RenderMode } from "#lib/types"
 import { type InstallOutcome, skillsCommand } from "#skills"
-import { type PriorMessage, seed, seedHistory } from "#transcript"
+import { formatStats, type PriorMessage, seed, seedHistory } from "#transcript"
 
 /** Opening lines: what is loaded, what session, and whether the last turn finished. */
 async function bannerLines(
@@ -1380,7 +1380,7 @@ async function runPlain(wired: Wired): Promise<RunOutcome> {
 
         if (!quiet && result.reason === "final") {
             write(
-                `  ${result.tokens.prompt} prompt · ${result.tokens.output} output · ${result.durationMs} ms\n\n`,
+                `  ${formatStats({ promptTokens: result.tokens.prompt, outputTokens: result.tokens.output, ...(result.tokens.costUsd === undefined ? {} : { costUsd: result.tokens.costUsd }), durationMs: result.durationMs, steps: result.steps, reason: result.reason })}\n\n`,
             )
         }
 

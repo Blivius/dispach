@@ -1342,6 +1342,8 @@ export const Usage = z.looseObject({
             images: z.number(),
             audioSeconds: z.number(),
             estimatedCalls: int,
+            costUsd: z.number().optional(),
+            costedCalls: int.optional(),
         }),
     ),
     meteredSince: str.optional(),

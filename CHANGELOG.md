@@ -5,6 +5,7 @@
 ### Added
 
 - `api: otari`: Mozilla.ai's Otari gateway as a model transport (`@dispach/model-otari`, bundled). Chat-completions underneath, defaulting to hosted Otari and `OTARI_API_KEY`. `options.guardrails` and `options.tags` are sent with each call, the role always as a usage tag; a gateway fallback is reported as the model that answered; a spent budget, a guardrail block and an empty balance are their own errors, with hints, and stay 403/402 so no fallback model is tried. A guardrail Otari could not run is `otari_guardrail_unavailable` and never falls back either, because a fallback elsewhere would answer the request unchecked. An Otari preset in `init` and the web console; `model probe` measures an Otari role.
+- A cost the endpoint reports is recorded (decision 3.16): Otari's `usage.cost_usd` reaches `model.result` and `turn.end` as `costUsd`, the `model_calls.cost_usd` column (migration 36), and `GET /v1/usage` as `costUsd` beside `costedCalls`. The status line and the web usage table show it only when an endpoint reported one; nothing is ever priced from a table.
 
 ### Documentation
 

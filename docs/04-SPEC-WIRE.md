@@ -429,7 +429,8 @@ PUT    /v1/memory/space/writer { writer }            → { writer }
 
 GET /v1/usage?by&from&to → { buckets: [{ agentId?, model?, day?, sender?, calls, promptTokens,
                                          cachedPromptTokens, cacheWriteTokens, outputTokens,
-                                         images, audioSeconds, estimatedCalls }],
+                                         images, audioSeconds, estimatedCalls,
+                                         costUsd?, costedCalls? }],
                              meteredSince? }
 GET /v1/agents/:id/usage   → { id, buckets[], meteredSince? }
 GET /v1/agents/:id/turns?limit&before → { id, turns[], nextBefore? }
@@ -573,6 +574,9 @@ turn, role, model, prompt, cached, output, sender), and `/usage` sums those. `tu
   `agent,model`, the split a bill needs because prices differ per model. `by=` alone is one total.
   `from` is inclusive and `to` exclusive, so a month is `from=2026-09-01&to=2026-10-01`.
 - `estimatedCalls` counts calls where either figure was our estimate rather than the endpoint's.
+- `costUsd` sums what endpoints *reported* a call cost (Otari's `usage.cost_usd`), over the
+  `costedCalls` that reported one. Both are absent when no call in the bucket did — a missing cost is
+  not a free call, and nothing here is computed from a price table (decision 3.16).
 - `cacheWriteTokens` sums what calls wrote to a prompt cache (Bedrock and Anthropic report it; nothing else does, and a call that reports nothing adds zero). Each row also carries the call's `callId`, the same id its `model.result` carried, so a biller reconciling events against this table matches them one to one (Phase 26c).
   The estimate runs 16–20% low on tool-heavy prompts (`evals/budget/`), so a non-zero count means
   the total is partly a guess.
@@ -1533,7 +1537,7 @@ stream still ends on its own turn's `turn.end`, so read `turnId` before treating
 | `model.chunk` | streaming | `delta`, `kind: text \| reasoning` — emitted only while some subscriber has opted in, per subscriber |
 | `model.retry` | a retryable model failure, before the next attempt | `status`, `attempt`, `delayMs` |
 | `model.fallback` | a call moved to the next model in its role's `fallbacks`, before any output (Phase 26c) | `from`, `to`, `reason` |
-| `model.result` | response done | `outputTokens`, `promptTokens`, `promptTokensReported`, `finishReason`, `latencyMs`, `firstTokenMs?` (to the first streamed output of any kind; absent when nothing streamed), `callId` (the model call's id: minted before its retries and fallbacks, the key a ledger debits on, carried by its usage row; not a tool call's), `model` (the one that answered, after any fallback), `role`, `cachedPromptTokens?`, `cacheWriteTokens?`, `sender?` (Phase 26c) |
+| `model.result` | response done | `outputTokens`, `promptTokens`, `promptTokensReported`, `finishReason`, `latencyMs`, `firstTokenMs?` (to the first streamed output of any kind; absent when nothing streamed), `callId` (the model call's id: minted before its retries and fallbacks, the key a ledger debits on, carried by its usage row; not a tool call's), `model` (the one that answered, after any fallback), `role`, `cachedPromptTokens?`, `cacheWriteTokens?`, `costUsd?` (what the endpoint reported the call cost, in USD; absent unless it did), `sender?` (Phase 26c) |
 | `tool.call` | before execute | `slug`, `callId`, `argsHash`, `mutating`, `args?` (only under `tools.eventDetail: redacted`: the arguments, redacted; strings over 1,024 characters are cut) |
 | `tool.result` | after execute | `slug`, `callId`, `ok`, `latencyMs`, `bytes`, `truncated`, `trust`, `output?`, `outputTruncated?` (only under `tools.eventDetail: redacted`: the first 2,048 characters of the output the model saw, redacted, and whether it was longer; `truncated` still means the model's own observation was cut) |
 | `tool.gated` | a call was blocked | `slug`, `callId`, `reason`, `policy` |
@@ -1559,7 +1563,7 @@ stream still ends on its own turn's `turn.end`, so read `turnId` before treating
 | `memory.read` | a turn recalled someone's owner scope for somebody other than that person — a stand-in, a room, another caller (Phase 29). The owner's own requests, and unattributed work on their own agent, are not recorded | `scope`, `reader` (the agent), `sources`, `requestedBy?`, `onBehalfOf?` (set for a stand-in). The same record is kept for `GET /v1/participants/:id/memory/reads` |
 | `memory.recalled` | a turn's prompt carries recalled memory: notes, shared scopes, or excerpts of other conversations (`memory.includeHistory`) (pilot.13) | `passages: [{ source, score }]`, best first. A conversation's source is `session:<key>`. Not emitted when nothing was recalled, nor for a context preview |
 | `memory.forgotten` | `memory_forget` deleted notes (pilot.15): the agent's private notes, or the space's when it is the space writer. Not emitted for a listing, nor when nothing matched the ids | `scope` (`private` or `space`), `count` (notes), `messages?` (past conversation messages redacted, when any). The text itself is not repeated, so an audit of deletions is not a copy of what was deleted |
-| `turn.end` | complete | `reason`, `steps`, `tokens`, `durationMs`, `finalText?` (the last step's prose alone, when any step wrote some; the reply joins every step's, so a lead-in repeated before each tool call appears once here (pilot.14). Taken before any `wrapTurn` middleware, like the `model.chunk` stream), `attachments?` (`[{path, mimeType}]`, files a tool produced for the reply, relative to the agent's directory; a channel sends them after the text) |
+| `turn.end` | complete | `reason`, `steps`, `tokens` (`{prompt, output, costUsd?}`; `costUsd` sums what the endpoints reported for the turn's calls, absent when none did), `durationMs`, `finalText?` (the last step's prose alone, when any step wrote some; the reply joins every step's, so a lead-in repeated before each tool call appears once here (pilot.14). Taken before any `wrapTurn` middleware, like the `model.chunk` stream), `attachments?` (`[{path, mimeType}]`, files a tool produced for the reply, relative to the agent's directory; a channel sends them after the text) |
 | `error` | anything uncaught | `code`, `message`, `hint`, `stack?` |
 
 **What `units` counts, per first-party provider** (pilot.10). Where a provider reports its own

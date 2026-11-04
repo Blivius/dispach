@@ -1029,8 +1029,8 @@ export class SqliteStore implements Store {
                 `INSERT OR IGNORE INTO model_calls
                      (agent_id, session_key, turn_id, role, model, prompt_tokens, prompt_reported,
                       cached_prompt_tokens, output_tokens, output_reported, sender, at,
-                      call_id, cache_write_tokens, images, audio_seconds)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                      call_id, cache_write_tokens, images, audio_seconds, cost_usd)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             ),
             modelCallDeleteAll: db.prepare("DELETE FROM model_calls WHERE agent_id = ?"),
             webhookInsert: db.prepare(
@@ -2656,6 +2656,7 @@ export class SqliteStore implements Store {
                     call.cacheWriteTokens ?? null,
                     call.images ?? null,
                     call.audioSeconds ?? null,
+                    call.costUsd ?? null,
                 )
             },
             report: async (query) => usageReport(db, query),
@@ -2776,6 +2777,8 @@ interface UsageRow {
     readonly images: number
     readonly audio_seconds: number
     readonly estimated_calls: number
+    readonly cost_usd: number | null
+    readonly costed_calls: number
 }
 
 /**
@@ -2829,6 +2832,9 @@ function usageReport(
                 "COALESCE(SUM(images), 0) AS images",
                 "COALESCE(SUM(audio_seconds), 0) AS audio_seconds",
                 "COALESCE(SUM(CASE WHEN prompt_reported = 0 OR output_reported = 0 THEN 1 ELSE 0 END), 0) AS estimated_calls",
+                // SUM over no non-NULL rows is NULL, which is the "nobody reported" state kept.
+                "SUM(cost_usd) AS cost_usd",
+                "COUNT(cost_usd) AS costed_calls",
             ].join(", ")}
                FROM model_calls ${clause(where)} ${groupBy}
               ${groupBy === "" ? "" : `ORDER BY ${groups.map((group) => group.sql).join(", ")}`}`,
@@ -2853,6 +2859,9 @@ function usageReport(
             images: row.images,
             audioSeconds: row.audio_seconds,
             estimatedCalls: row.estimated_calls,
+            ...(row.cost_usd === null
+                ? {}
+                : { costUsd: row.cost_usd, costedCalls: row.costed_calls }),
         }))
     return {
         buckets,

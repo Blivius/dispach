@@ -4,6 +4,7 @@ import { MAX_TRANSCRIPT_ITEMS } from "#lib/const"
 import type { TranscriptState } from "#lib/types"
 import {
     EMPTY_TRANSCRIPT,
+    formatStats,
     reduce,
     seed,
     seedHistory,
@@ -1047,5 +1048,37 @@ describe("trim", () => {
         )
         expect(state.items.some((item) => item.role === "banner")).toBe(false)
         expect(state.items.length).toBe(MAX_TRANSCRIPT_ITEMS)
+    })
+})
+
+describe("a reported cost on the stats line", () => {
+    test("shown when turn.end carries one, absent otherwise, sub-cent amounts not rounded to zero", () => {
+        const base = {
+            promptTokens: 120,
+            outputTokens: 8,
+            durationMs: 900,
+            steps: 1,
+            reason: "final",
+        }
+        expect(formatStats(base)).toBe("120 prompt · 8 output · 900 ms")
+        expect(formatStats({ ...base, costUsd: 0.000013 })).toBe(
+            "120 prompt · 8 output · $0.000013 · 900 ms",
+        )
+        expect(formatStats({ ...base, costUsd: 0.4567 })).toContain("$0.46")
+
+        const state = run([
+            START,
+            {
+                kind: "event",
+                event: ev("turn.end", {
+                    reason: "final",
+                    steps: 1,
+                    tokens: { prompt: 120, output: 8, costUsd: 0.000013 },
+                    durationMs: 900,
+                }),
+            },
+        ])
+        // The reducer carries it into the stats the status bar formats.
+        expect(JSON.stringify(state)).toContain('"costUsd":0.000013')
     })
 })

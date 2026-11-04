@@ -101,6 +101,66 @@ describe("every model call is metered", () => {
         await runtime.stop()
     })
 
+    test("a cost the endpoint reports reaches the turn, model.result and the usage report", async () => {
+        // Otari's live shape (2026-11-04): `cost_usd` a decimal string, beside a float estimate.
+        const costed = (prompt: number, output: number, cost: string) =>
+            `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: prompt, completion_tokens: output, estimated_cost: 9.9, cost_usd: cost } })}\n\n`
+        let call = 0
+        const fetch: FetchLike = async () => {
+            call += 1
+            return call === 1
+                ? sse([delta("ACTION: now\n"), costed(100, 10, "0.000007"), "data: [DONE]\n\n"])
+                : sse([delta("It is now."), costed(150, 5, "0.000013"), "data: [DONE]\n\n"])
+        }
+        const runtime = await Runtime.create({
+            agents: [join(workspace(), "agent.yaml")],
+            env: ENV,
+            fetch,
+        })
+        const results: number[] = []
+        runtime.bus.on("model.result", (event) => {
+            if (event.type === "model.result" && event.data.costUsd !== undefined)
+                results.push(event.data.costUsd)
+        })
+        const reply = await runtime.agent("metered").send("what time is it?")
+        await new Promise((resolve) => setTimeout(resolve, 20))
+
+        // The string, not `estimated_cost`: the reported figure is the measurement.
+        expect(results).toEqual([0.000007, 0.000013])
+        // Summed over the steps, unlike `prompt`: each call was billed.
+        expect(reply.tokens.costUsd).toBeCloseTo(0.00002, 12)
+        const [total] = (await runtime.store.usage.report({ by: [] })).buckets
+        expect(total?.costUsd).toBeCloseTo(0.00002, 12)
+        expect(total?.costedCalls).toBe(2)
+        await runtime.stop()
+    })
+
+    test("a bucket where only some calls reported a cost says how many did", async () => {
+        let call = 0
+        const fetch: FetchLike = async () => {
+            call += 1
+            return call === 1
+                ? sse([
+                      delta("ACTION: now\n"),
+                      `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 100, completion_tokens: 10, cost_usd: "0.000007" } })}\n\n`,
+                      "data: [DONE]\n\n",
+                  ])
+                : sse([delta("It is now."), usage(150, 5), "data: [DONE]\n\n"])
+        }
+        const runtime = await Runtime.create({
+            agents: [join(workspace(), "agent.yaml")],
+            env: ENV,
+            fetch,
+        })
+        await runtime.agent("metered").send("what time is it?")
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        const [total] = (await runtime.store.usage.report({ by: [] })).buckets
+        expect(total?.calls).toBe(2)
+        expect(total?.costUsd).toBeCloseTo(0.000007, 12)
+        expect(total?.costedCalls).toBe(1)
+        await runtime.stop()
+    })
+
     test("a call whose figures were estimated says so", async () => {
         // No usage frame: both figures are ours.
         const runtime = await Runtime.create({

@@ -22,6 +22,9 @@ export interface UsageBucket {
     readonly cacheWriteTokens: number
     readonly outputTokens: number
     readonly estimatedCalls: number
+    /** USD the endpoints reported, over `costedCalls` of `calls`. Both absent when none did. */
+    readonly costUsd?: number
+    readonly costedCalls?: number
 }
 
 export interface UsageReport {
@@ -298,6 +301,8 @@ function BucketTable(props: {
         (a, b) => b.promptTokens + b.outputTokens - (a.promptTokens + a.outputTokens),
     )
     if (rows.length === 0) return <p className="empty">nothing in this range</p>
+    // A column only when some endpoint reported a cost: an empty one would read as "free".
+    const costed = rows.some((bucket) => bucket.costUsd !== undefined)
     return (
         <table className="panel-table">
             <thead>
@@ -307,6 +312,7 @@ function BucketTable(props: {
                     <th>prompt</th>
                     <th>cached</th>
                     <th>output</th>
+                    {costed ? <th>cost</th> : null}
                 </tr>
             </thead>
             <tbody>
@@ -322,9 +328,27 @@ function BucketTable(props: {
                         <td>{compact(bucket.promptTokens)}</td>
                         <td>{compact(bucket.cachedPromptTokens)}</td>
                         <td>{compact(bucket.outputTokens)}</td>
+                        {costed ? <td>{costCell(bucket)}</td> : null}
                     </tr>
                 ))}
             </tbody>
         </table>
+    )
+}
+
+/** The reported cost, and how many of the calls it covers when that is not all of them. */
+export function costCell(bucket: UsageBucket): React.ReactNode {
+    if (bucket.costUsd === undefined) return "—"
+    const usd = bucket.costUsd >= 0.01 ? bucket.costUsd.toFixed(2) : bucket.costUsd.toPrecision(2)
+    const partial = bucket.costedCalls !== undefined && bucket.costedCalls < bucket.calls
+    return (
+        <>
+            ${usd}
+            {partial ? (
+                <div className="sub">
+                    {bucket.costedCalls} of {bucket.calls} calls
+                </div>
+            ) : null}
+        </>
     )
 }

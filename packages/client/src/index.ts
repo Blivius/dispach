@@ -1122,6 +1122,9 @@ export interface UsageBucketLike {
     readonly outputTokens: number
     /** Calls where either figure was an estimate. Non-zero means the totals are partly a guess. */
     readonly estimatedCalls: number
+    /** USD the endpoints reported, over `costedCalls` of `calls`. Both absent when none reported. */
+    readonly costUsd?: number
+    readonly costedCalls?: number
 }
 
 export interface UsageReportLike {

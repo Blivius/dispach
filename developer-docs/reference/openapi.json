@@ -7983,6 +7983,14 @@
                                                         "type": "integer",
                                                         "minimum": -9007199254740991,
                                                         "maximum": 9007199254740991
+                                                    },
+                                                    "costUsd": {
+                                                        "type": "number"
+                                                    },
+                                                    "costedCalls": {
+                                                        "type": "integer",
+                                                        "minimum": -9007199254740991,
+                                                        "maximum": 9007199254740991
                                                     }
                                                 },
                                                 "required": [
@@ -8113,6 +8121,14 @@
                                                         "type": "number"
                                                     },
                                                     "estimatedCalls": {
+                                                        "type": "integer",
+                                                        "minimum": -9007199254740991,
+                                                        "maximum": 9007199254740991
+                                                    },
+                                                    "costUsd": {
+                                                        "type": "number"
+                                                    },
+                                                    "costedCalls": {
                                                         "type": "integer",
                                                         "minimum": -9007199254740991,
                                                         "maximum": 9007199254740991

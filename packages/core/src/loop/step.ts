@@ -48,6 +48,8 @@ export interface StepUsage {
     readonly promptReported: boolean
     readonly cachedPromptTokens?: number
     readonly cacheWriteTokens?: number
+    /** What the endpoint said the call cost. Absent unless it said so. */
+    readonly costUsd?: number
     readonly outputTokens: number
     readonly outputReported: boolean
     readonly context: EventContext
@@ -59,6 +61,8 @@ export interface StepResult {
     readonly text: string
     readonly reasoning: string
     readonly finishReason: string
+    /** What the endpoint said this call cost, in USD. Absent unless it said so. */
+    readonly costUsd?: number
     readonly promptTokens: number
     /**
      * Whether `promptTokens` came from the endpoint or from our own estimator.
@@ -125,6 +129,7 @@ export async function runStep(input: StepInput): Promise<StepResult> {
     let cachedPromptTokens: number | undefined
     let cacheSource: string | undefined
     let cacheWriteTokens: number | undefined
+    let costUsd: number | undefined
     let reportedOutputTokens: number | undefined
     const calls: ToolCallRequest[] = []
     const thinking: ThinkingBlock[] = []
@@ -187,6 +192,7 @@ export async function runStep(input: StepInput): Promise<StepResult> {
                     }
                     if (chunk.cacheWriteTokens !== undefined)
                         cacheWriteTokens = chunk.cacheWriteTokens
+                    if (chunk.costUsd !== undefined) costUsd = chunk.costUsd
                     break
                 case "model":
                     model = chunk.id
@@ -226,6 +232,7 @@ export async function runStep(input: StepInput): Promise<StepResult> {
             role: input.role.role,
             ...(cachedPromptTokens === undefined ? {} : { cachedPromptTokens }),
             ...(cacheWriteTokens === undefined ? {} : { cacheWriteTokens }),
+            ...(costUsd === undefined ? {} : { costUsd }),
             ...(input.sender === undefined ? {} : { sender: input.sender }),
         },
         input.context,
@@ -241,6 +248,7 @@ export async function runStep(input: StepInput): Promise<StepResult> {
         promptReported: promptTokensReported,
         ...(cachedPromptTokens === undefined ? {} : { cachedPromptTokens }),
         ...(cacheWriteTokens === undefined ? {} : { cacheWriteTokens }),
+        ...(costUsd === undefined ? {} : { costUsd }),
         outputTokens,
         outputReported: reportedOutputTokens !== undefined,
         context: input.context,
@@ -255,6 +263,7 @@ export async function runStep(input: StepInput): Promise<StepResult> {
         promptTokensReported,
         ...(cachedPromptTokens === undefined ? {} : { cachedPromptTokens }),
         ...(cacheSource === undefined ? {} : { cacheSource }),
+        ...(costUsd === undefined ? {} : { costUsd }),
         outputTokens,
         latencyMs,
         calls,

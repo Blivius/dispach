@@ -83,7 +83,7 @@ export interface TurnOutcome {
     readonly reason: TurnEndReason
     readonly steps: number
     readonly durationMs: number
-    readonly tokens: { readonly prompt: number; readonly output: number }
+    readonly tokens: { readonly prompt: number; readonly output: number; readonly costUsd?: number }
     readonly error?: ErrorDetail
 }
 

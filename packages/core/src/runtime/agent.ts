@@ -3180,6 +3180,7 @@ export class Agent {
                     ...(usage.cacheWriteTokens === undefined
                         ? {}
                         : { cacheWriteTokens: usage.cacheWriteTokens }),
+                    ...(usage.costUsd === undefined ? {} : { costUsd: usage.costUsd }),
                     outputTokens: usage.outputTokens,
                     outputReported: usage.outputReported,
                     ...(sender === undefined ? {} : { sender }),

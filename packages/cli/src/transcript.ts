@@ -374,6 +374,7 @@ function reduceEvent(state: TranscriptState, event: AnyEvent): TranscriptState {
             const stats: TurnStats = {
                 promptTokens: tokens.prompt,
                 outputTokens: tokens.output,
+                ...(tokens.costUsd === undefined ? {} : { costUsd: tokens.costUsd }),
                 durationMs,
                 steps,
                 reason,
@@ -503,7 +504,13 @@ function reduceEvent(state: TranscriptState, event: AnyEvent): TranscriptState {
 
 /** What a renderer writes for a turn's cost. Kept here so the plain and rich paths agree. */
 export function formatStats(stats: TurnStats): string {
-    return `${stats.promptTokens} prompt · ${stats.outputTokens} output · ${stats.durationMs} ms`
+    const cost = stats.costUsd === undefined ? "" : ` · $${formatUsd(stats.costUsd)}`
+    return `${stats.promptTokens} prompt · ${stats.outputTokens} output${cost} · ${stats.durationMs} ms`
+}
+
+/** Enough digits that a sub-cent call is not printed as $0.00, and no trailing float noise. */
+export function formatUsd(usd: number): string {
+    return usd >= 0.01 ? usd.toFixed(2) : usd.toPrecision(2).replace(/0+$/, "").replace(/\.$/, "")
 }
 
 /**

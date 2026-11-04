@@ -359,6 +359,11 @@ export interface TurnResult {
          */
         readonly cachedPrompt?: number
         readonly cacheSource?: string
+        /**
+         * USD the endpoint reported, summed over the turn's calls — every step is billed, unlike
+         * `prompt`. Absent when no call reported a cost; partial when only some did.
+         */
+        readonly costUsd?: number
     }
     readonly durationMs: number
     /** Present when `reason` is `error`. Carries a field path when one applies. */
@@ -616,6 +621,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
     let cachedPromptTokens: number | undefined
     let cacheSource: string | undefined
     let outputTokens = 0
+    let costUsd: number | undefined
     /**
      * Turn-scoped, and outside the `try` because the result is built after it.
      *
@@ -1106,6 +1112,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                 cacheSource = step.cacheSource
             }
             outputTokens += step.outputTokens
+            if (step.costUsd !== undefined) costUsd = (costUsd ?? 0) + step.costUsd
 
             // The anchor. Only a figure the endpoint actually reported teaches anything — `promptTokens`
             // is seeded with our own estimate, so feeding back an unreported one converges the
@@ -1634,6 +1641,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                 output: outputTokens,
                 ...(cachedPromptTokens === undefined ? {} : { cachedPrompt: cachedPromptTokens }),
                 ...(cacheSource === undefined ? {} : { cacheSource }),
+                ...(costUsd === undefined ? {} : { costUsd }),
             },
             durationMs,
             ...(finalText === "" ? {} : { finalText }),
@@ -1664,6 +1672,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
             output: outputTokens,
             ...(cachedPromptTokens === undefined ? {} : { cachedPrompt: cachedPromptTokens }),
             ...(cacheSource === undefined ? {} : { cacheSource }),
+            ...(costUsd === undefined ? {} : { costUsd }),
         },
         durationMs,
         ...(error === undefined ? {} : { error }),
