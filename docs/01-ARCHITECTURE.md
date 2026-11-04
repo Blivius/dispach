@@ -59,6 +59,7 @@ dispach/
 │   ├── tools-mcp/               @dispach/tools-mcp          remote MCP servers, Streamable HTTP
 │   ├── tools-system/            @dispach/tools-system       shell + files
 │   ├── tools-web/               @dispach/tools-web          search + fetch
+│   ├── tools-otari/             @dispach/tools-otari        Otari's search + Python sandbox
 │   ├── model-bedrock/           @dispach/model-bedrock      the bedrock-converse transport
 │   ├── model-otari/             @dispach/model-otari        the otari transport (Mozilla.ai gateway)
 │   ├── media-aws/               @dispach/media-aws          Amazon Transcribe, Nova Canvas

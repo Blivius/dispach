@@ -367,6 +367,13 @@ Eight tools: `exec`, `file_read`, `file_write`, `file_edit`, `glob`, `grep`, `co
 permission rules; `write` is files **without** a shell, which is the only configuration in which
 "confined to the workspace" is a true statement — see below.
 
+`tools.providers.otari` (`@dispach/tools-otari`) is Otari's own tools on the model's key: `web_search`
+through Otari's search and `run_code` (Python in Otari's sandbox, one sandbox per session). It accepts
+`apiKeyEnv` (default `OTARI_API_KEY`), `baseUrl` and `searchModel` (default `openai/gpt-oss-20b`, the
+small model the search runs inside). Its `web_search` shares the slug with `web`'s, and two providers
+resolving one slug fail the load — so beside it, `web: { search: false }` keeps `web_fetch` alone.
+`dispach init --preset otari` writes that pairing, and asks `--sandbox none|otari`.
+
 `tools.providers.system` accepts `writeRoots` (extra writable directories) and `protect` (extra
 refused paths). Both widen their respective set; nothing narrows either.
 

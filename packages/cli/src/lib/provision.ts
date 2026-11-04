@@ -70,6 +70,7 @@ export const FLAG_FOR: Record<InitStep, string> = {
     webBackend: "--web-backend",
     // No flag, same reason as the model key.
     webKey: "(asked at the prompt only)",
+    sandbox: "--sandbox",
     composio: "--composio",
     composioKey: "(asked at the prompt only)",
     telegram: "--telegram",
@@ -160,6 +161,7 @@ export function complete(
             | "apiKey"
             | "webBackend"
             | "webKey"
+            | "sandbox"
             | "composioKey"
             | "skillsSearch"
             | "skillsPick"
@@ -192,6 +194,8 @@ export function complete(
         // so `nextQuestion` returning undefined does not mean they were answered.
         webBackend?: string
         webKey?: string
+        /** Undefined unless the preset is Otari's. */
+        sandbox?: string
         /** Undefined unless the Composio answer was `connected`, for the same reason. */
         composioKey?: string
         /** Both stay undefined unless the Telegram answer was `connected`. */
@@ -275,6 +279,9 @@ export function complete(
         // both the wizard and `--schedules daily` pass through, which is the lesson `apiKeyEnv` above
         // records from the last time a question was removed and its field silently went missing.
         schedules: answers.schedules ?? "none",
+        // Asked only on Otari; `none` everywhere else and when skipped. Listed, because this literal
+        // drops anything it does not name.
+        sandbox: answers.sandbox ?? "none",
         /**
          * **On by default, and no longer asked.** "Serve the HTTP API?" defaulted to *No* —
          * `fallback: "1"` is a 1-based menu index and element 0 of `SERVER_CHOICES` is `none` — so

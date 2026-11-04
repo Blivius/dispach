@@ -17,8 +17,9 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { type HarnessError, loadManifest } from "@dispach/core"
+import { type HarnessError, loadManifest, Runtime } from "@dispach/core"
 import { dirFor, SECRET_STEPS, STEP_ORDER } from "#lib/init-flow"
+import { MODEL_TRANSPORTS, TOOL_PROVIDERS } from "#lib/providers"
 import { FLAG_FOR, provisionAgent, provisionSteps, toProvisionStep } from "#lib/provision"
 
 const dirs: string[] = []
@@ -130,6 +131,51 @@ describe("every preset writes an endpoint that works", () => {
         })
         expect(loaded.manifest.model.main.api).toBe("otari")
         expect(loaded.manifest.model.main.id).toBe("z-ai/glm-5.3")
+    })
+
+    test("otari with search and the sandbox boots with Otari's web_search, web_fetch and run_code", async () => {
+        // Booted, not only parsed: `web` and `otari` both offer web_search, and two providers resolving
+        // one slug fail at resolution (`tool_slug_collision`), which a YAML read never reaches.
+        const result = provisionAgent({
+            answers: {
+                user: "Ada",
+                name: "p-otari-tools",
+                preset: "otari",
+                web: "search",
+                sandbox: "otari",
+            },
+            defaults: defaults(),
+        })
+        const env = readFileSync(join(result.dir, ".env"), "utf8")
+        // Search runs on the model's key: no second key is asked for or written.
+        expect(env).not.toContain("TAVILY_API_KEY")
+        const runtime = await Runtime.create({
+            agents: [join(result.dir, "agent.yaml")],
+            env: { OTARI_API_KEY: "otk_test" },
+            store: ":memory:",
+            toolProviders: TOOL_PROVIDERS,
+            modelTransports: MODEL_TRANSPORTS,
+        })
+        const agent = runtime.agent("p-otari-tools")
+        const tools = new Map(agent.tools.specs().map((spec) => [spec.slug, spec.provider]))
+        await runtime.stop()
+        expect(tools.get("web_search")).toBe("otari")
+        expect(tools.get("web_fetch")).toBe("web")
+        expect(tools.get("run_code")).toBe("otari")
+        // Allowed by rule, or a search earlier in the turn makes run_code once-per-turn.
+        const loaded = loadManifest(join(result.dir, "agent.yaml"), { env: { OTARI_API_KEY: "x" } })
+        expect(loaded.manifest.tools?.policy?.allow).toContain("run_code")
+    })
+
+    test("otari with no answers names its tools and enables none: the sandbox spends money", () => {
+        const result = provisionAgent({
+            answers: { user: "Ada", name: "p-otari-default", preset: "otari" },
+            defaults: defaults(),
+        })
+        const manifest = readFileSync(join(result.dir, "agent.yaml"), "utf8")
+        expect(manifest).toContain("    otari: {}")
+        expect(manifest).toContain("    # - run_code")
+        expect(manifest).not.toMatch(/^ {4}- run_code$/m)
     })
 
     test("a region that is not one is refused by name", () => {

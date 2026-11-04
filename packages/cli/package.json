@@ -69,6 +69,7 @@
         "@dispach/tools-composio": "workspace:*",
         "@dispach/tools-mcp": "workspace:*",
         "@dispach/tools-system": "workspace:*",
+        "@dispach/tools-otari": "workspace:*",
         "@dispach/tools-web": "workspace:*",
         "@types/react": "19.2.18",
         "dts-bundle-generator": "9.5.1",

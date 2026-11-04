@@ -75,6 +75,7 @@
         "@dispach/server": "workspace:*",
         "@dispach/tools-composio": "workspace:*",
         "@dispach/tools-mcp": "workspace:*",
+        "@dispach/tools-otari": "workspace:*",
         "@dispach/tools-system": "workspace:*",
         "@dispach/tools-web": "workspace:*",
         "@types/react": "19.2.18",
@@ -164,6 +165,14 @@
       "version": "0.1.0",
       "dependencies": {
         "@dispach/core": "workspace:*",
+      },
+    },
+    "packages/tools-otari": {
+      "name": "@dispach/tools-otari",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dispach/core": "workspace:*",
+        "@dispach/model-otari": "workspace:*",
       },
     },
     "packages/tools-system": {
@@ -376,6 +385,8 @@
     "@dispach/tools-composio": ["@dispach/tools-composio@workspace:packages/tools-composio"],
 
     "@dispach/tools-mcp": ["@dispach/tools-mcp@workspace:packages/tools-mcp"],
+
+    "@dispach/tools-otari": ["@dispach/tools-otari@workspace:packages/tools-otari"],
 
     "@dispach/tools-system": ["@dispach/tools-system@workspace:packages/tools-system"],
 

@@ -995,6 +995,7 @@ describe("first-party packages use only the public core API", () => {
         "model-otari",
         "tools-composio",
         "tools-mcp",
+        "tools-otari",
         "tools-system",
         "tools-web",
     ]

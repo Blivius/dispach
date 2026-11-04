@@ -61,6 +61,11 @@ export interface WebProviderOptions {
      * exist. Absent, `web_fetch` is the plain client it always was and the other two are not offered.
      */
     readonly firecrawl?: FirecrawlConfig
+    /**
+     * `false` drops `web_search`, for an agent whose search comes from another provider (Otari's).
+     * Two providers resolving one slug is a load failure (`tool_slug_collision`), never a quiet pick.
+     */
+    readonly search?: boolean
     readonly fetch?: FetchLike
     readonly lookup?: LookupLike
 }
@@ -85,13 +90,17 @@ export class WebProvider implements ToolProvider {
         const lookup = options.lookup ?? systemLookup
 
         this.#tools = [
-            searchTool({
-                backend: id,
-                apiKeyEnv: options.apiKeyEnv ?? chosen.defaultKeyEnv,
-                ...(options.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }),
-                env: options.env,
-                fetch: fetchImpl,
-            }),
+            ...(options.search === false
+                ? []
+                : [
+                      searchTool({
+                          backend: id,
+                          apiKeyEnv: options.apiKeyEnv ?? chosen.defaultKeyEnv,
+                          ...(options.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }),
+                          env: options.env,
+                          fetch: fetchImpl,
+                      }),
+                  ]),
             ...(options.firecrawl === undefined
                 ? [
                       fetchTool({
@@ -134,7 +143,7 @@ export class WebProvider implements ToolProvider {
     }
 }
 
-const CONFIG_KEYS = ["backend", "apiKeyEnv", "baseUrl", "maxBytes", "firecrawl"] as const
+const CONFIG_KEYS = ["backend", "apiKeyEnv", "baseUrl", "maxBytes", "firecrawl", "search"] as const
 const FIRECRAWL_KEYS = ["apiKeyEnv", "baseUrl", "onlyMainContent", "maxAge", "timeoutMs"] as const
 
 export function webFromConfig(context: ToolProviderContext): WebProvider {
@@ -174,6 +183,14 @@ export function webFromConfig(context: ToolProviderContext): WebProvider {
         throw webConfigInvalid("maxBytes", "must be a number of at least 1000.")
     }
 
+    const search = context.config.search
+    if (search !== undefined && typeof search !== "boolean") {
+        throw webConfigInvalid(
+            "search",
+            "must be true or false. false leaves web_search to another provider.",
+        )
+    }
+
     const baseUrl = baseUrlOf(context.config.baseUrl, "baseUrl")
     const firecrawl = firecrawlConfig(
         context.config.firecrawl,
@@ -188,6 +205,7 @@ export function webFromConfig(context: ToolProviderContext): WebProvider {
         ...(backendId === undefined ? {} : { backend: String(backendId) as BackendId }),
         ...(typeof apiKeyEnv === "string" ? { apiKeyEnv } : {}),
         ...(typeof maxBytes === "number" ? { maxBytes } : {}),
+        ...(search === false ? { search: false } : {}),
     })
 }
 

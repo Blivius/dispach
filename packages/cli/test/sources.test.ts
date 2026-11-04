@@ -501,6 +501,7 @@ describe("init --skills find", () => {
         baseUrl: "https://api.example.test/v1",
         system: "none",
         web: "none",
+        sandbox: "none",
         composio: "none",
         telegram: "none",
         whatsapp: "none",

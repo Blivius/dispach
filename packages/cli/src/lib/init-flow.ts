@@ -112,6 +112,12 @@ export interface InitAnswers {
     /** Which search backend, when `web` is `search`. Ignored otherwise. */
     readonly webBackend?: string
     /**
+     * `none` or `otari`: whether it may run Python in Otari's sandbox (`run_code`). Asked only for the
+     * Otari preset, whose key it runs on; required here and defaulted to `none` in `complete()`, so a
+     * skipped question cannot drop the field.
+     */
+    readonly sandbox: string
+    /**
      * The search key itself, written to the gitignored `.env` beside the manifest. Same rule as the
      * model key: the manifest names the variable, no flag accepts the value.
      */
@@ -357,6 +363,20 @@ export const WEB_CHOICES: readonly {
         pinned: ["web_search", "web_fetch"],
     },
 ]
+
+/** `run_code`, for an agent on Otari. `none` first: a run is billed, so the default spends nothing. */
+export const SANDBOX_CHOICES: readonly { readonly value: string; readonly label: string }[] = [
+    { value: "none", label: "No — it will know run_code exists and can ask you to enable it" },
+    {
+        value: "otari",
+        label: "Yes — Python in Otari's sandbox, on the model's key. Never on this machine",
+    },
+]
+
+/** Search and the sandbox come from Otari, on the model's key, when the preset is Otari's. */
+function onOtari(answers: InitAnswers): boolean {
+    return presetById(answers.preset)?.api === "otari"
+}
 
 export function webChoice(value: string): (typeof WEB_CHOICES)[number] | undefined {
     return WEB_CHOICES.find((choice) => choice.value === value)
@@ -675,6 +695,7 @@ export const STEP_ORDER: readonly InitStep[] = [
     "web",
     "webBackend",
     "webKey",
+    "sandbox",
     "composio",
     "composioKey",
     "telegram",
@@ -797,6 +818,10 @@ export function nextQuestion(
         // The backend and its key are only questions for someone who asked for search. Skipped
         // rather than asked-and-ignored: an answer the flow discards is a question that lies.
         if ((step === "webBackend" || step === "webKey") && partial.web !== "search") continue
+        // On Otari, search runs on the model's own key: no backend to pick and no second key.
+        if ((step === "webBackend" || step === "webKey") && preset?.api === "otari") continue
+        // The sandbox is Otari's, so it is a question only for an agent on Otari.
+        if (step === "sandbox" && preset?.api !== "otari") continue
         // Same rule: only "somewhere else" has a path to type. The other two answers derive their
         // directory at the `complete()` funnel, which is where a no-longer-asked step's default has
         // to live — the alternative is the manifest arriving with the field simply absent.
@@ -879,6 +904,16 @@ export function nextQuestion(
                     prompt: "Can it reach the internet?",
                     fallback: "1",
                     options: WEB_CHOICES.map((choice) => ({
+                        value: choice.value,
+                        label: choice.label,
+                    })),
+                }
+            case "sandbox":
+                return {
+                    step,
+                    prompt: "Can it run Python in Otari's sandbox?",
+                    fallback: "1",
+                    options: SANDBOX_CHOICES.map((choice) => ({
                         value: choice.value,
                         label: choice.label,
                     })),
@@ -1111,6 +1146,17 @@ export function validateAnswer(step: InitStep, raw: string): Answered {
                 ? {
                       ok: false,
                       reason: `pick 1-${WEB_CHOICES.length}, or a name: ${WEB_CHOICES.map((c) => c.value).join(", ")}.`,
+                  }
+                : { ok: true, value: chosen.value }
+        }
+
+        case "sandbox": {
+            const byNumber = SANDBOX_CHOICES[Number(value) - 1]
+            const chosen = byNumber ?? SANDBOX_CHOICES.find((c) => c.value === value.toLowerCase())
+            return chosen === undefined
+                ? {
+                      ok: false,
+                      reason: `pick 1-${SANDBOX_CHOICES.length}, or a name: ${SANDBOX_CHOICES.map((c) => c.value).join(", ")}.`,
                   }
                 : { ok: true, value: chosen.value }
         }
@@ -1411,28 +1457,43 @@ function systemBlock(answers: InitAnswers): readonly string[] {
         // tools exist. Left commented out, asked whether it could search the web an agent answered
         // that the only route was shell access and curl: true of its catalogue, false of this
         // runtime, and the worse of the two answers.
-        ...(webPinned.length === 0
+        ...(onOtari(answers)
             ? [
-                  `    # Named with nothing pinned. It cannot reach the internet, and it knows the two`,
-                  `    # tools exist and will tell you which one to enable rather than saying it can't.`,
-                  `    # web_fetch needs no key; web_search needs one, named here:`,
-                  `    #   web: { backend: tavily, apiKeyEnv: TAVILY_API_KEY }   # tavily | brave | exa`,
-                  `    web: {}`,
+                  `    # Otari's own tools on the model's key (OTARI_API_KEY): web_search through Otari's`,
+                  `    # search, run_code in Otari's Python sandbox. Named whatever was pinned, so the agent`,
+                  `    # knows they exist; what it may call is the pinned list below.`,
+                  `    otari: {}`,
+                  ``,
               ]
-            : backend === undefined
+            : []),
+        ...(onOtari(answers)
+            ? [
+                  `    # web_fetch reads a page by URL, no key. Its web_search is off because Otari's is the`,
+                  `    # one in use: two providers offering one tool name fail the load.`,
+                  `    web: { search: false }`,
+              ]
+            : webPinned.length === 0
               ? [
-                    `    # Reading pages only. No key and no account: web_fetch takes a URL you or the`,
-                    `    # person gave it. To add search, pick a backend and name its variable:`,
+                    `    # Named with nothing pinned. It cannot reach the internet, and it knows the two`,
+                    `    # tools exist and will tell you which one to enable rather than saying it can't.`,
+                    `    # web_fetch needs no key; web_search needs one, named here:`,
                     `    #   web: { backend: tavily, apiKeyEnv: TAVILY_API_KEY }   # tavily | brave | exa`,
                     `    web: {}`,
                 ]
-              : [
-                    `    # Search and page reading. The key lives in the .env beside this file; this names`,
-                    `    # only the variable, and a literal key here fails validation.`,
-                    `    web:`,
-                    `      backend: ${backend.value}`,
-                    `      apiKeyEnv: ${backend.apiKeyEnv}`,
-                ]),
+              : backend === undefined
+                ? [
+                      `    # Reading pages only. No key and no account: web_fetch takes a URL you or the`,
+                      `    # person gave it. To add search, pick a backend and name its variable:`,
+                      `    #   web: { backend: tavily, apiKeyEnv: TAVILY_API_KEY }   # tavily | brave | exa`,
+                      `    web: {}`,
+                  ]
+                : [
+                      `    # Search and page reading. The key lives in the .env beside this file; this names`,
+                      `    # only the variable, and a literal key here fails validation.`,
+                      `    web:`,
+                      `      backend: ${backend.value}`,
+                      `      apiKeyEnv: ${backend.apiKeyEnv}`,
+                  ]),
         `    # Addresses on this machine or this network are refused and no setting permits them.`,
         `    # Neither tool can change anything, but what they return is text a stranger wrote — so it`,
         `    # is fenced as data, and a tool that CHANGES something needs an allow rule after one runs.`,
@@ -1446,6 +1507,9 @@ function systemBlock(answers: InitAnswers): readonly string[] {
         ...webPinned.map((slug) => `    - ${slug}`),
         ...(webPinned.includes("web_search") ? [] : [`    # - web_search`]),
         ...(webPinned.includes("web_fetch") ? [] : [`    # - web_fetch`]),
+        ...(onOtari(answers)
+            ? [answers.sandbox === "otari" ? `    - run_code` : `    # - run_code`]
+            : []),
         ...composioPinned(answers).map((slug) => `    - ${slug}`),
         ...(composioEnabled(answers)
             ? [
@@ -1538,7 +1602,12 @@ function policyBlock(answers: InitAnswers): readonly string[] {
     // the turn and the connect that has to follow it has nothing to point at. That is the gate
     // working exactly as designed and indistinguishable from a broken runtime while the one useful
     // sequence — find the app, hand over the sign-in link — stops halfway through.
-    const allow = [...(choice?.allow ?? []), ...composioPinned(answers).filter(isMutatingMeta)]
+    const allow = [
+        ...(choice?.allow ?? []),
+        ...composioPinned(answers).filter(isMutatingMeta),
+        // Mutating and untrusted, so without a rule it is once per turn after a search taints it.
+        ...(onOtari(answers) && answers.sandbox === "otari" ? ["run_code"] : []),
+    ]
 
     const lines = [
         `  # ── which calls run, which ask, and which are refused ──`,
@@ -2381,7 +2450,7 @@ function envFor(answers: InitAnswers): string {
 
 /** The chosen search backend, or undefined when this agent does not search. */
 function searchBackend(answers: InitAnswers): (typeof WEB_BACKENDS)[number] | undefined {
-    if (answers.web !== "search") return undefined
+    if (answers.web !== "search" || onOtari(answers)) return undefined
     return webBackendByValue(answers.webBackend ?? "tavily") ?? WEB_BACKENDS[0]
 }
 

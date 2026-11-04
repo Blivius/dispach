@@ -340,6 +340,7 @@ function fromFlags(options: InitOptions): Partial<Record<InitStep, string>> {
         ["system", options.system],
         ["web", options.web],
         ["webBackend", options.webBackend],
+        ["sandbox", options.sandbox],
         ["composio", options.composio],
         ["telegram", options.telegram],
         ["telegramAllow", options.telegramAllow],

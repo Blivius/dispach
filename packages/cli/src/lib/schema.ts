@@ -291,6 +291,8 @@ export interface InitOptions {
     readonly system?: string
     readonly web?: string
     readonly webBackend?: string
+    /** `none` or `otari` — Python in Otari's sandbox, asked only with the Otari preset. */
+    readonly sandbox?: string
     /** `none` or `connected` — whether the agent reaches other apps through Composio. */
     readonly composio?: string
     /** `none` or `connected` — whether people can message it on Telegram. */

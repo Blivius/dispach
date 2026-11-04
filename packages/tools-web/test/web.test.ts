@@ -516,6 +516,13 @@ describe("the web provider", () => {
         expect(() => webFromConfig({ ...base, config: { maxBytes: 10 } })).toThrow(/at least 1000/)
     })
 
+    test("search: false leaves web_search to another provider and keeps web_fetch", async () => {
+        const provider = webFromConfig({ ...base, config: { search: false } })
+        expect(await provider.list()).toEqual(["web_fetch"])
+        expect(await provider.resolve(["web_search", "web_fetch"])).toHaveLength(1)
+        expect(() => webFromConfig({ ...base, config: { search: "no" } })).toThrow(/true or false/)
+    })
+
     test("the default is tavily with its conventional variable", () => {
         const provider = webFromConfig({ ...base, config: {} })
         expect(provider.id).toBe("web")

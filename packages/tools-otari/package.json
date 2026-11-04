@@ -1,0 +1,32 @@
+{
+    "name": "@dispach/tools-otari",
+    "version": "0.1.0",
+    "description": "Otari's web search, code sandbox and MCP servers as tools, on the same key as the model.",
+    "license": "Apache-2.0",
+    "author": "Moeen Mahmud",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/moeen-mahmud/dispach.git",
+        "directory": "packages/tools-otari"
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "rm -rf dist && bun build ./src/index.ts --outdir dist --target node --format esm --sourcemap=linked --packages=external && tsc -p tsconfig.build.json",
+        "typecheck": "tsc -p tsconfig.json"
+    },
+    "dependencies": {
+        "@dispach/core": "workspace:*",
+        "@dispach/model-otari": "workspace:*"
+    },
+    "private": true
+}

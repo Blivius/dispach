@@ -18,6 +18,9 @@ tools:
     - web_fetch
 ```
 
+`search: false` drops `web_search` from this provider, for an agent whose search comes from another
+one (`tools.providers.otari`): two providers offering one slug fail the load rather than pick one.
+
 `web_fetch` needs no key. `web_search` needs one, and says which variable is missing at the moment
 it is called rather than at boot — an agent that pins only `web_fetch` should not fail to start on a
 machine with no search key.

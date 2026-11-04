@@ -133,8 +133,15 @@ export const COMMANDS: readonly CommandSpec[] = [
                 name: "web-backend",
                 kind: "string",
                 placeholder: "id",
-                help: "search backend when --web search: tavily | brave | exa",
+                help: "search backend when --web search: tavily | brave | exa (Otari's own on --preset otari)",
                 defaultHelp: "tavily",
+            },
+            {
+                name: "sandbox",
+                kind: "string",
+                placeholder: "where",
+                help: "run Python in Otari's sandbox, with --preset otari: none | otari",
+                defaultHelp: "none",
             },
             {
                 name: "composio",

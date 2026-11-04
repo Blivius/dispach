@@ -31,6 +31,7 @@ import bedrockPlugin, { bedrockTransport } from "@dispach/model-bedrock"
 import otariPlugin, { otariTransport } from "@dispach/model-otari"
 import composioPlugin, { composioFromConfig } from "@dispach/tools-composio"
 import mcpPlugin, { mcpFromConfig } from "@dispach/tools-mcp"
+import otariToolsPlugin, { otariToolsFromConfig } from "@dispach/tools-otari"
 import systemPlugin, { SystemScriptRunner, systemFromConfig } from "@dispach/tools-system"
 import webPlugin, { webFromConfig } from "@dispach/tools-web"
 
@@ -48,6 +49,9 @@ export const TOOL_PROVIDERS: Readonly<Record<string, ToolProviderFactory>> = {
     // that runs commands are different grants, and a manifest should be able to make one and not the
     // other.
     web: webFromConfig,
+    // Otari's search and sandbox on the model's own key. Its `web_search` shares the slug with
+    // `web`'s, and two providers resolving one slug fail the load — so beside it, `web: { search: false }`.
+    otari: otariToolsFromConfig,
 }
 
 /**
@@ -165,6 +169,7 @@ export const BUILT_IN_PLUGINS: BuiltInPlugins = {
     "@dispach/model-otari": otariPlugin,
     "@dispach/tools-composio": composioPlugin,
     "@dispach/tools-mcp": mcpPlugin,
+    "@dispach/tools-otari": otariToolsPlugin,
     "@dispach/tools-system": systemPlugin,
     "@dispach/tools-web": webPlugin,
 }

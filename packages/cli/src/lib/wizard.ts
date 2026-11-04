@@ -282,6 +282,7 @@ export function answeredRows(
         web: "Internet",
         webBackend: "Search backend",
         webKey: "Search key",
+        sandbox: "Python sandbox",
         system: "System access",
         composio: "Other apps",
         telegram: "Telegram",

@@ -159,6 +159,7 @@ async function dispatch(argv: readonly string[]): Promise<number> {
             const system = flags.str("system")
             const web = flags.str("web")
             const webBackend = flags.str("web-backend")
+            const sandbox = flags.str("sandbox")
             const composio = flags.str("composio")
             const telegram = flags.str("telegram")
             const telegramAllow = flags.str("telegram-allow")
@@ -181,6 +182,7 @@ async function dispatch(argv: readonly string[]): Promise<number> {
                 ...(system === undefined ? {} : { system }),
                 ...(web === undefined ? {} : { web }),
                 ...(webBackend === undefined ? {} : { webBackend }),
+                ...(sandbox === undefined ? {} : { sandbox }),
                 ...(composio === undefined ? {} : { composio }),
                 ...(telegram === undefined ? {} : { telegram }),
                 ...(schedules === undefined ? {} : { schedules }),

@@ -39,6 +39,7 @@ const ANSWERS: InitAnswers = {
     apiKey: "sk-test-value",
     system: "none",
     web: "none",
+    sandbox: "none",
     composio: "none",
     telegram: "none",
     whatsapp: "none",
