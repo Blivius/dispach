@@ -143,6 +143,7 @@ describe("/tools", () => {
             },
             { slug: "memory_write", mutating: true, trust: "trusted", summary: "append a note" },
         ],
+        warnings: [],
     }
 
     test("reports the count, the call format, and what slot 1 costs every turn", () => {
@@ -162,7 +163,7 @@ describe("/tools", () => {
     })
 
     test("an agent with no tools says so, and says where they would go", () => {
-        const report = toolsReport({ dialect: "nlt", catalogueTokens: 0, tools: [] })
+        const report = toolsReport({ dialect: "nlt", catalogueTokens: 0, tools: [], warnings: [] })
         expect(report).toContain("no tools")
         expect(report).toContain("tools.local")
     })
@@ -195,7 +196,29 @@ describe("/tools", () => {
                     summary: "the current date and time",
                 },
             ],
+            warnings: [],
         })
+    })
+
+    test("a pinned tool the registry left out is said, not just absent", () => {
+        const view = toolsView({
+            describe: () => ({ dialect: "native", catalogueTokens: 0 }),
+            tools: {
+                specs: () => [],
+                warnings: [
+                    {
+                        code: "tool_schema_unsupported",
+                        message: "deepwiki__ask_wiki_question is pinned and was left out: oneOf",
+                        hint: "The rest of the agent loads without it.",
+                    },
+                ],
+            },
+        })
+        expect(view.warnings.map((warning) => warning.code)).toEqual(["tool_schema_unsupported"])
+        const line = "! deepwiki__ask_wiki_question is pinned and was left out"
+        expect(toolsReport(view)).toContain(line)
+        const now = { slug: "now", mutating: false, trust: "trusted", summary: "the time" }
+        expect(toolsReport({ ...view, tools: [now] })).toContain(line)
     })
 })
 
@@ -300,6 +323,7 @@ describe("/tools shows trust", () => {
         const report = toolsReport({
             dialect: "nlt",
             catalogueTokens: 855,
+            warnings: [],
             tools: [
                 { slug: "now", mutating: false, trust: "trusted", summary: "the time" },
                 { slug: "exec", mutating: true, trust: "untrusted", summary: "a shell command" },

@@ -463,6 +463,11 @@ export function remoteSource(input: {
                     ...(tool.trustReason === undefined ? {} : { trustReason: tool.trustReason }),
                     summary: tool.summary,
                 })),
+                // The tools route lists tools only; the agent resource already carries the load
+                // warnings, and the registry's are the `tool_` ones.
+                warnings: input.description.warnings
+                    .filter((warning) => warning.code.startsWith("tool_"))
+                    .map(({ code, message, hint }) => ({ code, message, hint })),
             }
         },
         context: async (sessionKey) => {

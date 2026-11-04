@@ -379,7 +379,9 @@ workspace (`mcp: { deepwiki: <server id> }`); its tools are pinned as `deepwiki_
 slugs `tools.providers.mcp` would give them. Otari holds the server's URL and credential, and this
 runtime's policy is the authorization: discovery (`GET /mcp/servers/{id}/tools`) runs after readiness
 into `.dispach/otari-mcp.cache.json`, boot resolves from it, and each call is one `POST /mcp/execute`
-carrying the discovered `server_revision`, never retried. A cold cache names `tools --warm`.
+carrying the discovered `server_revision`, never retried. A cold cache names `tools --warm`. `init --preset otari`
+asks for them (`--otari-mcp deepwiki=<server id>,…`) and names them without pinning any tool: the tool names
+arrive with discovery after the first start, when `available()` lists them to the agent.
 
 `tools.providers.system` accepts `writeRoots` (extra writable directories) and `protect` (extra
 refused paths). Both widen their respective set; nothing narrows either.

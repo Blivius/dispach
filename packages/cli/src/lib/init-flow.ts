@@ -118,6 +118,12 @@ export interface InitAnswers {
      */
     readonly sandbox: string
     /**
+     * MCP servers registered in the Otari workspace, as `name=<server id>` pairs separated by commas;
+     * empty for none. Asked only for the Otari preset. Named, never pinned: a server's tool names are
+     * known after discovery, which is network, which `init` leaves to the first start.
+     */
+    readonly otariMcp: string
+    /**
      * The search key itself, written to the gitignored `.env` beside the manifest. Same rule as the
      * model key: the manifest names the variable, no flag accepts the value.
      */
@@ -373,7 +379,53 @@ export const SANDBOX_CHOICES: readonly { readonly value: string; readonly label:
     },
 ]
 
+/**
+ * `deepwiki=<uuid>, other=<uuid>` → pairs, or the reason it is not. The same rules
+ * `tools.providers.otari.mcp` enforces at load, so an answer that passes here cannot fail the boot.
+ */
+export function otariMcpServers(
+    value: string,
+): readonly { readonly name: string; readonly id: string }[] | string {
+    const out: { name: string; id: string }[] = []
+    for (const entry of value.split(",").map((part) => part.trim())) {
+        if (entry === "") continue
+        const [name = "", id = ""] = entry.split("=").map((part) => part.trim())
+        if (!/^[a-z][a-z0-9-]{0,23}$/.test(name)) {
+            return `has "${name}" as a name, which cannot prefix a tool name: use lowercase letters, digits and hyphens, starting with a letter (deepwiki=<server id>).`
+        }
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+            return `has "${id}" where a server id goes. An Otari MCP server id is the UUID on the server's row under Tools → MCP servers in the Otari dashboard, not its URL.`
+        }
+        if (out.some((server) => server.name === name)) return `names "${name}" twice.`
+        out.push({ name, id: id.toLowerCase() })
+    }
+    return out
+}
+
 /** Search and the sandbox come from Otari, on the model's key, when the preset is Otari's. */
+/**
+ * The `otari:` provider entry. MCP servers are named and nothing of theirs is pinned: their tool names
+ * arrive with discovery after the first start, and `available()` then tells the model they exist.
+ */
+function otariBlock(mcp: string): string[] {
+    const servers = otariMcpServers(mcp)
+    if (typeof servers === "string" || servers.length === 0) {
+        return [
+            `    # MCP servers registered in your Otari workspace go here by id, e.g.`,
+            `    #   otari: { mcp: { deepwiki: <server id from Tools → MCP servers> } }`,
+            `    otari: {}`,
+        ]
+    }
+    return [
+        `    # MCP servers registered in your Otari workspace: Otari holds their URLs and credentials.`,
+        `    # Their tools are read after the first start (or \`tools --warm\`), then listed to the`,
+        `    # agent as available; pin one as <name>__<tool>, e.g. ${servers[0]?.name}__<tool>.`,
+        `    otari:`,
+        `      mcp:`,
+        ...servers.map((server) => `        ${server.name}: ${server.id}`),
+    ]
+}
+
 function onOtari(answers: InitAnswers): boolean {
     return presetById(answers.preset)?.api === "otari"
 }
@@ -696,6 +748,7 @@ export const STEP_ORDER: readonly InitStep[] = [
     "webBackend",
     "webKey",
     "sandbox",
+    "otariMcp",
     "composio",
     "composioKey",
     "telegram",
@@ -822,6 +875,7 @@ export function nextQuestion(
         if ((step === "webBackend" || step === "webKey") && preset?.api === "otari") continue
         // The sandbox is Otari's, so it is a question only for an agent on Otari.
         if (step === "sandbox" && preset?.api !== "otari") continue
+        if (step === "otariMcp" && preset?.api !== "otari") continue
         // Same rule: only "somewhere else" has a path to type. The other two answers derive their
         // directory at the `complete()` funnel, which is where a no-longer-asked step's default has
         // to live — the alternative is the manifest arriving with the field simply absent.
@@ -917,6 +971,14 @@ export function nextQuestion(
                         value: choice.value,
                         label: choice.label,
                     })),
+                }
+            case "otariMcp":
+                return {
+                    step,
+                    prompt: "MCP servers from your Otari workspace (name=server-id, comma-separated; blank for none)",
+                    // None is the default: a server is something somebody registered in Otari first.
+                    fallback: "",
+                    optional: true,
                 }
             case "webBackend":
                 return {
@@ -1159,6 +1221,16 @@ export function validateAnswer(step: InitStep, raw: string): Answered {
                       reason: `pick 1-${SANDBOX_CHOICES.length}, or a name: ${SANDBOX_CHOICES.map((c) => c.value).join(", ")}.`,
                   }
                 : { ok: true, value: chosen.value }
+        }
+
+        case "otariMcp": {
+            const parsed = otariMcpServers(value)
+            return typeof parsed === "string"
+                ? { ok: false, reason: parsed }
+                : {
+                      ok: true,
+                      value: parsed.map((server) => `${server.name}=${server.id}`).join(","),
+                  }
         }
 
         case "webBackend": {
@@ -1462,7 +1534,7 @@ function systemBlock(answers: InitAnswers): readonly string[] {
                   `    # Otari's own tools on the model's key (OTARI_API_KEY): web_search through Otari's`,
                   `    # search, run_code in Otari's Python sandbox. Named whatever was pinned, so the agent`,
                   `    # knows they exist; what it may call is the pinned list below.`,
-                  `    otari: {}`,
+                  ...otariBlock(answers.otariMcp),
                   ``,
               ]
             : []),

@@ -283,6 +283,7 @@ export function answeredRows(
         webBackend: "Search backend",
         webKey: "Search key",
         sandbox: "Python sandbox",
+        otariMcp: "Otari MCP servers",
         system: "System access",
         composio: "Other apps",
         telegram: "Telegram",

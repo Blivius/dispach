@@ -328,7 +328,13 @@ const DISCOVERY = {
             description: "Ask any question about a GitHub repository's codebase.",
             input_schema: {
                 type: "object",
-                properties: { repoName: { type: "string" }, question: { type: "string" } },
+                properties: {
+                    repoName: {
+                        anyOf: [{ type: "string" }, { items: { type: "string" }, type: "array" }],
+                        description: "GitHub repository or list of repositories (max 10).",
+                    },
+                    question: { type: "string" },
+                },
                 required: ["repoName", "question"],
             },
             annotations: null,
@@ -360,7 +366,13 @@ describe("MCP servers registered in Otari", () => {
         })
 
         const booted = new OtariToolProvider({ env: {}, dir, mcp: MCP, fetch: refusing })
-        const [tool] = await booted.resolve(["deepwiki__read_wiki_structure"])
+        const [tool, ask] = await booted.resolve([
+            "deepwiki__read_wiki_structure",
+            "deepwiki__ask_wiki_question",
+        ])
+        // The real schema's repoName is anyOf [string, string[]]: narrowed, not refused (4.100).
+        expect(ask?.spec.parameters.properties.repoName?.type).toBe("string")
+        expect(booted.refused()).toEqual([])
         expect(tool?.spec).toMatchObject({
             slug: "deepwiki__read_wiki_structure",
             provider: "otari",

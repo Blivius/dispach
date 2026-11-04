@@ -144,6 +144,13 @@ export const COMMANDS: readonly CommandSpec[] = [
                 defaultHelp: "none",
             },
             {
+                name: "otari-mcp",
+                kind: "string",
+                placeholder: "servers",
+                help: "MCP servers in your Otari workspace, with --preset otari: deepwiki=<server id>,…",
+                defaultHelp: "none",
+            },
+            {
                 name: "composio",
                 kind: "string",
                 placeholder: "level",

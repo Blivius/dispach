@@ -71,6 +71,7 @@ export const FLAG_FOR: Record<InitStep, string> = {
     // No flag, same reason as the model key.
     webKey: "(asked at the prompt only)",
     sandbox: "--sandbox",
+    otariMcp: "--otari-mcp",
     composio: "--composio",
     composioKey: "(asked at the prompt only)",
     telegram: "--telegram",
@@ -162,6 +163,7 @@ export function complete(
             | "webBackend"
             | "webKey"
             | "sandbox"
+            | "otariMcp"
             | "composioKey"
             | "skillsSearch"
             | "skillsPick"
@@ -196,6 +198,8 @@ export function complete(
         webKey?: string
         /** Undefined unless the preset is Otari's. */
         sandbox?: string
+        /** Undefined unless the preset is Otari's. */
+        otariMcp?: string
         /** Undefined unless the Composio answer was `connected`, for the same reason. */
         composioKey?: string
         /** Both stay undefined unless the Telegram answer was `connected`. */
@@ -282,6 +286,7 @@ export function complete(
         // Asked only on Otari; `none` everywhere else and when skipped. Listed, because this literal
         // drops anything it does not name.
         sandbox: answers.sandbox ?? "none",
+        otariMcp: answers.otariMcp ?? "",
         /**
          * **On by default, and no longer asked.** "Serve the HTTP API?" defaulted to *No* —
          * `fallback: "1"` is a 1-based menu index and element 0 of `SERVER_CHOICES` is `none` — so

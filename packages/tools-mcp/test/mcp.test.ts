@@ -187,7 +187,7 @@ describe("mapping", () => {
         expect(spec.parameters.properties.title?.description).toBe("New title.")
         expect(spec.parameters.properties.due?.type).toBe("string")
         expect(spec.parameters.properties.due?.description).toBe("format date")
-        // A union of plain values maps since pilot.16; one with an object in it is still refused.
+        // A union of plain values maps since pilot.16; a oneOf with an object in it is still refused.
         expect(
             toSpec(
                 "work",
@@ -201,12 +201,12 @@ describe("mapping", () => {
                 {
                     name: "u",
                     inputSchema: {
-                        properties: { x: { anyOf: [{ type: "object" }, { type: "string" }] } },
+                        properties: { x: { oneOf: [{ type: "object" }, { type: "string" }] } },
                     },
                 },
                 undefined,
             ),
-        ).toThrow(/anyOf/)
+        ).toThrow(/oneOf/)
     })
 
     test("a tool nobody pinned cannot refuse the agent by having a schema it cannot express", async () => {
@@ -215,7 +215,7 @@ describe("mapping", () => {
         const union: McpTool = {
             name: "search",
             description: "Search anything.",
-            inputSchema: { properties: { q: { anyOf: [{ type: "object" }, { type: "string" }] } } },
+            inputSchema: { properties: { q: { oneOf: [{ type: "object" }, { type: "string" }] } } },
         }
         const { mcp } = provider(server({ tools: [...HULY, union] }).fetch)
         await mcp.refresh([])

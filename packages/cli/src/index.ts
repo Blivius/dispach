@@ -160,6 +160,7 @@ async function dispatch(argv: readonly string[]): Promise<number> {
             const web = flags.str("web")
             const webBackend = flags.str("web-backend")
             const sandbox = flags.str("sandbox")
+            const otariMcp = flags.str("otari-mcp")
             const composio = flags.str("composio")
             const telegram = flags.str("telegram")
             const telegramAllow = flags.str("telegram-allow")
@@ -183,6 +184,7 @@ async function dispatch(argv: readonly string[]): Promise<number> {
                 ...(web === undefined ? {} : { web }),
                 ...(webBackend === undefined ? {} : { webBackend }),
                 ...(sandbox === undefined ? {} : { sandbox }),
+                ...(otariMcp === undefined ? {} : { otariMcp }),
                 ...(composio === undefined ? {} : { composio }),
                 ...(telegram === undefined ? {} : { telegram }),
                 ...(schedules === undefined ? {} : { schedules }),

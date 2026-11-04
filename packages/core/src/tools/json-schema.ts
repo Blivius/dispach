@@ -19,7 +19,13 @@
  * **A nullable field is its non-null type.** `type: ["string", "null"]` and `anyOf: [{…}, {type:
  * "null"}]` are what zod and most MCP servers emit for an optional field, and refusing them refused
  * real servers (QA pilot.3). Leaving the field out is how this runtime says null, so nothing is
- * lost. A union of two real types is still refused: it changes which documents are valid.
+ * lost.
+ *
+ * **An `anyOf` of real types is narrowed to its first variant this subset can express** (decision
+ * 4.100). Every value valid for one branch of an `anyOf` is valid for the whole, so offering the model
+ * that branch alone can only send values the endpoint accepts — narrower than the server's schema,
+ * never wider. DeepWiki's `repoName: anyOf [string, string[]]` becomes a string. `oneOf` is still
+ * refused: it requires *exactly* one branch to match, so a value from one branch is not proven valid.
  */
 
 import type { JsonSchemaNode, JsonType, ScalarType, ToolParameters } from "./types.ts"
@@ -134,6 +140,29 @@ function unwrapNullable(raw: Readonly<Record<string, unknown>>): Readonly<Record
     return { ...asRecord(other), ...rest }
 }
 
+/**
+ * `{…, anyOf: [A, B]}` as the first of A, B that converts, with the outer node's own keywords, or
+ * `undefined` when none does (and the `anyOf` is then refused as before).
+ */
+function narrowAnyOf(
+    raw: Readonly<Record<string, unknown>>,
+    path: string,
+    conversion: SchemaConversion,
+): JsonSchemaNode | undefined {
+    if (!Array.isArray(raw.anyOf)) return undefined
+    const { anyOf, ...outer } = raw
+    for (const variant of anyOf) {
+        const branch = asRecord(variant)
+        if (branch === undefined || branch.type === "null") continue
+        try {
+            return node({ ...branch, ...outer }, path, conversion)
+        } catch {
+            // This branch uses something the subset cannot express; try the next.
+        }
+    }
+    return undefined
+}
+
 /** `["string", "null"]` as `"string"`; anything else unchanged, so a real union is still refused. */
 function nonNullType(declared: unknown): unknown {
     if (!Array.isArray(declared)) return declared
@@ -148,6 +177,10 @@ function node(
 ): JsonSchemaNode {
     const nullable = unwrapNullable(given)
     const union = scalarUnion(nullable)
+    if (union === undefined) {
+        const narrowed = narrowAnyOf(nullable, path, conversion)
+        if (narrowed !== undefined) return narrowed
+    }
     // A union of plain values is represented; its `anyOf` is what it was spelled with, not a constraint.
     const raw =
         union === undefined

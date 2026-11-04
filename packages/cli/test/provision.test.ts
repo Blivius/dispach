@@ -178,6 +178,51 @@ describe("every preset writes an endpoint that works", () => {
         expect(manifest).not.toMatch(/^ {4}- run_code$/m)
     })
 
+    test("otari MCP servers are named in the manifest the provider reads, and nothing is pinned", async () => {
+        const id = "56eb8d19-eca7-4ec3-8f60-62c9c7d9c0a5"
+        const result = provisionAgent({
+            answers: {
+                user: "Ada",
+                name: "p-otari-mcp",
+                preset: "otari",
+                otariMcp: `deepwiki=${id}`,
+            },
+            defaults: defaults(),
+        })
+        // The far end: the value comes back out of the generated file, through the loader.
+        const loaded = loadManifest(join(result.dir, "agent.yaml"), { env: { OTARI_API_KEY: "x" } })
+        const providers = (loaded.manifest.tools?.providers ?? {}) as Record<
+            string,
+            Record<string, unknown>
+        >
+        const config = providers.otari
+        expect(config).toEqual({ mcp: { deepwiki: id } })
+        expect(loaded.manifest.tools?.pinned?.some((slug) => slug.startsWith("deepwiki__"))).toBe(
+            false,
+        )
+        // And the provider accepts it: the same rules, so an answer init took cannot fail the boot.
+        const factory = TOOL_PROVIDERS.otari
+        const provider = await factory?.({
+            dir: result.dir,
+            env: { OTARI_API_KEY: "x" },
+            config: config ?? {},
+            agentId: "p-otari-mcp",
+        })
+        expect(provider?.id).toBe("otari")
+
+        expect(() =>
+            provisionAgent({
+                answers: {
+                    user: "Ada",
+                    name: "p-otari-mcp-bad",
+                    preset: "otari",
+                    otariMcp: "deepwiki=https://mcp.deepwiki.com/mcp",
+                },
+                defaults: defaults(),
+            }),
+        ).toThrow("where a server id goes")
+    })
+
     test("a region that is not one is refused by name", () => {
         expect(() =>
             provisionAgent({

@@ -173,8 +173,8 @@ test("an array's items map, including the empty properties object Composio emits
 })
 
 test("a structural keyword is refused, naming the tool, the field and the keyword", () => {
-    // Dropping anyOf would hand the model a schema the endpoint disagrees with. An object in a union
-    // is still that case after pilot.16 accepted unions of plain values.
+    // Dropping oneOf would hand the model a schema the endpoint disagrees with. An anyOf is narrowed
+    // to a branch since decision 4.100; a oneOf with an object in it is still refused.
     let message = ""
     try {
         mapTool({
@@ -182,7 +182,7 @@ test("a structural keyword is refused, naming the tool, the field and the keywor
             input_parameters: {
                 type: "object",
                 properties: {
-                    target: { anyOf: [{ type: "string" }, { type: "object", properties: {} }] },
+                    target: { oneOf: [{ type: "string" }, { type: "object", properties: {} }] },
                 },
             },
         })
@@ -190,7 +190,7 @@ test("a structural keyword is refused, naming the tool, the field and the keywor
         message = error instanceof Error ? error.message : String(error)
     }
     expect(message.includes("WEIRD_TOOL")).toBe(true)
-    expect(message.includes("anyOf")).toBe(true)
+    expect(message.includes("oneOf")).toBe(true)
     expect(message.includes("target")).toBe(true)
 })
 
@@ -223,7 +223,7 @@ test("a union of plain values maps as one (pilot.16), the way Composio types a S
 
 test("a union is still refused when a variant carries a constraint the union form would drop", () => {
     for (const property of [
-        { anyOf: [{ type: "string", format: "date" }, { type: "number" }] },
+        { oneOf: [{ type: "string", format: "date" }, { type: "number" }] },
         { allOf: [{ type: "string" }] },
     ]) {
         let code = ""
@@ -249,7 +249,7 @@ test("a pinned tool Composio broke costs that tool, not the agent (pilot.16)", a
             input_parameters: {
                 type: "object",
                 properties: {
-                    x: { anyOf: [{ type: "object", properties: {} }, { type: "string" }] },
+                    x: { oneOf: [{ type: "object", properties: {} }, { type: "string" }] },
                 },
             },
         },
@@ -263,7 +263,7 @@ test("a pinned tool Composio broke costs that tool, not the agent (pilot.16)", a
     expect(slugs).not.toContain("SHEETS_BROKEN")
     const warning = registry.warnings.find((entry) => entry.code === "tool_schema_unsupported")
     expect(warning?.message).toContain("SHEETS_BROKEN")
-    expect(warning?.message).toContain("anyOf")
+    expect(warning?.message).toContain("oneOf")
     expect(warning?.field).toBe("tools.pinned[1]")
     // Not reported as missing as well, which would blame a slug that exists.
     expect(registry.warnings.some((entry) => entry.code === "unknown_tool")).toBe(false)

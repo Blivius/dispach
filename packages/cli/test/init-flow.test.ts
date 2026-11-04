@@ -40,6 +40,7 @@ const ANSWERS: InitAnswers = {
     system: "none",
     web: "none",
     sandbox: "none",
+    otariMcp: "",
     composio: "none",
     telegram: "none",
     whatsapp: "none",

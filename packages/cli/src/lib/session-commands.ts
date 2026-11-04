@@ -393,6 +393,16 @@ export interface ToolsView {
         readonly trustReason?: string
         readonly summary: string
     }[]
+    /**
+     * What the registry warned about while resolving: a pinned tool left out because its schema could
+     * not be loaded, above all. `validate` and the chat banner showed these and this listing did not,
+     * so a pinned tool simply was not in it with nothing saying why.
+     */
+    readonly warnings: readonly {
+        readonly code: string
+        readonly message: string
+        readonly hint: string
+    }[]
 }
 
 /**
@@ -413,6 +423,11 @@ export interface AgentToolsSource {
             readonly trustReason?: string
             readonly summary: string
         }[]
+        readonly warnings?: readonly {
+            readonly code: string
+            readonly message: string
+            readonly hint: string
+        }[]
     }
 }
 
@@ -432,6 +447,11 @@ export function toolsView(agent: AgentToolsSource): ToolsView {
             ...(spec.trustReason === undefined ? {} : { trustReason: spec.trustReason }),
             summary: spec.summary,
         })),
+        warnings: (agent.tools.warnings ?? []).map(({ code, message, hint }) => ({
+            code,
+            message,
+            hint,
+        })),
     }
 }
 
@@ -443,8 +463,12 @@ export function toolsView(agent: AgentToolsSource): ToolsView {
  * question, and `catalogueTokens` is the recurring cost of every turn in the session.
  */
 export function toolsReport(view: ToolsView): string {
+    const warned = view.warnings.map((warning) => `  ! ${warning.message}`)
     if (view.tools.length === 0) {
-        return `no tools — this agent pinned none, so the model can only reply. Add them under tools.local or tools.pinned. (call format ${view.dialect})`
+        return [
+            `no tools — this agent pinned none, so the model can only reply. Add them under tools.local or tools.pinned. (call format ${view.dialect})`,
+            ...warned,
+        ].join("\n")
     }
 
     const pad = view.tools.reduce((longest, tool) => Math.max(longest, tool.slug.length), 0)
@@ -468,6 +492,7 @@ export function toolsReport(view: ToolsView): string {
         // count leads; the protocol is labelled as what it is.
         `${view.tools.length} tool${view.tools.length === 1 ? "" : "s"} · call format ${view.dialect} · catalogue ${view.catalogueTokens} tokens, on every turn`,
         ...rows,
+        ...warned,
     ].join("\n")
 }
 

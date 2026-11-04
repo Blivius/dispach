@@ -341,6 +341,7 @@ function fromFlags(options: InitOptions): Partial<Record<InitStep, string>> {
         ["web", options.web],
         ["webBackend", options.webBackend],
         ["sandbox", options.sandbox],
+        ["otariMcp", options.otariMcp],
         ["composio", options.composio],
         ["telegram", options.telegram],
         ["telegramAllow", options.telegramAllow],
