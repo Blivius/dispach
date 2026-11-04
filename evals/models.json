@@ -8,6 +8,10 @@
     "ollama": {
         "baseUrl": "http://localhost:11434/v1"
     },
+    "otari": {
+        "baseUrl": "https://api.otari.ai/api/v1",
+        "apiKeyEnv": "OTARI_API_KEY"
+    },
     "models": [
         {
             "key": "opus-5.5",
@@ -128,6 +132,28 @@
             "host": "ollama",
             "openWeight": true,
             "params": 12
+        },
+        {
+            "key": "otari-glm-5.3",
+            "tier": "open-large",
+            "id": "z-ai/glm-5.3",
+            "host": "otari",
+            "openWeight": true
+        },
+        {
+            "key": "otari-kimi-k2.6",
+            "tier": "open-large",
+            "id": "moonshotai/kimi-k2.6",
+            "host": "otari",
+            "openWeight": true
+        },
+        {
+            "key": "otari-gpt-oss-20b",
+            "tier": "open-small",
+            "id": "openai/gpt-oss-20b",
+            "host": "otari",
+            "openWeight": true,
+            "params": 21
         }
     ]
 }

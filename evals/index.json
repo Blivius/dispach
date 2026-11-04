@@ -24,6 +24,17 @@
         },
         {
             "section": "Harness head-to-head",
+            "claim": "Through Mozilla.ai's Otari gateway, unpinned, GLM 5.3 scores 124/125 ($1.05), Kimi K2.6 113/125 ($0.48) and gpt-oss-20b 97/125 ($0.05); GLM and gpt-oss are within one run of their pinned OpenRouter scores",
+            "evidence": "`evals/harness/README.md` (Through Otari), runs in evals/harness/runs/sweep-otari-458b4e1/ (2026-11-04)",
+            "scope": "Same 25 tasks × 5, Dispach native only",
+            "limitation": "No rival harness run through Otari; Otari chooses the provider, so routing is part of what was measured",
+            "status": "verified",
+            "files": [
+                "evals/harness/README.md"
+            ]
+        },
+        {
+            "section": "Harness head-to-head",
             "claim": "OpenClaw 2026.10.5 scores lowest on every model, 11–60 runs behind",
             "evidence": "`evals/harness/summary.json`",
             "scope": "As above",
@@ -408,9 +419,10 @@
                 "runs/h2h-309fdf8/results.json",
                 "runs/h2h-cachefix/results.json",
                 "runs/sweep-4f3e00a/results.json",
-                "runs/sweep-552660a/results.json"
+                "runs/sweep-552660a/results.json",
+                "runs/sweep-otari-458b4e1/results.json"
             ],
-            "measuredAt": "2026-10-23T14:28:59.470Z"
+            "measuredAt": "2026-11-04T14:49:58.379Z"
         },
         {
             "name": "memory",

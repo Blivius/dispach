@@ -90,7 +90,8 @@ function readTail(tail: string): Pick<ProxyRecord, "usage" | "servedBy" | "gener
         ...optional("completion", num(/"completion_tokens"\s*:\s*(\d+)/g)),
         ...optional("cached", num(/"cached_tokens"\s*:\s*(\d+)/g)),
         ...optional("reasoning", num(/"reasoning_tokens"\s*:\s*(\d+)/g)),
-        ...optional("cost", num(/"cost"\s*:\s*([\d.eE-]+)/g)),
+        // OpenRouter sends a number as `cost`; Otari a decimal string as `cost_usd`.
+        ...optional("cost", num(/"cost(?:_usd)?"\s*:\s*"?([\d.eE-]+)/g)),
     }
     return {
         ...(Object.keys(usage).length === 0 ? {} : { usage }),

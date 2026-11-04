@@ -36,12 +36,14 @@ interface RosterFile {
     readonly selectedAt: string
     readonly openrouter: { readonly baseUrl: string; readonly apiKeyEnv: string }
     readonly ollama: { readonly baseUrl: string }
+    readonly otari: { readonly baseUrl: string; readonly apiKeyEnv: string }
     readonly models: readonly {
         readonly key: string
         readonly tier: Tier
         readonly id: string
         readonly provider?: string
-        readonly host?: "ollama"
+        /** Absent: OpenRouter. `otari` is not pinned: choosing the provider is Otari's job, and its fallback is part of what a run on it measures. */
+        readonly host?: "ollama" | "otari"
         readonly openWeight: boolean
         readonly params?: number
         readonly turnTimeoutMs?: number
@@ -52,13 +54,14 @@ export function loadRoster(only?: readonly string[]): RosterModel[] {
     const file = JSON.parse(readFileSync(join(ROOT, "evals", "models.json"), "utf8")) as RosterFile
     const models = file.models.map((m): RosterModel => {
         const local = m.host === "ollama"
+        const hosted = m.host === "otari" ? file.otari : file.openrouter
         return {
             key: m.key,
             tier: m.tier,
             id: m.id,
-            baseUrl: local ? file.ollama.baseUrl : file.openrouter.baseUrl,
+            baseUrl: local ? file.ollama.baseUrl : hosted.baseUrl,
             openWeight: m.openWeight,
-            ...(local ? {} : { apiKeyEnv: file.openrouter.apiKeyEnv }),
+            ...(local ? {} : { apiKeyEnv: hosted.apiKeyEnv }),
             ...(m.provider === undefined ? {} : { provider: m.provider }),
             ...(m.params === undefined ? {} : { params: m.params }),
             ...(m.turnTimeoutMs === undefined ? {} : { turnTimeoutMs: m.turnTimeoutMs }),
@@ -98,7 +101,14 @@ export async function checkPins(models: readonly RosterModel[]): Promise<PinChec
     const checks: PinCheck[] = []
     for (const model of models) {
         if (model.provider === undefined) {
-            checks.push({ key: model.key, ok: true, detail: "local, not pinned" })
+            checks.push({
+                key: model.key,
+                ok: true,
+                detail:
+                    model.apiKeyEnv === undefined
+                        ? "local, not pinned"
+                        : "not pinned: the gateway picks the provider",
+            })
             continue
         }
         const res = await fetch(`${model.baseUrl}/models/${model.id}/endpoints`)

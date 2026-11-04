@@ -50,6 +50,33 @@ in each run's `results.json`.
 store a "sensitive" locker code). Every arm-level change in that pair is inside both intervals. A
 task-level difference of 3 in 5 on these hosted models is not a result.
 
+## Through Otari (`458b4e1`)
+
+The same 25 tasks, n=5, on 2026-11-04, three open-weight models served by Mozilla.ai's Otari gateway
+(`https://api.otari.ai/api/v1`) rather than pinned on OpenRouter. The runtime arm is unchanged: `init
+--preset custom` against the recording proxy, which forwards to Otari. Nothing is pinned, because
+choosing the provider is Otari's job here, so a result is a result about Otari's routing as well as the
+model. Image built from the working tree at `458b4e1`, which differed from it only in the bench scripts.
+
+| Model | Native | 95% CI | Cost | Same model on OpenRouter |
+| --- | --- | --- | --- | --- |
+| GLM 5.3 | 124/125 (99%) | 96–100% | $1.05 | 125/125, $0.80 (`4f3e00a`, z-ai pinned) |
+| Kimi K2.6 | 113/125 (90%) | 84–94% | $0.48 | not run |
+| gpt-oss-20b | 97/125 (78%) | 70–84% | $0.05 | 97/125 (`4f3e00a`) |
+
+Through the gateway, GLM 5.3 and gpt-oss-20b land within one run of their OpenRouter scores.
+
+- gpt-oss-20b fails `chain-edit-json` 5/5 without calling anything: it reads the "Not enabled for you"
+  list (the system provider's `file_write`) as covering the bench's own write tool, which it has. It is
+  the same confusion recorded for GPT-6 Luna under NLT, and it is the runtime's to fix. `single-now` fails
+  3/5 after a correct clock call, by naming the wrong weekday for the timestamp it was given.
+- Kimi K2.6 fails `chain-order-notify` 4/5 (Sam is not told the order is delayed) and `recover-persist`
+  3/5; one run errored.
+- `recover-persist` passed 4/5 on GLM 5.3, so "fails in every Dispach arm" above describes `8267f61`.
+
+Reproduce with `OTARI_API_KEY` set and `--model otari-glm-5.3` (or `otari-kimi-k2.6`,
+`otari-gpt-oss-20b`); the proxy reads Otari's `usage.cost_usd` as the run's cost.
+
 ## Model sweep (`4f3e00a`)
 
 The same 25 tasks, n=5, on 2026-10-23, every arm on an image built from `git archive 4f3e00a` so no

@@ -89,6 +89,24 @@ describe("bench proxy", () => {
         expect(record?.modelRequested).toBe("whatever-the-harness-says")
     })
 
+    test("Otari's cost, a decimal string under cost_usd, is the run's cost", async () => {
+        const records: ProxyRecord[] = []
+        const fake = (async () =>
+            new Response(
+                `data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":2,"cost_usd":"0.000014"}}\n\ndata: [DONE]\n\n`,
+                { headers: { "content-type": "text/event-stream" } },
+            )) as unknown as typeof fetch
+        const handler = createProxy({
+            label: "h",
+            model: MODEL,
+            apiKey: "k",
+            record: (r) => records.push(r),
+            fetch: fake,
+        })
+        await (await post(handler, REQUEST)).text()
+        expect(records[0]?.usage?.cost).toBe(0.000014)
+    })
+
     test("mock: answers in both shapes after the set latency and still records the overhead", async () => {
         const records: ProxyRecord[] = []
         let clock = 1000
