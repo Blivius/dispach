@@ -228,6 +228,25 @@ describe("refusals say what to do next", () => {
         expect(refused.field).toBe("model.main.options.guardrails")
     })
 
+    test("a guardrail Otari cannot run is refused by name, and no fallback model is tried", async () => {
+        // The live 502: prose, no code, no header (2026-11-04, a profile with a parameter Lakera refused).
+        const { fetch } = recording(
+            () =>
+                new Response(
+                    JSON.stringify({
+                        detail: "guardrail profile 'lakera-guard' could not be evaluated",
+                    }),
+                    { status: 502 },
+                ),
+        )
+        const error = await failure(provider(fetch).chat(PING, new AbortController().signal))
+        const refused = error as { code: string; message: string; status: unknown }
+        expect(refused.code).toBe("otari_guardrail_unavailable")
+        expect(refused.message).toContain("lakera-guard")
+        // A status of 502 is what a fallback chain moves on; a guardrail outage must stop instead.
+        expect(refused.status).toBeUndefined()
+    })
+
     test("an empty wallet is its own error; an unknown code keeps core's", async () => {
         const wallet = recording(
             () =>

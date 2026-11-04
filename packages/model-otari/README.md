@@ -34,6 +34,10 @@ transport adds what is specific to Otari:
   resets; `otari_guardrail_violation` names the profile; `otari_insufficient_funds` says to top up.
   They keep their 403/402 status, so a fallback chain stops instead of trying the next model: a spent
   budget is a stop, not an outage.
+- **A guardrail Otari cannot run** (`502 guardrail profile '…' could not be evaluated`) is
+  `otari_guardrail_unavailable`, and it carries no status so it never falls back: a fallback on another
+  endpoint would answer, unchecked, the request the guardrail was set to refuse. The usual cause is a
+  field in the profile's Parameters (JSON) that the vendor does not take; Lakera takes no threshold.
 
 ## Notes measured against the live API (2026-11-04)
 

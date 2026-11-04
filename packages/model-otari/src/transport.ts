@@ -138,6 +138,10 @@ interface Refusal {
     readonly profiles?: readonly string[]
 }
 
+/** `guardrail profile 'x' could not be evaluated` and `… requested but no guardrails service is configured`. */
+const UNAVAILABLE =
+    /guardrail profile '([^']+)' (?:could not be evaluated|requested but no guardrails service)/
+
 /**
  * Otari's error body is `{detail, code}` per its docs and `{detail: {message, code, guardrails}}` for a
  * guardrail block, measured against the live API on 2026-11-04. Both shapes are read; anything else
@@ -156,21 +160,30 @@ export function readRefusal(status: number, headers: Headers, text: string): Ref
         string,
         unknown
     >
-    const code = headers.get("otari-error-code") ?? top.code ?? nested.code
-    if (typeof code !== "string") return undefined
     const message =
         typeof detail === "string"
             ? detail
             : typeof nested.message === "string"
               ? nested.message
               : ""
+    // A guardrail Otari could not run answers 502 with prose and no code (measured 2026-11-04), so
+    // the profile is read out of the sentence. Anything else without a code stays core's error.
+    const unavailable = UNAVAILABLE.exec(message)
+    const code =
+        headers.get("otari-error-code") ??
+        top.code ??
+        nested.code ??
+        (unavailable === null ? undefined : "guardrail_unavailable")
+    if (typeof code !== "string") return undefined
     const scope = headers.get("otari-budget-scope") ?? undefined
     const after = Number(headers.get("retry-after"))
     const profiles = Array.isArray(nested.guardrails)
         ? (nested.guardrails as unknown[])
               .map((entry) => (entry as { profile?: unknown } | null)?.profile)
               .filter((profile): profile is string => typeof profile === "string")
-        : undefined
+        : unavailable?.[1] === undefined
+          ? undefined
+          : [unavailable[1]]
     return {
         status,
         code,
@@ -213,6 +226,19 @@ export function refusalError(refusal: Refusal, field: string): ModelError | unde
                 code: "otari_guardrail_violation",
                 message: `Otari's guardrail blocked the request before any model saw it (${profiles}).${said}`,
                 hint: `The block is the guardrail working. If it is wrong for this agent, set mode: monitor on that profile in ${field}.options.guardrails to report without blocking.`,
+                field: `${field}.options.guardrails`,
+            })
+        }
+        case "guardrail_unavailable": {
+            const profiles =
+                refusal.profiles === undefined ? "a guardrail" : refusal.profiles.join(", ")
+            // **No status, on purpose.** Otari sends 502, and a 502 is what moves a fallback chain on
+            // (decision 14.19). Here that would be a bypass, not a recovery: a fallback on another
+            // endpoint answers the request the guardrail was configured to refuse unchecked.
+            return new ModelError({
+                code: "otari_guardrail_unavailable",
+                message: `Otari could not run the guardrail (${profiles}), and the request was refused rather than served unchecked.${said}`,
+                hint: "Check the guardrail in the Otari dashboard: its vendor key, and that the profile's Parameters (JSON) holds only fields that vendor takes — an unknown one fails every check. Lakera takes no threshold; its strictness is a Lakera project's policy.",
                 field: `${field}.options.guardrails`,
             })
         }

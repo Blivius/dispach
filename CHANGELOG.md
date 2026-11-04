@@ -4,7 +4,7 @@
 
 ### Added
 
-- `api: otari`: Mozilla.ai's Otari gateway as a model transport (`@dispach/model-otari`, bundled). Chat-completions underneath, defaulting to hosted Otari and `OTARI_API_KEY`. `options.guardrails` and `options.tags` are sent with each call, the role always as a usage tag; a gateway fallback is reported as the model that answered; a spent budget, a guardrail block and an empty balance are their own errors, with hints, and stay 403/402 so no fallback model is tried. An Otari preset in `init` and the web console; `model probe` measures an Otari role.
+- `api: otari`: Mozilla.ai's Otari gateway as a model transport (`@dispach/model-otari`, bundled). Chat-completions underneath, defaulting to hosted Otari and `OTARI_API_KEY`. `options.guardrails` and `options.tags` are sent with each call, the role always as a usage tag; a gateway fallback is reported as the model that answered; a spent budget, a guardrail block and an empty balance are their own errors, with hints, and stay 403/402 so no fallback model is tried. A guardrail Otari could not run is `otari_guardrail_unavailable` and never falls back either, because a fallback elsewhere would answer the request unchecked. An Otari preset in `init` and the web console; `model probe` measures an Otari role.
 
 ### Documentation
 
