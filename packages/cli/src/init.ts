@@ -30,10 +30,10 @@ import {
     planFiles,
     type QuestionDefaults,
     SKILLS_CHOICES,
+    searchBackend,
     slugify,
     TELEGRAM_TOKEN_ENV,
     validateAnswer,
-    webBackendByValue,
 } from "#lib/init-flow"
 import { findAndInstallSkill } from "#lib/init-skills"
 import { type PairOutcome, pairLater, pairWhatsApp } from "#lib/init-whatsapp"
@@ -52,12 +52,6 @@ export type InitResult =
     | { readonly kind: "ok"; readonly manifestPath: string }
     | { readonly kind: "aborted" }
     | { readonly kind: "failed"; readonly code: number }
-
-/** The variable `web_search` will read, or undefined when this agent does not search. */
-function searchKeyVar(answers: InitAnswers): string | undefined {
-    if (answers.web !== "search") return undefined
-    return webBackendByValue(answers.webBackend ?? "tavily")?.apiKeyEnv
-}
 
 export async function initCommand(options: InitOptions): Promise<number> {
     const result = await runInit(options)
@@ -430,7 +424,8 @@ function nextSteps(
     // Same rule as the model key: only when there is genuinely nothing to search with. A search
     // agent whose key is blank starts fine and fails at the first web_search naming the variable —
     // which is the right failure and a poor first impression if nobody said so here.
-    const searchVar = searchKeyVar(answers)
+    // The manifest's own derivation, so this cannot name a key the generated .env does not have.
+    const searchVar = searchBackend(answers)?.apiKeyEnv
     if (searchVar !== undefined && answers.webKey === undefined) {
         steps.push(
             `Add your search key: edit ${join(targetDir, ".env")} and set ${searchVar}= — web_fetch works without it, web_search does not`,

@@ -5,10 +5,11 @@
  * through object literals that are not excess-property-checked: the shape this repo has lost six fields to.
  */
 
-import { afterEach, describe, expect, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { BRAND } from "@dispach/core"
 import { initCommand } from "#init"
 import { EXIT_OK } from "#lib/const"
 import { measuredWindow } from "#lib/measure-window"
@@ -58,8 +59,17 @@ describe("measuredWindow", () => {
 
 describe("init and the endpoint", () => {
     const real = globalThis.fetch
+    // A sandbox of its own: `init` looks for a live host in the sandbox and hands it the agent, so
+    // on a machine with one running this test found it and counted that call as network.
+    const HOME = `${BRAND.envPrefix}HOME`
+    const before = process.env[HOME]
+    beforeEach(() => {
+        process.env[HOME] = mkdtempSync(join(tmpdir(), "measure-window-home-"))
+    })
     afterEach(() => {
         globalThis.fetch = real
+        if (before === undefined) delete process.env[HOME]
+        else process.env[HOME] = before
     })
     const FLAGS = {
         user: "Moeen",

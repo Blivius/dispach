@@ -406,3 +406,36 @@ describe("the API key", () => {
         expect(readFileSync(join(dir, ".env"), "utf8").includes("MODEL_API_KEY")).toBe(false)
     })
 })
+
+describe("next steps name only keys the generated .env has", () => {
+    async function printed(flags: Record<string, string>): Promise<{ out: string; env: string }> {
+        const dir = scratch()
+        const write = process.stdout.write.bind(process.stdout)
+        let out = ""
+        process.stdout.write = ((chunk: string | Uint8Array) => {
+            out += String(chunk)
+            return true
+        }) as typeof process.stdout.write
+        try {
+            expect(await initCommand({ ...FLAGS, web: "search", dir, ...flags })).toBe(EXIT_OK)
+        } finally {
+            process.stdout.write = write
+        }
+        return { out, env: readFileSync(join(dir, ".env"), "utf8") }
+    }
+
+    test("on Otari, search runs on the model's key: no search key is asked for", async () => {
+        // Shipped asking for TAVILY_API_KEY with "web_search does not [work without it]" while the
+        // manifest took web_search from Otari and the .env had no such line: two derivations.
+        const { out, env } = await printed({ preset: "otari" })
+        expect(env).not.toContain("TAVILY_API_KEY")
+        expect(out).not.toContain("search key")
+        expect(out).toContain("OTARI_API_KEY")
+    })
+
+    test("with a search backend, the step names the variable its .env holds", async () => {
+        const { out, env } = await printed({ webBackend: "brave" })
+        expect(env).toContain("BRAVE_API_KEY=")
+        expect(out).toContain("set BRAVE_API_KEY=")
+    })
+})

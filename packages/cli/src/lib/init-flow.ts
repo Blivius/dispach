@@ -2521,7 +2521,8 @@ function envFor(answers: InitAnswers): string {
 }
 
 /** The chosen search backend, or undefined when this agent does not search. */
-function searchBackend(answers: InitAnswers): (typeof WEB_BACKENDS)[number] | undefined {
+/** The backend `web_search` reads a key for; none on Otari, whose search runs on the model's key. */
+export function searchBackend(answers: InitAnswers): (typeof WEB_BACKENDS)[number] | undefined {
     if (answers.web !== "search" || onOtari(answers)) return undefined
     return webBackendByValue(answers.webBackend ?? "tavily") ?? WEB_BACKENDS[0]
 }
