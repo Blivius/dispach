@@ -38,6 +38,7 @@ import { HarnessError, isHarnessError } from "../errors.ts"
 import { type MediaProviderFactory, resolveMedia } from "../media/provider.ts"
 import type { ToolProviderFactory } from "../tools/types.ts"
 import { resolveProviders } from "./providers.ts"
+import { resolveRefs } from "./refs.ts"
 import { type AgentManifest, AgentManifestSchema } from "./schema.ts"
 import { validateChannelRoles, validateSchedules, validateSubagents } from "./validate.ts"
 import { removeInSource, setInSource, uncommentInSource } from "./yaml-edit.ts"
@@ -158,7 +159,11 @@ export function prepareManifestEdit(
         )
     }
 
-    const parsed = AgentManifestSchema.safeParse(document.toJS())
+    // `$ref` resolved first, as `loadManifest` does: unresolved, `compactor: { $ref: model.selector }` has
+    // no `id`, and every edit to an agent written that way — init's own template suggests it — was refused
+    // for a field nobody touched.
+    const resolved = resolveRefs(document.toJS()) as Record<string, unknown>
+    const parsed = AgentManifestSchema.safeParse(resolved)
     if (!parsed.success) {
         const first = parsed.error.issues[0]
         throw manifestEditInvalid(
@@ -170,11 +175,7 @@ export function prepareManifestEdit(
     // Same rule as the providers check below, and schedules are the field it applies to second:
     // `expr`, `deliver.channel` and `role` are strings the schema accepts and the runtime refuses. A
     // `config_set schedules` without this reports a successful edit and the next boot fails.
-    const scheduleFindings = validateSchedules(
-        document.toJS() as Record<string, unknown>,
-        parsed.data,
-        Date.now(),
-    )
+    const scheduleFindings = validateSchedules(resolved, parsed.data, Date.now())
     // Subagents too (pilot.15): `subagents` became settable, and a child naming a slug the parent does
     // not pin is refused at load, so a writer that skipped this would report success on a manifest the
     // next boot refuses. Run on every edit, because unpinning a slug a child uses is the same failure.

@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
 import { parametersFromJsonSchema } from "../src/tools/json-schema.ts"
+import { describe, expect, test } from "./_harness.ts"
 
 const conversion = {
     unsupported: (path: string, keyword: string) => new Error(`${keyword} at ${path}`),

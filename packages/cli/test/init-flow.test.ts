@@ -306,6 +306,10 @@ describe("planFiles", () => {
         const memory = files.find((f) => f.relPath === "workspace/MEMORY.md")?.contents ?? ""
         expect(user).toContain("Moeen is the person I work for.")
         expect(user).toContain("What they brought me in for:")
+        // A purpose typed as a sentence already ends in a full stop; the template adds one too.
+        const punctuated = planFiles({ ...ANSWERS, purpose: "Reads my mail." })
+        const twice = punctuated.find((f) => f.relPath === "workspace/USER.md")?.contents ?? ""
+        expect(twice).toContain("brought me in for: Reads my mail.\n")
         expect(user).toContain("memory_write does not land")
         expect(user.includes("the agent appends")).toBe(false)
         expect(memory).toContain("memory_write lands here")

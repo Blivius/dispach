@@ -51,6 +51,8 @@ test("the set of examples is what this test thinks it is", () => {
     // discovery is a glob, so the guard has to be the count.
     expect(WITH_MANIFEST.sort()).toEqual([
         "minimal",
+        // Otari as model gateway and tool provider; the hackathon demo agent.
+        "otari",
         "reference",
         "shell-agent",
         // A supervisor with two members. Its own member manifests live under `team/` and are not
@@ -74,6 +76,7 @@ describe("every example validates", () => {
             process.env.MODEL_BASE_URL = "https://api.openai.com/v1"
             process.env.TELEGRAM_BOT_TOKEN = "test-token"
             process.env.DEEPSEEK_API_KEY = "test-key"
+            process.env.OTARI_API_KEY = "test-key"
             try {
                 const { code, output } = await validateQuietly(join(EXAMPLES, name, "agent.yaml"))
                 expect({ name, code, ok: output.includes('"ok": true') }).toEqual({

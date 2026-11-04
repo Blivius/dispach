@@ -4,6 +4,7 @@
 
 ### Added
 
+- `examples/otari`: an open-weight research agent on Otari — GLM 5.3 with gpt-oss-20b as helper, Otari's `web_search` and `run_code`, DeepWiki through the workspace's MCP servers, and a Lakera guardrail on every main-model call.
 - `api: otari`: Mozilla.ai's Otari gateway as a model transport (`@dispach/model-otari`, bundled). Chat-completions underneath, defaulting to hosted Otari and `OTARI_API_KEY`. `options.guardrails` and `options.tags` are sent with each call, the role always as a usage tag; a gateway fallback is reported as the model that answered; a spent budget, a guardrail block and an empty balance are their own errors, with hints, and stay 403/402 so no fallback model is tried. A guardrail Otari could not run is `otari_guardrail_unavailable` and never falls back either, because a fallback elsewhere would answer the request unchecked. An Otari preset in `init` and the web console; `model probe` measures an Otari role.
 - `tools.providers.otari` (`@dispach/tools-otari`, bundled): `run_code` runs Python in Otari's sandbox through its direct execute route, one sandbox per session; `web_search` runs Otari's search inside one call to a small open-weight model (`openai/gpt-oss-20b` by default) and returns Otari's own source list beside that model's labelled summaries. Both on `OTARI_API_KEY`, both untrusted; spend reaches `tool.usage` in the dollars Otari reported. `init --preset otari` names it, takes search through it with no second key, and asks `--sandbox none|otari`. `tools.providers.web.search: false` drops `tools-web`'s `web_search`, since two providers offering one slug fail the load.
 - `tools.providers.otari.mcp`: MCP servers registered in the Otari workspace, by id, pinned as `<name>__<tool>` like `tools.providers.mcp`'s. Discovered after readiness into `.dispach/otari-mcp.cache.json` and resolved from it at boot; each call is one `POST /mcp/execute` with the discovered `server_revision`, never retried, and a call sent with no result back is `otari_mcp_outcome_unknown`. `init --preset otari` asks for them (`--otari-mcp deepwiki=<server id>,…`) and names them without pinning.
@@ -27,6 +28,8 @@
 - Capability rows for `gpt-oss*`, `kimi-k2*` and `qwen3-coder*`, measured through Otari. gpt-oss and kimi fell back to an 8,192 window that `init`'s own `reserveOutput` does not fit, so an agent on either could not be created; qwen3-coder took `qwen*`'s 32,768.
 - `init` refuses a directory it cannot create by naming the path and the likely cause, rather than printing a bare `ENOENT: mkdir`.
 - `init --preset otari`'s next steps no longer ask for a `TAVILY_API_KEY` the agent does not use.
+- `config_set` (and every other manifest edit) refused any change to an agent whose roles use `$ref` — `compactor: { $ref: model.selector }`, as `init`'s template suggests — naming `model.compactor.id` as undefined. The edit's validation now resolves `$ref` as the loader does.
+- `init` no longer writes a purpose that ends in a full stop with a second one in `USER.md`.
 
 ## 0.2.3 — 2026-11-02
 

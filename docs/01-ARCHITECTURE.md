@@ -69,6 +69,7 @@ dispach/
 │   ├── reference/               # every agent.yaml field; future phases commented with their phase
 │   ├── workspace-template/      # the tiered workspace files, to copy
 │   ├── shell-agent/             # an agent with a real shell, for the container
+│   ├── otari/                   # open-weight models, search, sandbox and MCP through Otari
 │   ├── team/                    # a supervisor and two members, from one manifest
 │   ├── telegram-assistant/      # a worked workspace
 │   └── kubernetes/              # silo.yaml: the image on a Kubernetes cluster

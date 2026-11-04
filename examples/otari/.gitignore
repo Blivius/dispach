@@ -1,0 +1,4 @@
+.env
+# Written by `tools --warm` and at runtime; per machine, never committed.
+.dispach/
+memory/

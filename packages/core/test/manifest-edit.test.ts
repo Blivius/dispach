@@ -57,6 +57,17 @@ limits:
 `
 
 describe("prepareManifestEdit", () => {
+    test("a role written as $ref does not make every other edit invalid", () => {
+        // init's template suggests `compactor: { $ref: model.selector }`; unresolved it has no `id`.
+        const withRef = MANIFEST.replace(
+            "    temperature: 0.3\n",
+            "    temperature: 0.3\n  selector:\n    id: gpt-oss-20b\n    baseUrl: https://api.deepseek.com/v1\n  compactor: { $ref: model.selector }\n",
+        )
+        const edited = prepareManifestEdit(withRef, { path: ["limits", "maxSteps"], value: 8 })
+        expect(edited.next).toContain("maxSteps: 8")
+        expect(edited.next).toContain("compactor: { $ref: model.selector }")
+    })
+
     test("removes a key and its block, every other byte kept; an absent key is a no-op (pilot.8)", () => {
         const scalar = prepareManifestEdit(MANIFEST, {
             path: ["model", "main", "temperature"],

@@ -1911,7 +1911,7 @@ function substitutionsFor(answers: InitAnswers): Record<string, string> {
         UNCERTAINTY_BEHAVIOUR:
             `When I can't reach a tool or a request is ambiguous, I say which part is unclear ` +
             `and ask, because guessing just moves the cost somewhere ${user} can't see it.`,
-        USER_FACTS: `${user} is the person I work for.\nWhat they brought me in for: ${purpose}.`,
+        USER_FACTS: `${user} is the person I work for.\nWhat they brought me in for: ${purpose.replace(/[.!?]+$/, "")}.`,
         REMINDER_RULE: ruleConfirm,
     }
 }
