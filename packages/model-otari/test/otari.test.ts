@@ -247,6 +247,25 @@ describe("refusals say what to do next", () => {
         expect(refused.status).toBeUndefined()
     })
 
+    test("a profile name Otari does not know is the same refusal, and the hint says check the name", async () => {
+        // Live wording, 2026-11-04, for `profile: no-such-profile` on hosted Otari.
+        const { fetch } = recording(
+            () =>
+                new Response(
+                    JSON.stringify({
+                        detail: "guardrail profile 'no-such-profile' requested but no guardrails service is configured. Set OTARI_GUARDRAILS_URL on the gateway or pass `url` on the guardrail entry.",
+                    }),
+                    { status: 502 },
+                ),
+        )
+        const error = await failure(provider(fetch).chat(PING, new AbortController().signal))
+        const refused = error as { code: string; message: string; hint: string; status: unknown }
+        expect(refused.code).toBe("otari_guardrail_unavailable")
+        expect(refused.message).toContain("no-such-profile")
+        expect(refused.hint).toContain("profile name")
+        expect(refused.status).toBeUndefined()
+    })
+
     test("an empty wallet is its own error; an unknown code keeps core's", async () => {
         const wallet = recording(
             () =>

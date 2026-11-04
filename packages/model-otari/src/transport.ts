@@ -238,7 +238,7 @@ export function refusalError(refusal: Refusal, field: string): ModelError | unde
             return new ModelError({
                 code: "otari_guardrail_unavailable",
                 message: `Otari could not run the guardrail (${profiles}), and the request was refused rather than served unchecked.${said}`,
-                hint: "Check the guardrail in the Otari dashboard: its vendor key, and that the profile's Parameters (JSON) holds only fields that vendor takes — an unknown one fails every check. Lakera takes no threshold; its strictness is a Lakera project's policy.",
+                hint: "Check the profile name against the Otari dashboard's Guardrails page first — a name Otari does not know is refused the same way. Then the guardrail's vendor key, and that the profile's Parameters (JSON) holds only fields that vendor takes — an unknown one fails every check. Lakera takes no threshold; its strictness is a Lakera project's policy.",
                 field: `${field}.options.guardrails`,
             })
         }
