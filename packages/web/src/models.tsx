@@ -62,15 +62,16 @@ function transportLabel(role: Role): string {
         return `Bedrock · ${text(options.region) || "no region"}`
     }
     const baseUrl = text(role.baseUrl)
+    if (text(role.api) === "otari" && baseUrl === "") return "Otari"
     return providerOf(baseUrl)?.label.split(" (")[0] ?? (baseUrl || "default endpoint")
 }
 
 /** The role's connection fields as the form holds them. */
-function fieldsOf(role: Role): ModelFields {
+export function fieldsOf(role: Role): ModelFields {
     const options = asRole(role.options)
     return {
         id: text(role.id),
-        api: text(role.api) === "bedrock-converse" ? "bedrock-converse" : "chat-completions",
+        api: apiOf(role),
         baseUrl: text(role.baseUrl),
         apiKeyEnv: text(role.apiKeyEnv),
         region: text(options.region),
@@ -78,8 +79,24 @@ function fieldsOf(role: Role): ModelFields {
     }
 }
 
-/** The manifest fields a `ModelFields` writes: one transport's fields set, the other's cleared. */
-function connection(fields: ModelFields): Record<string, unknown> {
+/** The transport a role names, as the form knows them. An unknown one reads as chat-completions. */
+export function apiOf(role: Role): ModelFields["api"] {
+    const api = text(role.api)
+    return api === "bedrock-converse" || api === "otari" ? api : "chat-completions"
+}
+
+/**
+ * The manifest fields a `ModelFields` writes: one transport's fields set, the other's cleared.
+ *
+ * `options` belong to a transport, so they are kept while the transport stays the same and cleared
+ * when it changes: an Otari role keeps its guardrails across a model change, and a role moved off
+ * Bedrock does not carry a `region` the next transport refuses as an unknown option. A new entry
+ * passes no `previous` and has no options to keep.
+ */
+export function connection(
+    fields: ModelFields,
+    previous?: ModelFields["api"],
+): Record<string, unknown> {
     if (fields.api === "bedrock-converse") {
         return {
             id: fields.id,
@@ -94,8 +111,8 @@ function connection(fields: ModelFields): Record<string, unknown> {
     }
     return {
         id: fields.id,
-        api: undefined,
-        options: undefined,
+        api: fields.api === "otari" ? "otari" : undefined,
+        ...(fields.api === "otari" && previous === "otari" ? {} : { options: undefined }),
         baseUrl: fields.baseUrl,
         apiKeyEnv: fields.apiKeyEnv,
     }
@@ -581,7 +598,9 @@ function RoleCard(props: {
                     busy={props.busy}
                     submitLabel="save model"
                     onSubmit={(fields, key) => {
-                        props.onChange([{ path, value: merged(role, connection(fields)) }])
+                        props.onChange([
+                            { path, value: merged(role, connection(fields, apiOf(role))) },
+                        ])
                         if (key !== "" && fields.apiKeyEnv !== "")
                             props.onSecret(fields.apiKeyEnv, key)
                         setEditing(false)
@@ -592,9 +611,9 @@ function RoleCard(props: {
     )
 }
 
-type ModelFields = {
+export type ModelFields = {
     readonly id: string
-    readonly api: "chat-completions" | "bedrock-converse"
+    readonly api: "chat-completions" | "bedrock-converse" | "otari"
     readonly baseUrl: string
     readonly apiKeyEnv: string
     /** Bedrock only. */

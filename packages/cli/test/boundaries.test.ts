@@ -992,6 +992,7 @@ describe("first-party packages use only the public core API", () => {
         "media-aws",
         "channel-telegram",
         "model-bedrock",
+        "model-otari",
         "tools-composio",
         "tools-mcp",
         "tools-system",

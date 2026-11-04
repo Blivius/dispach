@@ -41,6 +41,7 @@ import {
     modelsUrl,
     windowReport,
 } from "@dispach/core"
+import { OTARI_BASE_URL, OTARI_KEY_ENV } from "@dispach/model-otari"
 import { ambientEnv } from "#lib/ambient"
 import { askYesNo } from "#lib/confirm"
 import { EXIT_FAILURE, EXIT_OK } from "#lib/const"
@@ -440,7 +441,12 @@ export async function modelCommand(options: ModelOptions): Promise<number> {
         const probes: RoleProbe[] = []
         for (const entry of roles) {
             const config = manifest.model[entry.role] ?? manifest.model.main
-            if (config.baseUrl === undefined) {
+            // Otari is chat-completions underneath and defaults both fields, so a role that leaves
+            // them out is still a URL and a key this probe can use.
+            const otari = config.api === "otari"
+            const baseUrl = config.baseUrl ?? (otari ? OTARI_BASE_URL : undefined)
+            const apiKeyEnv = config.apiKeyEnv ?? (otari ? OTARI_KEY_ENV : undefined)
+            if (baseUrl === undefined) {
                 // Every probe here is a chat-completions request; another transport has no
                 // `/models` to read and no bearer to send. Saying so beats a request that cannot mean
                 // anything.
@@ -450,9 +456,9 @@ export async function modelCommand(options: ModelOptions): Promise<number> {
                 continue
             }
             const endpoint: Endpoint = {
-                chat: endpointUrl(config.baseUrl),
-                models: modelsUrl(config.baseUrl),
-                headers: bearerHeaders(config.apiKeyEnv, loaded.env, `model.${entry.role}`),
+                chat: endpointUrl(baseUrl),
+                models: modelsUrl(baseUrl),
+                headers: bearerHeaders(apiKeyEnv, loaded.env, `model.${entry.role}`),
                 modelId: config.id,
             }
             const failures: string[] = []
@@ -474,7 +480,7 @@ export async function modelCommand(options: ModelOptions): Promise<number> {
             probes.push({
                 role: entry.role,
                 modelId: config.id,
-                baseUrl: config.baseUrl,
+                baseUrl,
                 declared: entry.window.contextWindow,
                 declaredSource: entry.window.source,
                 findings,

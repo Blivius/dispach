@@ -69,6 +69,7 @@ COPY packages/channel-a2a/package.json ./packages/channel-a2a/
 COPY packages/channel-slack/package.json ./packages/channel-slack/
 COPY packages/media-aws/package.json ./packages/media-aws/
 COPY packages/model-bedrock/package.json ./packages/model-bedrock/
+COPY packages/model-otari/package.json ./packages/model-otari/
 COPY packages/tools-system/package.json ./packages/tools-system/
 COPY packages/tools-composio/package.json ./packages/tools-composio/
 COPY packages/tools-mcp/package.json ./packages/tools-mcp/

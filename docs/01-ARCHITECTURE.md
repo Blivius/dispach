@@ -60,6 +60,7 @@ dispach/
 │   ├── tools-system/            @dispach/tools-system       shell + files
 │   ├── tools-web/               @dispach/tools-web          search + fetch
 │   ├── model-bedrock/           @dispach/model-bedrock      the bedrock-converse transport
+│   ├── model-otari/             @dispach/model-otari        the otari transport (Mozilla.ai gateway)
 │   ├── media-aws/               @dispach/media-aws          Amazon Transcribe, Nova Canvas
 │   └── control/                 @dispach/control            the control plane — FSL-1.1-ALv2, not bundled
 ├── examples/

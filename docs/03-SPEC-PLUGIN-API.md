@@ -816,7 +816,7 @@ belief that passing means the plugin is bounded by what it declared.
 
 Every first-party plugin runs it: `packages/cli/test/plugin-conformance.test.ts`, which walks
 `BUILT_IN_PLUGINS` in `packages/cli/src/lib/providers.ts` — the five channels (`channel-a2a`, `-slack`,
-`-teams`, `-telegram`, `-whatsapp`), `media-aws`, `model-bedrock` and the four tool packages
+`-teams`, `-telegram`, `-whatsapp`), `media-aws`, `model-bedrock`, `model-otari` and the four tool packages
 (`tools-composio`, `-mcp`, `-system`, `-web`). It lives there because the CLI is the package that
 imports them all — `packages/core` may not (hard rule 2), and a
 package asserting against itself would only ever check itself.

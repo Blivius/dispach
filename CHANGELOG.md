@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- `api: otari`: Mozilla.ai's Otari gateway as a model transport (`@dispach/model-otari`, bundled). Chat-completions underneath, defaulting to hosted Otari and `OTARI_API_KEY`. `options.guardrails` and `options.tags` are sent with each call, the role always as a usage tag; a gateway fallback is reported as the model that answered; a spent budget, a guardrail block and an empty balance are their own errors, with hints, and stay 403/402 so no fallback model is tried. An Otari preset in `init` and the web console; `model probe` measures an Otari role.
+
 ### Documentation
 
 - An npm quickstart (install, `init`, `serve`, `curl /v1/ready`) is where the site's "Run it in five minutes" leads; the Docker page leads with a plain `docker run` of the published image.

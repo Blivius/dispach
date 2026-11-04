@@ -64,6 +64,7 @@
         "@dispach/core": "workspace:*",
         "@dispach/media-aws": "workspace:*",
         "@dispach/model-bedrock": "workspace:*",
+        "@dispach/model-otari": "workspace:*",
         "@dispach/server": "workspace:*",
         "@dispach/tools-composio": "workspace:*",
         "@dispach/tools-mcp": "workspace:*",

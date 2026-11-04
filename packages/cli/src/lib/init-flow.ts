@@ -2078,6 +2078,16 @@ function manifestFor(answers: InitAnswers, window: MeasuredWindow | undefined): 
             `      # profile: my-aws-profile`,
         )
     } else {
+        if (presetById(answers.preset)?.api === "otari") {
+            lines.push(
+                `    # Mozilla.ai's Otari gateway: chat-completions underneath, plus its own fields. A catalog`,
+                `    # id (vendor/model) lets Otari fall back across its offerings; provider:model never does.`,
+                `    api: otari`,
+                `    # options:`,
+                `    #   guardrails: [{ profile: lakera-guard, mode: block }]   # a profile set up in Otari`,
+                `    #   tags: { app: my-app }   # sent as usage metadata; the role is always one`,
+            )
+        }
         lines.push(
             `    # Must end at the version segment; the runtime appends /chat/completions itself.`,
             `    baseUrl: ${answers.baseUrl}`,
@@ -2110,9 +2120,14 @@ function manifestFor(answers: InitAnswers, window: MeasuredWindow | undefined): 
         ``,
         `  # A cheap model for tool selection and summarisation. \`$ref\` reuses a role.`,
         `  # selector:`,
-        `  #   id: a-cheaper-model`,
+        ...(presetById(answers.preset)?.api === "otari"
+            ? [`  #   id: openai/gpt-oss-20b   # a second open-weight model, for a different job`]
+            : [`  #   id: a-cheaper-model`]),
         ...(answers.region === undefined
-            ? [`  #   baseUrl: ${answers.baseUrl}`]
+            ? [
+                  ...(presetById(answers.preset)?.api === "otari" ? [`  #   api: otari`] : []),
+                  `  #   baseUrl: ${answers.baseUrl}`,
+              ]
             : [`  #   api: bedrock-converse`, `  #   options: { region: ${answers.region} }`]),
         `  # compactor: { $ref: model.selector }`,
         ``,

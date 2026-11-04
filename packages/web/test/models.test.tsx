@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { EFFORTS, ModelsPanel } from "../src/models.tsx"
+import {
+    apiOf,
+    connection,
+    EFFORTS,
+    fieldsOf,
+    type ModelFields,
+    ModelsPanel,
+} from "../src/models.tsx"
 import { faviconHref, Wordmark } from "../src/wordmark.tsx"
 
 const noop = () => undefined
@@ -87,6 +94,50 @@ describe("the models panel", () => {
         expect(nova).toBeGreaterThan(flash)
         // One remove per fallback; main itself has none.
         expect(html.match(/>remove</g)?.length).toBe(2)
+    })
+
+    test("an Otari role is labelled as Otari, not as the endpoint it happens to default to", () => {
+        const html = render([
+            { path: "model.main", means: "", value: { id: "z-ai/glm-5.3", api: "otari" } },
+        ])
+        expect(html).toContain("Otari")
+    })
+})
+
+describe("saving a model keeps the transport it names", () => {
+    const otari: ModelFields = {
+        id: "z-ai/glm-5.3",
+        api: "otari",
+        baseUrl: "https://api.otari.ai/api/v1",
+        apiKeyEnv: "OTARI_API_KEY",
+        region: "",
+        profile: "",
+    }
+
+    test("an Otari role stays api: otari and keeps its guardrails across a model change", () => {
+        // The exact path the form's save takes: read the role into fields, write them back.
+        const role = {
+            id: "z-ai/glm-5.3",
+            api: "otari",
+            options: { guardrails: [{ profile: "lakera-guard", mode: "block" }] },
+        }
+        const written = connection({ ...fieldsOf(role), id: "z-ai/glm-5.3-flash" }, apiOf(role))
+        expect(written.api).toBe("otari")
+        // Absent, not undefined: an undefined key is how `merged` deletes a field.
+        expect("options" in written).toBe(false)
+    })
+
+    test("moving onto Otari from Bedrock clears the region Otari would refuse", () => {
+        const written = connection(otari, "bedrock-converse")
+        expect(written.api).toBe("otari")
+        expect("options" in written).toBe(true)
+        expect(written.options).toBeUndefined()
+    })
+
+    test("a plain endpoint still writes no api at all", () => {
+        expect(
+            connection({ ...otari, api: "chat-completions" }, "chat-completions").api,
+        ).toBeUndefined()
     })
 })
 

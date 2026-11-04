@@ -15,6 +15,7 @@ export type PresetId =
     | "ollama"
     | "ollama-cloud"
     | "bedrock"
+    | "otari"
     | "custom"
 
 export interface Preset {
@@ -28,9 +29,11 @@ export interface Preset {
     /**
      * The transport, when it is not `chat-completions`. `bedrock-converse` takes no `baseUrl` and no
      * key variable: the AWS SDK's default credential chain supplies credentials, and `options.region`
-     * says where. The wizard asks for the region instead of a URL.
+     * says where. The wizard asks for the region instead of a URL. `otari` is chat-completions
+     * underneath with Otari's own fields on top (guardrails, usage tags, its refusals named), so it
+     * takes a URL and a key like any other row.
      */
-    readonly api?: "bedrock-converse"
+    readonly api?: "bedrock-converse" | "otari"
     readonly region?: string
 }
 
@@ -121,6 +124,19 @@ export const PRESETS: readonly Preset[] = [
         baseUrl: "",
         api: "bedrock-converse",
         region: "eu-west-1",
+    },
+    {
+        // Mozilla.ai's gateway, through its own transport rather than as a bare base URL: the model
+        // is the same wire, and what the transport adds is guardrails, per-role usage tags, and a
+        // spent budget or a guardrail block reported as itself instead of as "403". The id is a
+        // catalog id, which Otari falls back across its offerings for; `provider:model` never does.
+        // `/api/v1`, not `/v1`: the live server answers 404 on the latter.
+        id: "otari",
+        label: "Otari (Mozilla.ai gateway, open-weight models)",
+        modelId: "z-ai/glm-5.3",
+        baseUrl: "https://api.otari.ai/api/v1",
+        apiKeyEnv: "OTARI_API_KEY",
+        api: "otari",
     },
     {
         id: "custom",

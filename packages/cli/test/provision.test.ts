@@ -110,6 +110,28 @@ describe("every preset writes an endpoint that works", () => {
         expect(loaded.manifest.model.main.options).toEqual({ region: "eu-west-2" })
     })
 
+    test("otari writes api: otari, its own URL and OTARI_API_KEY — read back through the loader", () => {
+        const result = provisionAgent({
+            answers: { user: "Ada", name: "p-otari", preset: "otari" },
+            defaults: defaults(),
+        })
+        const manifest = readFileSync(join(result.dir, "agent.yaml"), "utf8")
+        const active = manifest
+            .split("\n")
+            .filter((line) => !line.trimStart().startsWith("#"))
+            .join("\n")
+        expect(active).toContain("api: otari")
+        // `/api/v1`: the live server answers 404 on `/v1`.
+        expect(active).toContain("baseUrl: https://api.otari.ai/api/v1")
+        expect(active).toContain("apiKeyEnv: OTARI_API_KEY")
+        // The loader needs the otari transport registered, or `api: otari` is refused as unknown.
+        const loaded = loadManifest(join(result.dir, "agent.yaml"), {
+            env: { OTARI_API_KEY: "otk_test" },
+        })
+        expect(loaded.manifest.model.main.api).toBe("otari")
+        expect(loaded.manifest.model.main.id).toBe("z-ai/glm-5.3")
+    })
+
     test("a region that is not one is refused by name", () => {
         expect(() =>
             provisionAgent({

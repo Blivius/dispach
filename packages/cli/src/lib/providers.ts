@@ -28,6 +28,7 @@ import type {
 } from "@dispach/core"
 import mediaAwsPlugin, { awsMedia } from "@dispach/media-aws"
 import bedrockPlugin, { bedrockTransport } from "@dispach/model-bedrock"
+import otariPlugin, { otariTransport } from "@dispach/model-otari"
 import composioPlugin, { composioFromConfig } from "@dispach/tools-composio"
 import mcpPlugin, { mcpFromConfig } from "@dispach/tools-mcp"
 import systemPlugin, { SystemScriptRunner, systemFromConfig } from "@dispach/tools-system"
@@ -60,6 +61,9 @@ export const MODEL_TRANSPORTS: Readonly<Record<string, ModelTransport>> = {
     // AWS Bedrock. Its SDK loads on an agent's first model call, never at boot, so every command
     // can carry it for free.
     "bedrock-converse": bedrockTransport(),
+    // Mozilla.ai's Otari gateway: chat-completions underneath, plus its guardrails, usage tags and
+    // refusals. Nothing is reached before a model call, so every command carries it for free.
+    otari: otariTransport(),
 }
 
 /**
@@ -158,6 +162,7 @@ export const BUILT_IN_PLUGINS: BuiltInPlugins = {
     "@dispach/channel-whatsapp": whatsappPlugin,
     "@dispach/media-aws": mediaAwsPlugin,
     "@dispach/model-bedrock": bedrockPlugin,
+    "@dispach/model-otari": otariPlugin,
     "@dispach/tools-composio": composioPlugin,
     "@dispach/tools-mcp": mcpPlugin,
     "@dispach/tools-system": systemPlugin,
