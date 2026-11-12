@@ -54,7 +54,7 @@ docker run --rm -it \
   -e DISPACH_API_TOKEN=dev-token-not-for-production \
   -e MODEL_ID=... -e MODEL_BASE_URL=https://your-litellm/v1 -e MODEL_API_KEY=... \
   -v "$PWD/my-agent:/agent" \
-  ghcr.io/moeen-mahmud/dispach:0.2.0
+  docker.io/moeenmahmud007/dispach:0.2.0
 
 curl -s localhost:7420/v1/ready
 curl -s -H "authorization: Bearer dev-token-not-for-production" localhost:7420/v1/agents | jq
@@ -226,7 +226,7 @@ when `limits.maxConcurrentTurns` is reached across sessions, or `agent_token_bud
 
 | | OpenClaw | Dispach |
 | --- | --- | --- |
-| image | your OpenClaw tag | `ghcr.io/moeen-mahmud/dispach:0.2.0` |
+| image | your OpenClaw tag | `docker.io/moeenmahmud007/dispach:0.2.0` |
 | port | 18789 (WS) | 7420 (HTTP + SSE) |
 | the agent | `openclaw.json` | `agent.yaml`, mounted at `/agent` |
 | state | wherever it was | a volume at `/home/dispach` |
@@ -236,7 +236,7 @@ when `limits.maxConcurrentTurns` is reached across sessions, or `agent_token_bud
 ```yaml
 services:
     agent:
-        image: ghcr.io/moeen-mahmud/dispach:0.2.0
+        image: docker.io/moeenmahmud007/dispach:0.2.0
         ports: ["7420:7420"]
         environment:
             DISPACH_API_TOKEN: ${DISPACH_API_TOKEN:?}   # a non-loopback bind refuses without one

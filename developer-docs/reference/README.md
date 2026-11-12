@@ -13,10 +13,10 @@ Start with these:
 
 The binding contracts behind these pages:
 
-- [Agent manifest specification](https://github.com/moeen-mahmud/dispach/blob/main/docs/02-SPEC-MANIFEST.md): every `agent.yaml` field.
-- [Plugin API specification](https://github.com/moeen-mahmud/dispach/blob/main/docs/03-SPEC-PLUGIN-API.md): the extension contract.
-- [Wire protocol specification](https://github.com/moeen-mahmud/dispach/blob/main/docs/04-SPEC-WIRE.md): routes, events, and the WebSocket.
-- [Workspace specification](https://github.com/moeen-mahmud/dispach/blob/main/docs/07-SPEC-WORKSPACE.md): workspace file tiers and authoring rules.
+- [Agent manifest specification](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/docs/02-SPEC-MANIFEST.md): every `agent.yaml` field.
+- [Plugin API specification](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/docs/03-SPEC-PLUGIN-API.md): the extension contract.
+- [Wire protocol specification](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/docs/04-SPEC-WIRE.md): routes, events, and the WebSocket.
+- [Workspace specification](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/docs/07-SPEC-WORKSPACE.md): workspace file tiers and authoring rules.
 
 The guides cover [events and streaming](../runtime/reference/events-and-streaming.md), [configuration](../runtime/reference/configuration.md), and [errors](../runtime/reference/errors.md).
 

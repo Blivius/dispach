@@ -200,7 +200,7 @@ export default function HomePage() {
                             href={repoUrl}
                             className="rounded-lg border border-fd-border px-4 py-2.5 text-sm font-medium hover:bg-fd-accent"
                         >
-                            GitHub
+                            GitLab
                         </a>
                     </div>
                     <p className="mt-6 font-mono text-xs text-fd-muted-foreground">
@@ -210,7 +210,7 @@ export default function HomePage() {
                     </p>
                     <p className="mt-1 break-all font-mono text-xs text-fd-muted-foreground">
                         <span className="text-term-accent">›</span> curl -fsSL {repoUrl}
-                        /releases/latest/download/install.sh | sh
+                        /-/releases/permalink/latest/downloads/install.sh | sh
                         <span className="ml-2">· no Node needed</span>
                     </p>
                 </div>
@@ -302,7 +302,7 @@ export default function HomePage() {
                     <p className="flex gap-4">
                         <Link href="/docs">Docs</Link>
                         <Link href="/evals">Evals</Link>
-                        <a href={repoUrl}>GitHub</a>
+                        <a href={repoUrl}>GitLab</a>
                     </p>
                 </div>
             </footer>

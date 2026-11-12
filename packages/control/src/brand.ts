@@ -14,7 +14,7 @@ export const BRAND = {
     /** A Docker label, so `docker ps --filter` finds exactly what this control plane placed. */
     label: "dispach-control.subject",
     runtime: {
-        image: "ghcr.io/moeen-mahmud/dispach:latest",
+        image: "docker.io/moeenmahmud007/dispach:latest",
         apiVersion: "dispach/v1",
         tokenEnv: "DISPACH_API_TOKEN",
         /** The runtime's private-receiver allowlist for webhooks — the first thing a silo needs. */

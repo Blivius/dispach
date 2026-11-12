@@ -64,7 +64,7 @@ function Evidence({ text }: { text: string }) {
                     return /\.(json|ts|yml|md)$/.test(file) ? (
                         <a
                             key={key}
-                            href={`${repoUrl}/blob/main/${file}`}
+                            href={`${repoUrl}/-/blob/main/${file}`}
                             className="font-mono text-xs underline"
                         >
                             {code[1]}

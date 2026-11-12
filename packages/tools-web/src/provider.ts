@@ -46,7 +46,7 @@ import { searchTool } from "./search.ts"
  * which is a thing to do to someone, not a thing to do by default. Sites that block this are sites
  * that have said what they want.
  */
-const USER_AGENT = "dispach-agent/0.1 (+https://github.com/moeen-mahmud/dispach)"
+const USER_AGENT = "dispach-agent/0.1 (+https://gitlab.com/moeen-mahmud/dispach)"
 
 export interface WebProviderOptions {
     readonly env: Readonly<Record<string, string | undefined>>

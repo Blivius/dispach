@@ -5,7 +5,7 @@
 Dispach is measured on 25 multi-turn agent tasks, 5 times each, against the
 same tools and pinned model providers as two other open-source harnesses. Each task is graded on the tools'
 final state, never on the reply's wording. Every run is committed, with its replies, under
-[`evals/harness/`](https://github.com/moeen-mahmud/dispach/tree/main/evals/harness).
+[`evals/harness/`](https://gitlab.com/moeen-mahmud/dispach/-/tree/main/evals/harness).
 
 ## Against other harnesses
 
@@ -29,7 +29,7 @@ Hermes 0.19.0 on 2026-10-22 to 2026-10-23 and OpenClaw 2026.10.5 on
 | gpt-oss-20b | 97/125 (78%) · $0.05 | 111/125 (89%) · $0.10 | 51/125 (41%) · $0.12 |
 
 With 125 runs an arm, a gap of a few runs is noise: the 95% intervals are in
-[`evals/harness/summary.json`](https://github.com/moeen-mahmud/dispach/blob/main/evals/harness/summary.json).
+[`evals/harness/summary.json`](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/evals/harness/summary.json).
 
 ## Tool-call dialects
 
@@ -57,9 +57,9 @@ on every trial (pass^k): what a user who repeats a task cares about, beside the 
 ## How it is run
 
 - **Tasks:** single calls, chains, recall across turns, abstention, recovery from injected tool failures,
-  and long files ([`scripts/bench/tasks.ts`](https://github.com/moeen-mahmud/dispach/blob/main/scripts/bench/tasks.ts)).
+  and long files ([`scripts/bench/tasks.ts`](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/scripts/bench/tasks.ts)).
 - **Isolation:** every harness runs in its own container, its state restored before every attempt.
 - **Scoring:** a run that errors scores 0. A run the provider rate-limited is re-run, not scored.
 - **Limits:** one benchmark of our own design, each harness on its own defaults. Where Dispach loses,
   and why, is written up in the
-  [benchmark README](https://github.com/moeen-mahmud/dispach/blob/main/evals/harness/README.md).
+  [benchmark README](https://gitlab.com/moeen-mahmud/dispach/-/blob/main/evals/harness/README.md).

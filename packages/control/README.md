@@ -156,7 +156,7 @@ have to start them before `nextWakeAt`, because a runtime that starts after an o
 
 ```bash
 export DISPACH_CONTROL_TOKEN="$(openssl rand -base64 32)"
-export DISPACH_IMAGE=ghcr.io/moeen-mahmud/dispach:<version>      # pin it; a note says so if you do not
+export DISPACH_IMAGE=docker.io/moeenmahmud007/dispach:<version>      # pin it; a note says so if you do not
 docker compose -f packages/control/compose.yaml up -d --build
 ```
 
@@ -175,7 +175,7 @@ sign-up, agents, messages, webhooks, billing, backup, upgrade, deletion.
 | `DISPACH_CONTROL_TOKEN` | — (required) | The operator token |
 | `DISPACH_CONTROL_HOST` / `_PORT` | `127.0.0.1` / `7600` | Bind |
 | `DISPACH_CONTROL_DB` | `control.db` | SQLite file: one row per silo |
-| `DISPACH_CONTROL_IMAGE` | `ghcr.io/moeen-mahmud/dispach:latest` | Right on a laptop only: boot prints a note while it is `latest` or untagged. Pin the exact runtime version in production; roll a new one out with `recreate` |
+| `DISPACH_CONTROL_IMAGE` | `docker.io/moeenmahmud007/dispach:latest` | Right on a laptop only: boot prints a note while it is `latest` or untagged. Pin the exact runtime version in production; roll a new one out with `recreate` |
 | `DISPACH_CONTROL_TEMPLATES` | — | Host directory of agent templates, mounted read-only. A path on the Docker host |
 | `DISPACH_CONTROL_SILO_ENV` | — | Names of variables every silo gets, copied from this process's environment: `DISPACH_WEBHOOK_ALLOW,MODEL_BASE_URL`. Values never in the database, never on a command line; a named one that is unset refuses the boot. Reaches existing silos on `recreate` |
 | `DISPACH_CONTROL_NETWORK` | — | Docker network to attach silos to |
@@ -219,5 +219,5 @@ bun run --cwd packages/control test:e2e          # real Docker, the real image; 
 bun run --cwd packages/control typecheck && bun run check:deps
 ```
 
-The e2e runs against whatever `ghcr.io/moeen-mahmud/dispach:latest` the local daemon has, so
+The e2e runs against whatever `docker.io/moeenmahmud007/dispach:latest` the local daemon has, so
 `docker compose build` first tests this commit's runtime against this commit's control plane.

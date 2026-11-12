@@ -1,7 +1,7 @@
 #!/bin/sh
-# Install the standalone build from a GitHub release.
+# Install the standalone build from a GitLab release.
 #
-#   curl -fsSL https://github.com/moeen-mahmud/dispach/releases/latest/download/install.sh | sh
+#   curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh
 #
 # Puts the release in ~/.dispach/versions/<version>, links ~/.dispach/bin/dispach at it, and adds
 # ~/.dispach/bin to PATH in your shell's rc file (it says which). Nothing needs root.
@@ -18,6 +18,7 @@ set -eu
 
 slug=dispach
 repo=moeen-mahmud/dispach
+image=docker.io/moeenmahmud007/dispach
 version=${DISPACH_VERSION:-latest}
 root=${DISPACH_INSTALL_DIR:-$HOME/.$slug}
 
@@ -34,7 +35,7 @@ case $(uname -s) in
     Linux) os=linux ;;
     MINGW* | MSYS* | CYGWIN*)
         fail "native Windows is not supported yet" \
-            "run this inside WSL (wsl --install), or use the container: docker run ghcr.io/$repo"
+            "run this inside WSL (wsl --install), or use the container: docker run $image"
         ;;
     *) fail "no standalone build for $(uname -s)" "npm i -g $slug (needs Node 24), or the container image" ;;
 esac
@@ -57,9 +58,10 @@ asset=$slug-$os-$arch.tar.gz
 if [ -n "${DISPACH_DOWNLOAD_BASE:-}" ]; then
     base=$DISPACH_DOWNLOAD_BASE
 elif [ "$version" = latest ]; then
-    base=https://github.com/$repo/releases/latest/download
+    base=https://gitlab.com/$repo/-/releases/permalink/latest/downloads
 else
-    base=https://github.com/$repo/releases/download/v${version#v}
+    # Every version, pre-releases included, is in the package registry; only stable ones get a release.
+    base=https://gitlab.com/api/v4/projects/moeen-mahmud%2F$slug/packages/generic/$slug/${version#v}
 fi
 
 if command -v curl >/dev/null 2>&1; then
@@ -83,7 +85,7 @@ trap 'rm -rf "$tmp"' EXIT INT TERM
 
 say "downloading $asset ($version)"
 fetch "$base/$asset" "$tmp/$asset" ||
-    fail "could not download $base/$asset" "check the version exists: https://github.com/$repo/releases"
+    fail "could not download $base/$asset" "check the version exists: https://gitlab.com/$repo/-/releases"
 fetch "$base/SHA256SUMS" "$tmp/SHA256SUMS" || fail "could not download $base/SHA256SUMS"
 expected=$(awk -v f="$asset" '$2 == f { print $1 }' "$tmp/SHA256SUMS")
 [ -n "$expected" ] || fail "SHA256SUMS does not list $asset"

@@ -1,0 +1,485 @@
+# GitLab CI/CD — the pipeline while the GitHub account is suspended.
+#
+# A port of `.github/workflows/ci.yml` (the gate) and `release.yml` (a `v*` tag publishes). Those
+# files keep the reasoning behind each step and are left in place, dormant; this one keeps the
+# steps. When GitHub is back, delete this file and nothing else changes.
+#
+# What differs from the GitHub version, and why:
+#
+# - No Homebrew job. The tap repository was under the suspended account.
+# - No macOS install check. GitLab.com's macOS runners need a paid tier; the darwin archives are
+#   still built (on Linux, from the published tarball) and checksummed, just not installed on a Mac.
+# - The image goes to Docker Hub (`docker.io/moeenmahmud007/dispach`), not GHCR.
+# - GitLab releases have no pre-release flag, and `/-/releases/permalink/latest` follows the newest
+#   release by date. So a pre-release tag uploads its archives to the package registry (where
+#   `DISPACH_VERSION=<pre-release>` finds them) and creates **no** release, or the curl installer's
+#   "latest" would start handing out pilots.
+#
+# CI/CD variables (Settings → CI/CD → Variables, masked and protected, protect `v*` tags too):
+#   NPM_TOKEN         an npm automation token for `dispach`
+#   DOCKERHUB_TOKEN   a Docker Hub access token for moeenmahmud007 with read/write
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG =~ /^v\d/
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+stages: [check, publish, release]
+
+variables:
+  IMAGE: docker.io/moeenmahmud007/dispach
+  # Fake on purpose, and nothing here reaches a network: `validate` refuses a manifest whose key
+  # variables are unset (see the `bundle` job in ci.yml).
+  MODEL_ID: gpt-4o-mini
+  MODEL_BASE_URL: https://api.openai.com/v1
+  MODEL_API_KEY: ci-not-a-real-key
+
+.bun:
+  image: node:24
+  before_script:
+    - npm install --global --silent bun@latest
+    - bun --version
+
+.docker:
+  image: docker:27
+  services: [docker:27-dind]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+
+.check:
+  stage: check
+  rules:
+    - if: $CI_COMMIT_TAG == null
+
+.tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d/
+
+# ── the gate ─────────────────────────────────────────────────────────────────────────────────────
+
+# Everything here blocks a merge. Order matters: `build` before anything that imports a sibling,
+# because a fresh checkout has no `dist/` (ci.yml explains the nine red days that cost).
+gate:
+  extends: [.bun, .check]
+  timeout: 15m
+  script:
+    - bun install
+    - bun run lint
+    - apt-get update -qq && apt-get install -y -qq shellcheck > /dev/null
+    - shellcheck -s sh scripts/install.sh
+    - bun run build
+    - bun run docs:check
+    - bun run typecheck
+    - bun run check:deps
+    # GitLab runs jobs in a container and GitHub on a VM. `inContainer()` reads the real
+    # `/.dockerenv`, so six bootstrap tests that feed it a fake environment get "in-container" back
+    # instead of the reason they assert. The job is not the thing those tests are about.
+    - rm -f /.dockerenv
+    - bun test
+    - bun run bench:boot -- --ci
+
+# The image, built and exercised. The daemon is the dind service, so published ports land on the
+# host `docker`; socat brings 7420 back to localhost so every step below is ci.yml's, verbatim.
+container:
+  extends: [.docker, .check]
+  timeout: 30m
+  before_script:
+    - apk add --no-cache bash coreutils curl socat > /dev/null
+    - socat TCP-LISTEN:7420,fork,reuseaddr TCP:docker:7420 &
+  script:
+    # build image
+    - |
+      docker build -f docker/Dockerfile -t dispach:ci .
+    # image size
+    - |
+      bytes=$(docker image inspect dispach:ci --format '{{.Size}}')
+      mb=$(( bytes / 1000000 ))
+      echo "image is ${mb} MB"
+    # the shell the agent gets
+    - |
+      missing=""
+      for tool in sh bash git python3 curl jq uv node dispach; do
+        docker run --rm --entrypoint sh dispach:ci -c "command -v $tool >/dev/null" \
+          || missing="$missing $tool"
+      done
+      if [ -n "$missing" ]; then
+        echo "::error::absent from the image:$missing — see docker/Dockerfile for why each is there"
+        exit 1
+      fi
+      echo "toolchain present"
+
+      # **Absent on purpose, and asserted.** No Bun: since 0.1.3 the runtime is Node, the
+      # runtime every install path shares, and the application is the published tarball
+      # installed with `npm i -g`. A `bun` in the runtime stage would mean a second runtime
+      # to reason about — the one that cannot finish the WhatsApp handshake.
+      #
+      # No `react-devtools-core` either: `ink` declares it a peerDependency, and a `bun install
+      # --production` of the *workspace* once pulled ~17 MB of it into every image. Installing
+      # the tarball cannot, and this asserts that stays true.
+      #
+      # No pager and no editor: `exec` hands a child a file descriptor and never a TTY, so
+      # anything that pages or prompts blocks until `deadlineMs` and reads as a hung agent.
+      present=""
+      for tool in bun less nano vi; do
+        docker run --rm --entrypoint sh dispach:ci -c "command -v $tool >/dev/null" \
+          && present="$present $tool"
+      done
+      if [ -n "$present" ]; then
+        echo "::error::these should not be in the image:$present"
+        exit 1
+      fi
+      docker run --rm --entrypoint sh dispach:ci -c 'ls /usr/local/lib/node_modules/dispach/node_modules 2>/dev/null; ls /usr/local/lib/node_modules' \
+        | grep -q react-devtools-core \
+        && { echo "::error::react-devtools-core reached the image"; exit 1; }
+      echo "no bun, no devtools, no pager, no editor"
+
+      # glibc, which is the whole reason the base image changed. A revert to musl passes every
+      # test above and then fails inside a tool call, on a machine nobody is watching.
+      docker run --rm --entrypoint sh dispach:ci -c 'ldd --version 2>&1 | head -1' | grep -qi glibc \
+        || { echo "::error::the image is not glibc — a Python wheel without a musllinux build will try to compile, and there is no compiler"; exit 1; }
+
+      # A C-extension wheel, with no compiler present. The payoff measured rather than argued.
+      docker run --rm --entrypoint sh dispach:ci -c '
+        command -v cc gcc >/dev/null && exit 9
+        uv pip install --quiet --system --break-system-packages --target /tmp/w msgpack >/dev/null 2>&1 || exit 1
+        python3 -c "import sys; sys.path.insert(0, \"/tmp/w\"); import msgpack" ' \
+        || { echo "::error::a prebuilt C-extension wheel did not install and import"; exit 1; }
+      echo "wheels install with no compiler"
+
+      # `tzdata`, for schedules. `zone.ts` walks local calendar fields through Intl, and with no
+      # zone database a cron silently runs in UTC — the failure the DST handling exists to stop.
+      docker run --rm --entrypoint sh dispach:ci -c 'TZ=Asia/Dhaka date +%z' | grep -q '+0600' \
+        || { echo "::error::a named timezone does not resolve — schedules would silently run in UTC"; exit 1; }
+      echo "named timezones resolve"
+
+      # Non-root is the other half, and it is what the containment in docker-compose.yml
+      # assumes. A base-image change that reverted to root would make every cap_drop moot.
+      uid=$(docker run --rm --entrypoint sh dispach:ci -c 'id -u')
+      [ "$uid" = "1000" ] || { echo "::error::image runs as uid $uid, expected 1000"; exit 1; }
+      echo "runs as uid 1000"
+
+      # `$HOME` is load-bearing since 15.5: `lib/sandbox.ts` resolves `~/.dispach`, and `USER`
+      # does **not** set `$HOME` in Docker — it is inherited from the build environment. Unset,
+      # the sandbox lands under `/root`, which is writable while building and refused at run
+      # time, so the failure arrives on the first turn rather than at start.
+      home=$(docker run --rm --entrypoint sh dispach:ci -c 'echo $HOME')
+      [ "$home" = "/home/dispach" ] || { echo "::error::HOME is '$home', expected /home/dispach"; exit 1; }
+      echo "HOME is a real home"
+    # container start to ready
+    - |
+      docker run -d --name probe -p 7420:7420 \
+        -e MODEL_ID=gpt-4o-mini \
+        -e MODEL_BASE_URL=https://api.openai.com/v1 \
+        -e MODEL_API_KEY=ci-not-a-real-key \
+        -e DISPACH_API_TOKEN=ci-not-a-real-token \
+        -v "$PWD/examples/minimal:/agent" \
+        dispach:ci
+      start=$(date +%s%N)
+      for _ in $(seq 1 100); do
+        if curl -sf localhost:7420/v1/ready >/dev/null; then break; fi
+        sleep 0.1
+      done
+      end=$(date +%s%N)
+      ms=$(( (end - start) / 1000000 ))
+      echo "start to ready: ${ms} ms"
+      curl -sf localhost:7420/v1/ready || { docker logs probe; exit 1; }
+      if [ "$ms" -gt 2000 ]; then
+        echo "::error::start to ready was ${ms} ms, over the 2000 ms target"
+        docker logs probe
+        exit 1
+      fi
+      docker rm -f probe
+    # one agents directory
+    - |
+      set -e
+      docker volume rm -f ci-home >/dev/null 2>&1 || true
+      run() {
+        docker run --rm \
+          -v ci-home:/home/dispach \
+          -v "$PWD/examples/minimal:/agent" \
+          -e MODEL_ID=gpt-4o-mini \
+          -e MODEL_BASE_URL=https://api.openai.com/v1 \
+          -e MODEL_API_KEY=ci-not-a-real-key \
+          dispach:ci "$@"
+      }
+
+      # The mounted manifest, reached by **bare ref** through the link the entrypoint makes —
+      # the same `resolveAgentRef` path a laptop uses, rather than a second special path.
+      run validate primary --plain | tee /tmp/v.txt
+      grep -q "agents/primary/agent.yaml" /tmp/v.txt \
+        || { echo "::error::the mounted agent is not reachable as 'primary' in the sandbox"; exit 1; }
+
+      # An agent created *inside* the container has to land in the same directory.
+      run init --yes --user ci --name probe \
+        --model gpt-4o-mini --base-url https://api.openai.com/v1 | tail -3
+
+      # …and both have to appear in one listing, after a fresh container on the same volume.
+      run run --plain > /tmp/list.txt 2>&1 || true
+      cat /tmp/list.txt
+      grep -q "^primary" /tmp/list.txt || { echo "::error::the mounted agent is missing from the listing"; exit 1; }
+      grep -q "^probe"   /tmp/list.txt || { echo "::error::the agent created in the container is missing from the listing"; exit 1; }
+      echo "one directory, both agents, across container lifetimes"
+      docker volume rm -f ci-home >/dev/null 2>&1 || true
+    # compose front door
+    - |
+      cat > .env <<'ENV'
+      DISPACH_API_TOKEN=ci-not-a-real-token
+      MODEL_ID=gpt-4o-mini
+      MODEL_BASE_URL=https://api.openai.com/v1
+      MODEL_API_KEY=ci-not-a-real-key
+      ENV
+      docker compose config -q
+      # The image is already built by the first step; tagging it under the compose file's
+      # `image:` (the GHCR name, default `latest`) is what makes `pull_policy: missing` use it
+      # rather than reach for the registry.
+      docker tag dispach:ci docker.io/moeenmahmud007/dispach:latest
+      docker compose up -d --wait || { docker compose logs; exit 1; }
+      curl -sf localhost:7420/v1/ready || { docker compose logs; exit 1; }
+      # The token is required, so an unauthenticated write must be refused — the property the
+      # 0.0.0.0 bind depends on, checked rather than assumed.
+      code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+        -H 'content-type: application/json' -d '{"text":"hi"}' \
+        localhost:7420/v1/agents/minimal/messages)
+      if [ "$code" != "401" ]; then
+        echo "::error::an unauthenticated POST returned ${code}, expected 401"
+        docker compose logs
+        exit 1
+      fi
+      docker compose down -v
+
+# The published bundle, installed from its tarball and run under Node, the runtime every install
+# ships. `bun test` imports source and cannot see a bundling defect.
+bundle:
+  extends: [.bun, .check]
+  timeout: 15m
+  script:
+    - bun install
+    - bun run build
+    # install the tarball
+    - |
+      set -e
+      out=$(mktemp -d)
+      (cd packages/cli && bun pm pack --destination "$out" --ignore-scripts)
+      prefix=$(mktemp -d)
+      npm install -g --prefix "$prefix" --omit=dev --ignore-scripts "$out"/dispach-*.tgz
+      export PATH="$prefix/bin:$PATH"
+      "$prefix/bin/dispach" --version
+    # the package does real work
+    - |
+      dispach validate ./examples/minimal/agent.yaml --json | tee /tmp/out.json
+      grep -q '"ok": true' /tmp/out.json || {
+        echo "::error::the installed package could not validate the reference manifest"
+        exit 1
+      }
+      dispach --help > /dev/null
+    # the package serves the web UI
+    - |
+      export DISPACH_HOME="$(mktemp -d)"
+      dispach serve ./examples/minimal/agent.yaml --port 7431 > /tmp/serve.log 2>&1 &
+      for _ in $(seq 1 30); do
+        curl -fsS localhost:7431/v1/ready > /dev/null 2>&1 && break
+        sleep 1
+      done
+      for path in / /assets/app.js /assets/app.css; do
+        code=$(curl -s -o /tmp/body -w '%{http_code}' "localhost:7431$path")
+        bytes=$(wc -c < /tmp/body)
+        echo "$path -> $code, $bytes bytes"
+        if [ "$code" != "200" ] || [ "$bytes" -lt 100 ]; then
+          echo "::error::$path answered $code with $bytes bytes from the installed package"
+          cat /tmp/serve.log
+          exit 1
+        fi
+      done
+      kill "$!"
+    # a real bind refuses a rebinding request
+    - |
+      set -e
+      export DISPACH_HOME="$(mktemp -d)"
+      dispach serve ./examples/minimal/agent.yaml --port 7452 > /tmp/origin.log 2>&1 &
+      for _ in $(seq 1 30); do
+        curl -fsS localhost:7452/v1/ready > /dev/null 2>&1 && break
+        sleep 1
+      done
+
+      code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+      fail=0
+      check() {
+        if [ "$2" != "$3" ]; then
+          echo "::error::$1 answered $2, expected $3"
+          fail=1
+        else
+          echo "  ok  $1 -> $2"
+        fi
+      }
+
+      check "no Origin"                 "$(code localhost:7452/v1/ready)" 200
+      check "web UI's own origin"       "$(code -H 'Origin: http://localhost:7452' localhost:7452/)" 200
+      check "dev proxy on another port" "$(code -H 'Origin: http://localhost:5173' localhost:7452/v1/ready)" 200
+      check "hostile Origin"            "$(code -H 'Origin: https://evil.example' localhost:7452/v1/ready)" 403
+      check "rebinding Host"            "$(code -H 'Host: evil.example' localhost:7452/v1/ready)" 403
+      check "rebinding on open webhook" "$(code -X POST -H 'Host: evil.example' -H 'content-type: application/json' -d '{}' localhost:7452/v1/channels/tg/webhook/minimal)" 403
+      check "ws handshake, hostile"     "$(code -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -H 'Origin: https://evil.example' 'localhost:7452/v1/ws?token=x')" 403
+
+      kill "$!"
+      [ "$fail" = 0 ] || { cat /tmp/origin.log; exit 1; }
+    # no renderer on the plain path
+    - |
+      start=$(date +%s%N)
+      dispach validate ./examples/minimal/agent.yaml --json > /dev/null
+      ms=$(( ($(date +%s%N) - start) / 1000000 ))
+      echo "validate --json in ${ms} ms"
+      if [ "$ms" -gt 600 ]; then
+        echo "::error::${ms} ms for validate --json — something on this path now imports a renderer"
+        exit 1
+      fi
+
+# Node is a soft goal (decision 2.2): a red leg here is information, never a merge gate.
+node:
+  extends: [.bun, .check]
+  allow_failure: true
+  timeout: 15m
+  script:
+    - bun install
+    - bun run build
+    - node scripts/smoke-node.ts
+    # A wall clock outside the process: the hang this bounds blocked the event loop, so Node's own
+    # `--test-timeout` never fired.
+    - timeout 300 bun run test:node
+
+# ── a v* tag publishes ───────────────────────────────────────────────────────────────────────────
+
+# npm first: the archives are built from the tarball this publishes, so they can never differ.
+npm:
+  extends: [.bun, .tag]
+  stage: publish
+  timeout: 15m
+  resource_group: release
+  id_tokens:
+    # `npm publish --provenance` signs with this on GitLab.com's runners.
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
+  script:
+    - bun install --frozen-lockfile
+    - bun run verify:package
+    - |
+      pkg=$(node -p "require('./packages/cli/package.json').version")
+      core=$(grep -o 'VERSION = "[^"]*"' packages/core/src/version.ts | cut -d'"' -f2)
+      if [ "$pkg" != "$core" ]; then
+        echo "packages/cli/package.json says $pkg, packages/core/src/version.ts says $core" >&2
+        exit 1
+      fi
+      if [ "$CI_COMMIT_TAG" != "v$pkg" ]; then
+        echo "tag $CI_COMMIT_TAG does not match package version $pkg" >&2
+        exit 1
+      fi
+      case "$pkg" in *-*) pre=true ;; *) pre=false ;; esac
+      printf 'VERSION=%s\nPRERELEASE=%s\n' "$pkg" "$pre" > release.env
+      cat release.env
+    - bun scripts/changelog-section.ts "$(node -p "require('./packages/cli/package.json').version")" > notes.md
+    - |
+      if [ -z "$NPM_TOKEN" ]; then
+        echo "NPM_TOKEN is not set. Nothing was published, and the archives and image depend on the tarball this job publishes. Add the CI/CD variable and retry this job." >&2
+        exit 1
+      fi
+      . ./release.env
+      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+      cd packages/cli
+      if [ "$PRERELEASE" = true ]; then npm publish --access public --provenance --tag next
+      else npm publish --access public --provenance; fi
+  artifacts:
+    reports:
+      dotenv: release.env
+    paths: [notes.md]
+
+# The four standalone archives, from the tarball npm now serves, installed once on Linux.
+standalone:
+  extends: [.bun, .tag]
+  stage: publish
+  needs: [npm]
+  timeout: 40m
+  script:
+    - bun install --frozen-lockfile
+    - |
+      for _ in $(seq 1 90); do
+        url=$(npm view "dispach@${VERSION}" dist.tarball 2>/dev/null) && [ -n "$url" ] && break
+        sleep 20
+      done
+      [ -n "$url" ] || { echo "dispach@${VERSION} is not on the registry after 30 minutes" >&2; exit 1; }
+      curl -fsSL "$url" -o /tmp/dispach.tgz
+    - bun scripts/build-standalone.ts --tarball /tmp/dispach.tgz
+    - cp scripts/install.sh dist-standalone/
+    - cat dist-standalone/SHA256SUMS
+    - |
+      (cd dist-standalone && python3 -m http.server 8765 > /dev/null 2>&1 &)
+      sleep 1
+      DISPACH_DOWNLOAD_BASE=http://127.0.0.1:8765 sh dist-standalone/install.sh
+      test "$("$HOME/.dispach/bin/dispach" --version)" = "$VERSION"
+  artifacts:
+    paths: [dist-standalone/]
+    expire_in: 7 days
+
+# Multi-arch, to Docker Hub. A pre-release moves only its own tag, never `latest` or `X.Y`.
+docker-hub:
+  extends: [.docker, .tag]
+  stage: publish
+  needs: [npm]
+  timeout: 60m
+  script:
+    - |
+      if [ -z "$DOCKERHUB_TOKEN" ]; then
+        echo "DOCKERHUB_TOKEN is not set. The image was not pushed; add the CI/CD variable and retry this job." >&2
+        exit 1
+      fi
+    - echo "$DOCKERHUB_TOKEN" | docker login --username moeenmahmud007 --password-stdin
+    - docker run --privileged --rm tonistiigi/binfmt --install arm64
+    - docker buildx create --use --name multi
+    - |
+      tags="--tag $IMAGE:$VERSION"
+      if [ "$PRERELEASE" = false ]; then tags="$tags --tag $IMAGE:${VERSION%.*} --tag $IMAGE:latest"; fi
+      echo "pushing: $tags"
+      docker buildx build --platform linux/amd64,linux/arm64 -f docker/Dockerfile \
+        --label "org.opencontainers.image.version=$VERSION" \
+        --label "org.opencontainers.image.source=$CI_PROJECT_URL" \
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
+        $tags --push .
+
+# The archives go to the generic package registry (every version, so `DISPACH_VERSION=` can name a
+# pre-release), then a stable version gets a release whose asset links carry `direct_asset_path`,
+# which is what `/-/releases/permalink/latest/downloads/install.sh` resolves through.
+release:
+  extends: .tag
+  stage: release
+  image: node:24
+  needs: [npm, standalone]
+  timeout: 10m
+  script:
+    - |
+      base="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dispach/${VERSION}"
+      for f in dist-standalone/*; do
+        curl -fsS --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$f" "$base/$(basename "$f")" > /dev/null
+        echo "uploaded $(basename "$f")"
+      done
+    - |
+      if [ "$PRERELEASE" = true ]; then
+        echo "pre-release: archives are in the package registry, and no release is created"
+        exit 0
+      fi
+      node -e '
+        const fs = require("node:fs")
+        const { VERSION, CI_COMMIT_TAG, CI_API_V4_URL, CI_PROJECT_ID } = process.env
+        const base = `${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dispach/${VERSION}`
+        const links = fs.readdirSync("dist-standalone").map((name) => ({
+          name, url: `${base}/${name}`, direct_asset_path: `/${name}`,
+          link_type: name.endsWith(".tar.gz") ? "package" : "other",
+        }))
+        fs.writeFileSync("release.json", JSON.stringify({
+          tag_name: CI_COMMIT_TAG, name: CI_COMMIT_TAG,
+          description: fs.readFileSync("notes.md", "utf8"), assets: { links },
+        }))'
+      curl -fsS --header "JOB-TOKEN: $CI_JOB_TOKEN" --header "content-type: application/json" \
+        --data @release.json "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases" > /dev/null
+      echo "released $CI_COMMIT_TAG"
