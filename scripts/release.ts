@@ -177,6 +177,6 @@ process.stdout.write(`
           ? "A pre-release tag publishes npm under the `next` dist-tag, a GitLab release (GitLab has no pre-release flag; the `-` in the tag says it) and the image at this version only — never `latest`."
           : "The tag publishes: npm, the GitLab Release (notes from CHANGELOG.md, standalone archives attached), the image. The Homebrew tap is paused."
 }
-  Watch it at https://gitlab.com/moeen-mahmud/dispach/-/pipelines — it needs the NPM_TOKEN and DOCKERHUB_TOKEN CI/CD variables.
+  Watch it at https://gitlab.com/moeen-mahmud/dispach/-/pipelines — DOCKERHUB_TOKEN pushes the image; without NPM_TOKEN, npm, the archives and the GitLab release are skipped.
 
 `)

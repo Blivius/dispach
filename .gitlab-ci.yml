@@ -16,8 +16,10 @@
 #   "latest" would start handing out pilots.
 #
 # CI/CD variables (Settings → CI/CD → Variables, masked and protected, protect `v*` tags too):
-#   NPM_TOKEN         an npm automation token for `dispach`
 #   DOCKERHUB_TOKEN   a Docker Hub access token for moeenmahmud007 with read/write
+#   NPM_TOKEN         optional. Unset, a tag pushes the image only: no npm publish, no archives, no
+#                     GitLab release (the archives are built from the published tarball). Set it and
+#                     all three come back with no edit here.
 
 workflow:
   rules:
@@ -58,6 +60,11 @@ variables:
 .tag:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d/
+
+# Jobs that need a published npm tarball run only once NPM_TOKEN exists.
+.tag-npm:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d/ && $NPM_TOKEN
 
 # ── the gate ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -382,8 +389,8 @@ npm:
     - bun scripts/changelog-section.ts "$(node -p "require('./packages/cli/package.json').version")" > notes.md
     - |
       if [ -z "$NPM_TOKEN" ]; then
-        echo "NPM_TOKEN is not set. Nothing was published, and the archives and image depend on the tarball this job publishes. Add the CI/CD variable and retry this job." >&2
-        exit 1
+        echo "NPM_TOKEN is not set: npm publish skipped (the image still goes to Docker Hub; archives and the GitLab release wait for the token)."
+        exit 0
       fi
       . ./release.env
       echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
@@ -397,7 +404,7 @@ npm:
 
 # The four standalone archives, from the tarball npm now serves, installed once on Linux.
 standalone:
-  extends: [.bun, .tag]
+  extends: [.bun, .tag-npm]
   stage: publish
   needs: [npm]
   timeout: 40m
@@ -434,7 +441,7 @@ docker-hub:
         echo "DOCKERHUB_TOKEN is not set. The image was not pushed; add the CI/CD variable and retry this job." >&2
         exit 1
       fi
-    - echo "$DOCKERHUB_TOKEN" | docker login --username moeenmahmud007 --password-stdin
+    - echo "$DOCKERHUB_TOKEN" | docker login --username "${DOCKERHUB_USERNAME:-moeenmahmud007}" --password-stdin
     - docker run --privileged --rm tonistiigi/binfmt --install arm64
     - docker buildx create --use --name multi
     - |
@@ -451,7 +458,7 @@ docker-hub:
 # pre-release), then a stable version gets a release whose asset links carry `direct_asset_path`,
 # which is what `/-/releases/permalink/latest/downloads/install.sh` resolves through.
 release:
-  extends: .tag
+  extends: .tag-npm
   stage: release
   image: node:24
   needs: [npm, standalone]
