@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.5 — 2026-11-12
+
 ### Changed
 
 - The repository, CI and releases moved to `gitlab.com/moeen-mahmud/dispach` while the GitHub account is suspended. The `curl … install.sh | sh` one-liner downloads from the GitLab release.
