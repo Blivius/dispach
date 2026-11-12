@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Changed
+
+- The repository, CI and releases moved to `gitlab.com/moeen-mahmud/dispach` while the GitHub account is suspended. The `curl … install.sh | sh` one-liner downloads from the GitLab release.
+- The container image is `docker.io/moeenmahmud007/dispach`; `ghcr.io/moeen-mahmud/dispach` is unreachable.
+- The Homebrew tap and npm publishing are paused; `npm i -g dispach` still installs 0.2.4.
 
 ## 0.2.4 — 2026-11-03
 
