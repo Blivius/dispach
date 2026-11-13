@@ -120,6 +120,12 @@ A turn still running at the deadline is left as it is without a drain: the next 
 received is better answered than dropped. Unset, a stop does not wait (the behaviour on a laptop and
 under launchd). A malformed value refuses to start.
 
+**A frozen server is killed.** A turn that blocks the event loop freezes every agent and
+`/v1/ready` with it, and SIGTERM is answered on that same loop. A watchdog thread kills the process
+(SIGKILL, after a `dispach: event loop stalled for Ns` line on stderr) when the loop has not turned
+for `DISPACH_LOOP_STALL_S` seconds, default 60, so the pod restarts instead of hanging. `0` turns it
+off; a malformed value refuses to start.
+
 ## 5. Credentials
 
 Model access on EKS is Bedrock through **EKS Pod Identity**: associate an IAM role with the pod's

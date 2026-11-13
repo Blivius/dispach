@@ -220,7 +220,7 @@ EXPOSE 7420
 # So this answers "can it serve a turn", which is the question an orchestrator is actually asking.
 #
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:7420/v1/ready > /dev/null || exit 1
+    CMD curl -fsS --max-time 2 http://127.0.0.1:7420/v1/ready > /dev/null || exit 1
 
 # `serve` rather than `run`: it is the only command that starts channels and binds the port, and a
 # container with no terminal has nobody to talk to a REPL.
