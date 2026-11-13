@@ -27,7 +27,8 @@ setTimeout(() => { const end = Date.now() + 10_000; while (Date.now() < end) {} 
 })
 
 test("a healthy process exits on its own: the watchdog never keeps it alive", () => {
-    const run = child(`startLoopWatchdog(1)
+    // A long limit: this is about unref, and a busy test machine must not trip a real stall.
+    const run = child(`startLoopWatchdog(30)
 setTimeout(() => console.log("done"), 2_500)`)
     expect(run.status).toBe(0)
     expect(run.stdout).toContain("done")
