@@ -191,6 +191,13 @@ function floorRefusal(path: string, value?: unknown): string | undefined {
     if (key.startsWith("tools.providers") && key.split(".").includes("confinereads"))
         return READ_REACH
     if (key.startsWith("tools.providers") && containsKey(value, "confinereads")) return READ_REACH
+    // `confine: agent` (0.2.6) is the same boundary for commands: off, a command reads every other
+    // agent's files and the runtime's credentials.
+    const COMMAND_REACH =
+        "where your commands may reach is not yours to widen. A person sets tools.providers.system.confine"
+    if (key.startsWith("tools.providers") && key.split(".").includes("confine"))
+        return COMMAND_REACH
+    if (key.startsWith("tools.providers") && containsKey(value, "confine")) return COMMAND_REACH
     // Whose turns may use the owner's accounts: an agent in a room that could set a provider's
     // `personal` to false would hand the owner's connected accounts to everyone in it.
     const OWNER_REACH =
@@ -394,7 +401,7 @@ export function configReadHandler(options: ConfigOptions): ToolHandler {
             ...contextFiles(doc),
             "Anything not on this list is not settable from a conversation. A change takes effect when the agent next starts, not in the current conversation.",
             "",
-            "Some edits are refused whatever the rules say. Removing a check: replacing tools.policy.deny, or setting tools.untrusted.onMutate to allow. Deciding reach: a writeRoots list anywhere, the system provider's env, any provider's baseUrl or personal flag, a channel's allowFrom, and server.host or server.tokenEnv. Enabling a capability is what a person asks you for; where you may write, who may talk to you, and what address you listen on are theirs — name what you need and why, and let them add it.",
+            "Some edits are refused whatever the rules say. Removing a check: replacing tools.policy.deny, or setting tools.untrusted.onMutate to allow. Deciding reach: a writeRoots list anywhere, the system provider's env, confineReads or confine, any provider's baseUrl or personal flag, a channel's allowFrom, and server.host or server.tokenEnv. Enabling a capability is what a person asks you for; where you may write, who may talk to you, and what address you listen on are theirs — name what you need and why, and let them add it.",
             "",
             // Hidden (pilot.15): pointing at the raw file would point past the redaction above.
             ...(hidden(doc)

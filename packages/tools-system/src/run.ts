@@ -36,8 +36,9 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process"
-import { open, readFile } from "node:fs/promises"
+import { mkdir, open, readFile } from "node:fs/promises"
 import { subcommands } from "@dispach/core"
+import { type Confinement, confinedCommand, confinedTemp } from "./confine.ts"
 import { execPtyUnavailable, execSpawnFailed, execTooManyBackground } from "./errors.ts"
 
 export type RunEnding = "finished" | "backgrounded" | "killed"
@@ -128,6 +129,11 @@ export interface RunRequest {
     readonly outPath: string
     /** Exit code on the first line, final working directory on the second. */
     readonly statusPath: string
+    /**
+     * Run inside the agent's own directory under Landlock (`confine.ts`). `TMPDIR` and `HOME` move
+     * to its private temp, and the caller puts `statusPath` there too, since the command writes it.
+     */
+    readonly confine?: Confinement
 }
 
 export interface RunResult {
@@ -271,7 +277,14 @@ export async function runCommand(request: RunRequest): Promise<RunResult> {
     }
 
     const wrapper = buildWrapper(request.command, request.statusPath)
-    const { file, args, env } = commandLine(wrapper, request.pty)
+    const line = commandLine(wrapper, request.pty)
+    const { file, args } =
+        request.confine === undefined
+            ? line
+            : confinedCommand(request.confine, line.file, line.args)
+    const temp = request.confine === undefined ? undefined : confinedTemp(request.confine.agentDir)
+    if (temp !== undefined) await mkdir(temp, { recursive: true })
+    const env = temp === undefined ? line.env : { ...line.env, TMPDIR: temp, HOME: temp }
 
     // Opened before the spawn so a failure to create it is reported as itself rather than as a
     // command that mysteriously produced nothing.

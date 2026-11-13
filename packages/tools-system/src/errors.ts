@@ -230,3 +230,12 @@ export function execTooManyBackground(running: readonly string[]): ToolError {
             )}. A command that outruns its timeout is left running rather than discarded, so a loop that starts one per attempt reaches this quickly — which is the point of the limit.`,
     })
 }
+
+/** `confine: agent` is set and this machine cannot confine a command, so none runs (0.2.6). */
+export function execConfineUnavailable(why: string): ToolError {
+    return new ToolError({
+        code: "exec_confine_unavailable",
+        message: `Commands cannot run here: this agent is confined to its own directory, and ${why}.`,
+        hint: "Use the file tools instead, which are confined without the kernel's help. Whoever runs this agent needs Linux with Landlock (5.13 or later) and python3, or to remove tools.providers.system.confine.",
+    })
+}
