@@ -29,7 +29,7 @@ import { spawnSync } from "node:child_process"
 import { join } from "node:path"
 
 /**
- * argv: `<rw dir>... -- <file> <args>...`. Exit 125 with a `dispach-confine:` line when the kernel
+ * argv: `<rw dir>... r:<read-only dir>... -- <file> <args>...`. Exit 125 with a `dispach-confine:` line when the kernel
  * cannot confine, before anything runs.
  */
 export const LAUNCHER = String.raw`
@@ -64,16 +64,22 @@ for path in ["/usr", "/bin", "/sbin", "/lib", "/lib64", "/etc", "/opt", "/proc",
     allow(path, READ)
 for path in ["/dev/null", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/tty", "/dev/ptmx", "/dev/pts"]:
     allow(path, FS)
-for path in sys.argv[1:split]: allow(path, FS)
+for path in sys.argv[1:split]: allow(path[2:], READ) if path.startswith("r:") else allow(path, FS)
 if libc.prctl(38, 1, 0, 0, 0) != 0: die("could not set no_new_privs")
 if libc.syscall(446, rs, 0) != 0: die("could not restrict: " + os.strerror(ctypes.get_errno()))
 os.execvp(sys.argv[split + 1], sys.argv[split + 1:])
 `
 
-/** What a confined command runs inside: the agent's directory and any operator-granted roots. */
+/**
+ * What a confined command runs inside. `confine: agent`: the agent's directory and any
+ * operator-granted roots. `confine: workspace` (0.2.7): only the agent's workspace and its temp, with
+ * its skills readable - so the rest of the agent's directory (`.env`, `agent.yaml`, a channel's
+ * session) is out of a command's reach, and an agent that holds credentials can still have a shell.
+ */
 export interface Confinement {
     readonly agentDir: string
     readonly writable: readonly string[]
+    readonly readable?: readonly string[]
 }
 
 /** The agent's private temp: `TMPDIR`, `HOME` and the command's own status files live here. */
@@ -89,7 +95,16 @@ export function confinedCommand(
 ): { file: string; args: string[] } {
     return {
         file: "python3",
-        args: ["-I", "-c", LAUNCHER, ...confinement.writable, "--", file, ...args],
+        args: [
+            "-I",
+            "-c",
+            LAUNCHER,
+            ...confinement.writable,
+            ...(confinement.readable ?? []).map((path) => `r:${path}`),
+            "--",
+            file,
+            ...args,
+        ],
     }
 }
 

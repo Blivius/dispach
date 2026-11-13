@@ -28,7 +28,8 @@
  * indistinguishable from a package that simply forgot.
  */
 
-import { resolve } from "node:path"
+import { mkdirSync } from "node:fs"
+import { join, resolve } from "node:path"
 import {
     ConfigError,
     type MediaProviderFactory,
@@ -39,7 +40,7 @@ import {
     type ToolProviderFactory,
 } from "@dispach/core"
 import { configTools } from "./config.ts"
-import type { Confinement } from "./confine.ts"
+import { type Confinement, confinedTemp } from "./confine.ts"
 import { childEnv, type EnvPolicy, envPolicy } from "./env.ts"
 import { execTool } from "./exec.ts"
 import { fileTools } from "./files.ts"
@@ -192,9 +193,25 @@ export const SYSTEM_READONLY_SLUGS: readonly string[] = ["file_read", "glob", "g
 
 const CONFIG_KEYS = ["protect", "writeRoots", "env", "confineReads", "confine"] as const
 
-/** The agent's directory and the operator's writeRoots: everything a confined command may change. */
-export function confinementFor(dir: string, roots: Roots): Confinement {
-    return { agentDir: resolve(dir), writable: [resolve(dir), ...roots.extra] }
+/**
+ * Everything a confined command may change. `agent`: the agent's directory and the operator's
+ * writeRoots. `workspace` (0.2.7): the workspace and the agent's temp (made here, since Landlock can
+ * only allow a path that exists) and the writeRoots, with the agent's skills readable for their scripts.
+ */
+export function confinementFor(
+    dir: string,
+    roots: Roots,
+    scope: "agent" | "workspace" = "agent",
+): Confinement {
+    const agentDir = resolve(dir)
+    if (scope === "agent") return { agentDir, writable: [agentDir, ...roots.extra] }
+    const temp = confinedTemp(agentDir)
+    mkdirSync(temp, { recursive: true })
+    return {
+        agentDir,
+        writable: [join(agentDir, "workspace"), temp, ...roots.extra],
+        readable: [join(agentDir, "skills")],
+    }
 }
 
 export function systemFromConfig(
@@ -225,11 +242,11 @@ export function systemFromConfig(
         })
     }
     const confine = context.config.confine
-    if (confine !== undefined && confine !== "agent") {
+    if (confine !== undefined && confine !== "agent" && confine !== "workspace") {
         throw new ConfigError({
             code: "system_config_invalid",
-            message: `tools.providers.system.confine is ${JSON.stringify(confine)}; the only value is agent.`,
-            hint: "confine: agent runs every command inside the agent's own directory (Linux with Landlock), confines reads, and scrubs the environment. Leave it out for an agent that may use the whole machine.",
+            message: `tools.providers.system.confine is ${JSON.stringify(confine)}; the values are agent and workspace.`,
+            hint: "confine: agent runs every command inside the agent's own directory (Linux with Landlock), confines reads, and scrubs the environment; confine: workspace narrows that to the agent's workspace, so its .env and channel sessions are out of reach. Leave it out for an agent that may use the whole machine.",
             field: "tools.providers.system.confine",
         })
     }
@@ -237,9 +254,9 @@ export function systemFromConfig(
     // are what confinement keeps from a command, and an inherited environment would hand them over.
     const declared = envPolicy(context.config.env)
     const policy: EnvPolicy =
-        confine === "agent" && declared === "inherit" ? { scrub: true, pass: [] } : declared
+        confine !== undefined && declared === "inherit" ? { scrub: true, pass: [] } : declared
     const confinement =
-        confine === "agent"
+        confine === "agent" || confine === "workspace"
             ? confinementFor(
                   context.dir,
                   resolveRoots(
@@ -247,6 +264,7 @@ export function systemFromConfig(
                       Array.isArray(writeRoots) ? writeRoots.map(String) : [],
                       true,
                   ),
+                  confine,
               )
             : undefined
     // The same policy, and the same confinement, reach the skill-script runner this agent's plugin
@@ -262,6 +280,6 @@ export function systemFromConfig(
             ? { writeRoots: writeRoots.map((entry) => String(entry)) }
             : {}),
         ...(confineReads === true ? { confineReads: true } : {}),
-        ...(confine === "agent" ? { confine: true } : {}),
+        ...(confine !== undefined ? { confine: true } : {}),
     })
 }

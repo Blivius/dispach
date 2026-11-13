@@ -5,9 +5,9 @@
  */
 
 import { expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import {
     type PluginContext,
     type ScriptRunner,
@@ -17,6 +17,8 @@ import {
 import { configSetHandler } from "../src/config.ts"
 import { confineUnsupported } from "../src/confine.ts"
 import plugin from "../src/index.ts"
+import { confinementFor } from "../src/provider.ts"
+import { resolveRoots } from "../src/root.ts"
 
 /** Two agents side by side, as in one silo, and the runtime's secret in the environment. */
 async function silo(config: Record<string, unknown>) {
@@ -68,8 +70,24 @@ async function silo(config: Record<string, unknown>) {
     return { root, dir, other, run, script }
 }
 
-test("confine takes one value, agent", async () => {
-    await expect(silo({ confine: true })).rejects.toThrow("the only value is agent")
+test("confine takes agent or workspace", async () => {
+    await expect(silo({ confine: true })).rejects.toThrow("the values are agent and workspace")
+})
+
+test("confine: workspace grants the workspace, the temp and the writeRoots, and the skills read-only", () => {
+    const dir = mkdtempSync(join(tmpdir(), "confine-ws-"))
+    const c = confinementFor(dir, resolveRoots(dir, ["/data/shared"], true), "workspace")
+    const real = realpathSync(dir)
+    const at = (p: string) => p.replace(dir, real)
+    expect(c.writable.map(at)).toEqual([
+        join(real, "workspace"),
+        join(real, ".tmp"),
+        "/data/shared",
+    ])
+    expect(c.readable?.map(at)).toEqual([join(real, "skills")])
+    // The temp exists before the ruleset is made: Landlock can only allow a path that is there.
+    expect(existsSync(join(dir, ".tmp"))).toBe(true)
+    expect(confinementFor(dir, resolveRoots(dir, [], true)).writable).toEqual([resolve(dir)])
 })
 
 test("the agent cannot turn confinement off, by path or inside a value", async () => {
@@ -123,5 +141,17 @@ test.if(confineUnsupported() === undefined)(
         expect(await run("echo t > $TMPDIR/t && cat $TMPDIR/t")).toContain("t")
         // Ordinary programs still run.
         expect(await run("python3 -c 'print(6*7)'")).toContain("42")
+    },
+)
+
+test.if(confineUnsupported() === undefined)(
+    "with confine: workspace a command has the workspace and not the rest of its own directory",
+    async () => {
+        const { dir, run } = await silo({ confine: "workspace" })
+        writeFileSync(join(dir, ".env"), "TELEGRAM_BOT_TOKEN=secret")
+        expect(await run("echo hi > own.txt && cat own.txt")).toContain("hi")
+        expect(await run(`cat ${join(dir, ".env")}`)).toContain("Permission denied")
+        expect(await run(`echo x > ${join(dir, "agent.yaml")}`)).toContain("Permission denied")
+        expect(await run("echo t > $TMPDIR/t && cat $TMPDIR/t")).toContain("t")
     },
 )
