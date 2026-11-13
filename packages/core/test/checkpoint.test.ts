@@ -167,3 +167,96 @@ describe("the automatic reset", () => {
         await runtime.stop()
     })
 })
+
+describe("compaction that shrinks (0.2.6)", () => {
+    test("a pasted document is kept as its opening; the whole of it is one artifact_read away", async () => {
+        const { runtime, agent, bodies } = await boot("tools:\n  local:\n    - artifact_read\n")
+        const paste = `PASTE-START ${"a line of the pasted contract text ".repeat(800)} PASTE-END`
+        await agent.send(paste, { sessionKey: "api:p" })
+        for (const n of [2, 3]) await agent.send(`QUESTION-${n}`, { sessionKey: "api:p" })
+
+        const result = await agent.compactSession("api:p")
+        // Most of the paste was the cost; now it is not.
+        expect(result.after).toBeLessThan(result.before / 2)
+
+        await agent.send("QUESTION-4", { sessionKey: "api:p" })
+        const next = bodies.at(-1) ?? ""
+        expect(next).toContain("PASTE-START")
+        expect(next).not.toContain("PASTE-END")
+        const id = /artifact_read\(\\"([^"\\]+)\\"\)/.exec(next)?.[1]
+        expect(id).toBeDefined()
+        const stored = await agent.store.artifacts.get(agent.id, "api:p", id ?? "")
+        expect(stored?.content).toBe(paste)
+
+        // A second compaction leaves the excerpt as it is: the pointer still names the whole paste.
+        for (const n of [5, 6]) await agent.send(`QUESTION-${n}`, { sessionKey: "api:p" })
+        await agent.compactSession("api:p")
+        await agent.send("QUESTION-7", { sessionKey: "api:p" })
+        const later = bodies.at(-1) ?? ""
+        expect(/artifact_read\(\\"([^"\\]+)\\"\)/.exec(later)?.[1]).toBe(id)
+        await runtime.stop()
+    })
+
+    test("without artifact_read the excerpt says where the rest is, not a tool it lacks", async () => {
+        const { runtime, agent, bodies } = await boot()
+        await agent.send(`PASTE ${"pasted text ".repeat(2000)}`, { sessionKey: "api:q" })
+        for (const n of [2, 3]) await agent.send(`QUESTION-${n}`, { sessionKey: "api:q" })
+        await agent.compactSession("api:q")
+        await agent.send("QUESTION-4", { sessionKey: "api:q" })
+        const next = bodies.at(-1) ?? ""
+        expect(next).toContain("ask the person for the part you need")
+        expect(next).not.toContain("artifact_read(")
+        await runtime.stop()
+    })
+
+    test("a compaction that would not shrink the conversation is refused and saves nothing", async () => {
+        // Terse replies: the digest costs more than the turn it would replace.
+        const { runtime, agent } = await boot("", 0)
+        for (const n of [1, 2]) await agent.send(`Q${n}`, { sessionKey: "api:n" })
+        let code: string | undefined
+        try {
+            await agent.compactSession("api:n", { keepTurns: 1 })
+        } catch (error) {
+            code = (error as { code?: string }).code
+        }
+        expect(code).toBe("nothing_to_gain")
+        expect(await agent.store.sessions.checkpoint(agent.id, "api:n")).toBeUndefined()
+        await runtime.stop()
+    })
+
+    test("a failing compactor is reported, and the plain digest still lands", async () => {
+        const runtime = await Runtime.create({
+            agents: [
+                manifest(`  compactor:
+    id: tiny-summariser
+    baseUrl: https://api.example.com/v1
+    apiKeyEnv: MODEL_API_KEY
+`),
+            ],
+            env: { MODEL_API_KEY: "k" },
+            fetch: async (_url, init) => {
+                if (String(init?.body ?? "").includes("tiny-summariser"))
+                    return new Response("upstream down", { status: 500 })
+                const content = `REPLY ${"and some detail about it ".repeat(100)}`
+                const frame = `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
+                return new Response(`${frame}data: [DONE]\n\n`, {
+                    headers: { "content-type": "text/event-stream" },
+                })
+            },
+        })
+        const events: AnyEvent[] = []
+        runtime.bus.on("*", (event) => events.push(event))
+        const agent = runtime.agent("test")
+        if (agent === undefined) throw new Error("no agent")
+        for (const n of [1, 2, 3]) await agent.send(`QUESTION-${n}`, { sessionKey: "api:f" })
+        const result = await agent.compactSession("api:f")
+        expect(result.digest).toBe("mechanical")
+        const warning = events.find(
+            (event) =>
+                event.type === "agent.warning" &&
+                (event.data as { code?: string }).code === "compactor_failed",
+        )
+        expect(warning).toBeDefined()
+        await runtime.stop()
+    })
+})

@@ -3739,7 +3739,10 @@ export function createHandler(options: HandlerOptions): ServerHandler {
                         }),
                     )
                 } catch (error) {
-                    if (isHarnessError(error) && error.code === "session_too_short")
+                    if (
+                        isHarnessError(error) &&
+                        (error.code === "session_too_short" || error.code === "nothing_to_gain")
+                    )
                         return fail(error.toDetail(), 409)
                     throw error
                 }

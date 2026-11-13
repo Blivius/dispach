@@ -754,6 +754,10 @@ const DOCS: Readonly<Record<string, RouteDoc>> = {
                 code: 409,
                 when: "session_too_short: nothing older than the turns kept verbatim to fold",
             },
+            {
+                code: 409,
+                when: "nothing_to_gain: the digest would be no smaller than what it replaces; nothing changed",
+            },
         ],
     },
     "POST /v1/agents/:id/sessions/:key/recall": {

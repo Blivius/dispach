@@ -452,6 +452,19 @@ export function sessionTooShort(sessionKey: string, turns: number, keep: number)
 }
 
 /**
+ * A compaction that would leave the conversation no smaller (0.2.6): the digest and the kept requests
+ * cost as much as what they replace. Nothing is saved; a 409 on the route, like `session_too_short`.
+ */
+export function nothingToGain(sessionKey: string, before: number, after: number): HarnessError {
+    return new HarnessError({
+        code: "nothing_to_gain",
+        message: `Compacting session ${sessionKey} would take it from ${before} to ${after} tokens, so nothing was changed.`,
+        hint: "The older turns are already as short as a digest of them. Compact once the conversation has grown, or keep fewer turns with keepTurns.",
+        field: "keepTurns",
+    })
+}
+
+/**
  * A pinned tool that this configuration allows exactly once per turn.
  *
  * A tool that both changes things and returns text from outside the conversation taints the turn with
