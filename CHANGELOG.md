@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.6 — 2026-11-13
+
 ### Fixed
 
 - `config_read` lists only the settings `config_set` may actually change. A path that the operator's `tools.policy` denies to `config_set`, for example `config_set(schedules*)`, appears under "Kept by whoever runs you". Before, it was listed as changeable and then refused when the agent tried. A narrower self-config list needs no new field: a `config_set(<path>*)` deny rule is it, and the agent cannot remove a deny rule.
