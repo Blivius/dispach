@@ -1,0 +1,183 @@
+{
+    "type": "object",
+    "title": "CreateIssueRequest",
+    "required": ["project_key", "summary", "issue_type"],
+    "properties": {
+        "labels": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "title": "Labels",
+            "examples": [["bug", "critical", "frontend"]],
+            "description": "List of labels to categorize the issue; new labels are created if they don't exist.",
+            "human_parameter_name": "Labels",
+            "human_parameter_description": "Tags to help categorize and find this issue later. Add one or more labels like bug, customer, or release-2.3."
+        },
+        "parent": {
+            "type": "string",
+            "title": "Parent",
+            "examples": ["PROJ-123", "KAN-45", "10001"],
+            "description": "Parent issue key (e.g., 'PROJ-123') or issue ID. IMPORTANT: This field should ONLY be used when creating sub-task issue types (e.g., 'Sub-task', 'Subtask'). It is required for sub-tasks. Jira enforces strict hierarchy rules: standard issue types (Task, Story, Bug) can ONLY have Sub-tasks as children, not other standard issues. Epics can have Stories/Tasks/Bugs as children. Attempting to set a parent on a non-sub-task issue type or using an incompatible parent-child combination will result in a hierarchy error. The parent must be an existing issue in the same project. NOTE: Alternative field names 'parent_key' and 'parent_id' are also accepted and will be automatically mapped to this field.",
+            "human_parameter_name": "Parent Issue",
+            "human_parameter_description": "The key or ID of the parent issue when creating a sub-task. This should ONLY be used for sub-task issue types. Standard issues like Task, Story, or Bug cannot have other standard issues as children - they can only have Sub-tasks as children. You can also use 'parent_key' or 'parent_id' as alternative names for this field."
+        },
+        "summary": {
+            "type": "string",
+            "title": "Summary",
+            "examples": ["Fix login bug", "Add new dashboard feature", "Update API documentation"],
+            "description": "REQUIRED. Brief, descriptive title for the issue. This is the main headline that will appear in Jira (e.g., 'Fix login button not working', 'Add user profile page').",
+            "human_parameter_name": "Summary",
+            "human_parameter_description": "A short, clear title for the issue so teammates can quickly understand what it's about. Keep it concise and descriptive."
+        },
+        "assignee": {
+            "type": "string",
+            "title": "Assignee",
+            "examples": ["712020:4c0007e1-3330-434a-8522-653bb3730e6b", "5b10a2844c20165700ede21g"],
+            "description": "Account ID of the user to assign the issue to. Must be a valid Jira account ID in one of these formats: (1) Cloud format with tenant ID and UUID: '712020:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', or (2) Legacy 24-character hex string: '5b10a2844c20165700ede21g'. IMPORTANT: Do NOT pass email addresses here - use assignee_name field for emails. The account ID is validated to ensure the user exists and can be assigned to issues in the target project. Use JIRA_FIND_USERS to get valid account IDs. Takes precedence over assignee_name if both are provided. NOTE: Some Jira projects (especially Jira Service Management/Service Desk projects) may not allow setting the assignee at issue creation time because the field isn't on the project's create screen. If this occurs, the issue will be created successfully without the assignee, and you'll need to set the assignee separately using JIRA_ASSIGN_ISSUE after creation.",
+            "human_parameter_name": "Assignee ID",
+            "human_parameter_description": "The Jira account ID (not email) of the person who should work on this issue. Must be a valid account ID format. To assign by email, use the Assignee Name field instead. Use JIRA_FIND_USERS to find valid account IDs. This will override Assignee Name if both are provided. Note: Some projects may not allow setting assignee at creation time - use JIRA_ASSIGN_ISSUE to set it after creation if needed."
+        },
+        "due_date": {
+            "type": "string",
+            "title": "Due Date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "examples": ["2023-12-31"],
+            "description": "Expected resolution date in YYYY-MM-DD format.",
+            "human_parameter_name": "Due Date",
+            "human_parameter_description": "When you expect this issue to be completed. Use the date format YYYY-MM-DD."
+        },
+        "priority": {
+            "type": "string",
+            "title": "Priority",
+            "examples": ["1", "2", "3"],
+            "description": "Priority level for the issue. Can be either a priority name or a valid priority ID from the Jira instance. IMPORTANT: Priority names are completely instance-specific and vary by Jira configuration (e.g., some instances use 'Highest'/'High'/'Medium'/'Low'/'Lowest', while others use 'P0'/'P1'/'P2'/'P3'/'P4', or custom names). It is strongly recommended to either: (1) check available priorities for your instance first using JIRA_GET_ISSUE_EDIT_META or by inspecting existing issues, or (2) omit this field if unsure. When the global priority endpoint is available, the value is validated against available priorities. If validation is unavailable (404), the value is passed through to Jira for validation.",
+            "human_parameter_name": "Priority",
+            "human_parameter_description": "How urgent or important the issue is. IMPORTANT: Priority names vary by Jira instance and are NOT universal - what works in one instance may not work in another. Some instances use names like 'High'/'Medium'/'Low', others use 'P0'/'P1'/'P2', and some have custom priority names. It's recommended to check available priorities for your specific Jira instance first, or use priority IDs (like '1', '2', '3') which are more reliable. If unsure, it's safer to omit this field."
+        },
+        "reporter": {
+            "type": "string",
+            "title": "Reporter",
+            "examples": ["5b10a2844c20165700ede21g"],
+            "description": "Account ID of the user reporting the issue. Defaults to the API request user if unspecified.",
+            "human_parameter_name": "Reporter ID",
+            "human_parameter_description": "The Jira account ID of the person reporting or creating the issue. Leave blank to use your own account."
+        },
+        "versions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "title": "Versions",
+            "examples": [["10000", "10001"]],
+            "description": "List of IDs for versions affected by this issue; versions must exist in the project.",
+            "human_parameter_name": "Affected Versions",
+            "human_parameter_description": "Which product versions are impacted by this issue. Provide version IDs that already exist in your project."
+        },
+        "sprint_id": {
+            "type": "integer",
+            "title": "Sprint Id",
+            "examples": [123, 456],
+            "description": "ID of the sprint to assign this issue to. The issue will be added to the specified sprint if provided.",
+            "human_parameter_name": "Sprint ID",
+            "human_parameter_description": "The sprint to add this issue to. Enter the sprint's numeric ID from your board."
+        },
+        "components": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "title": "Components",
+            "examples": [["10000", "10001"]],
+            "description": "List of component IDs (e.g., '10000'); components must already exist in the project.",
+            "human_parameter_name": "Components",
+            "human_parameter_description": "The project components this issue relates to. Enter existing component IDs from your project."
+        },
+        "issue_type": {
+            "type": "string",
+            "title": "Issue Type",
+            "examples": ["Task", "Story", "Epic", "10001"],
+            "description": "REQUIRED. Type of the issue - must be valid for the target project as available types vary by project configuration. CRITICAL: Always use JIRA_GET_ISSUE_TYPES to check valid types for your project BEFORE creating issues. Can be either a type name (e.g., 'Task', 'Story', 'Epic') or type ID (e.g., '10001'). Common types include Task, Story, Epic, and Bug, but NOT ALL projects support all types. Issue type names are localized based on your Jira instance's language settings (e.g., 'Task' in English, 'Задача' in Russian, 'Tâche' in French). Using the issue type ID is language-independent and more reliable.",
+            "human_parameter_name": "Issue Type",
+            "human_parameter_description": "The type of issue to create (e.g., Task, Story, Epic). This is REQUIRED - there is no default value. IMPORTANT: Available issue types vary by project. Always use JIRA_GET_ISSUE_TYPES to check valid types for your specific project before attempting to create an issue, or use the type ID for language-independent operation."
+        },
+        "description": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            ],
+            "title": "Description",
+            "examples": [
+                "Login page is not working when clicking submit button after entering valid credentials.",
+                "**Critical Bug**: The `user.login()` method fails when processing valid credentials. See [documentation](https://docs.example.com) for details."
+            ],
+            "description": "Detailed description of the issue. Accepts either: (1) A plain text or Markdown string (converted to ADF internally), or (2) A pre-formatted Atlassian Document Format (ADF) dict with keys 'type'='doc', 'version'=1, and 'content' array. When passing ADF directly, formatting is preserved as-is.",
+            "human_parameter_name": "Description",
+            "human_parameter_description": "The full details of the issue, such as steps to reproduce, expected vs. actual results, and any context. You can format it with Markdown for readability, or pass a pre-formatted ADF object."
+        },
+        "environment": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            ],
+            "title": "Environment",
+            "examples": [
+                "Production Build 2.3.1",
+                "**Staging Environment**: Version `v2.3.1-rc1` deployed on server `staging-01`"
+            ],
+            "description": "Environment details. Accepts either: (1) A plain text or Markdown string (converted to ADF internally), or (2) A pre-formatted Atlassian Document Format (ADF) dict with keys 'type'='doc', 'version'=1, and 'content' array. When passing ADF directly, formatting is preserved as-is.",
+            "human_parameter_name": "Environment",
+            "human_parameter_description": "Details about where the problem occurs, such as production or staging, app version, browser, or OS. This helps others reproduce and investigate the issue. You can pass Markdown text or a pre-formatted ADF object."
+        },
+        "project_key": {
+            "type": "string",
+            "title": "Project Key",
+            "examples": ["KAN", "DEV", "PROJ"],
+            "description": "REQUIRED. Key of the Jira project where the issue will be created (e.g., 'KAN', 'DEV', 'PROJ'). This is the short uppercase code that appears in issue keys like 'PROJ-123'. Must be an existing project key in your Jira instance. Use JIRA_GET_ALL_PROJECTS to list available projects if you don't know the key.",
+            "human_parameter_name": "Project Key",
+            "human_parameter_description": "The short code of the Jira project where you want to create the issue (for example, KAN). You can find it in your project's key or in issue keys like KAN-123. Use JIRA_GET_ALL_PROJECTS to list available projects."
+        },
+        "fix_versions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "title": "Fix Versions",
+            "examples": [["10000", "10001"]],
+            "description": "List of IDs for versions where the issue is/will be fixed; versions must exist in the project.",
+            "human_parameter_name": "Fix Versions",
+            "human_parameter_description": "Which versions you plan to deliver the fix in. Provide version IDs that exist in your project."
+        },
+        "assignee_name": {
+            "type": "string",
+            "title": "Assignee Name",
+            "examples": ["john.doe@company.com", "John Doe", "rickard", "test@example.org"],
+            "description": "Name or email of the user to assign the issue to. Can be either an email address (e.g., 'john@company.com') or display name (e.g., 'John Doe'). The system will auto-detect the type and search accordingly. Ignored if assignee (account ID) is also provided. NOTE: Slack user IDs (e.g., 'U02QWF25EQ6') are not supported - use the Jira user's email, display name, or account ID instead. NOTE: Some Jira projects (especially Jira Service Management/Service Desk projects) may not allow setting the assignee at issue creation time because the field isn't on the project's create screen. If this occurs, the issue will be created successfully without the assignee, and you'll need to set the assignee separately using JIRA_ASSIGN_ISSUE after creation.",
+            "human_parameter_name": "Assignee Name",
+            "human_parameter_description": "The name or email of the person to assign the issue to if you don't know their account ID. We'll look up the correct user based on what you enter. Note: Slack user IDs are not supported. Some projects may not allow setting assignee at creation time - use JIRA_ASSIGN_ISSUE to set it after creation if needed."
+        },
+        "additional_properties": {
+            "type": "string",
+            "title": "Additional Properties",
+            "examples": [
+                "{\"customfield_10104\": 5}",
+                "{\"customfield_10104\": 8, \"customfield_10200\": \"Custom value\"}",
+                "{\"customfield_10469\": \"Multi-line text that will be converted to ADF\"}"
+            ],
+            "description": "JSON string of additional fields to set on the issue. Use this for custom fields or any fields not covered by the standard parameters (e.g., Story Points, custom text fields, etc.). Format: '{\"customfield_10104\": 5, \"customfield_10200\": \"value\"}'. Rich text custom fields (textarea type) accept plain text or Markdown - they are automatically converted to Atlassian Document Format (ADF). You can also pass ADF directly as a JSON object. Use JIRA_GET_CREATE_METADATA_ISSUE_TYPE_FIELDS (requires projectIdOrKey and issueTypeId parameters) to discover available custom fields and their IDs - this is the recommended tool for creation-specific metadata. NOTE: The 'resolution' field cannot be set at issue creation - it can only be set during workflow transitions (e.g., when moving an issue to Done/Closed status). If 'resolution' is included, it will be automatically filtered out. IMPORTANT: Keys must use numeric IDs (e.g., 'customfield_10104'), NOT display names — using display names causes 400 Unknown field errors.",
+            "human_parameter_name": "Additional Properties",
+            "human_parameter_description": "Extra fields to set on the issue as a JSON string. Use this for custom fields like Story Points or any project-specific fields. Use JIRA_GET_CREATE_METADATA_ISSUE_TYPE_FIELDS (requires projectIdOrKey and issueTypeId) to find field IDs - this is the recommended tool for getting creation-specific field metadata. Note: 'resolution' cannot be set at creation time."
+        }
+    },
+    "description": "Request model for creating a Jira issue."
+}

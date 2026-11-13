@@ -19,16 +19,17 @@ import type { Trust } from "./trust.ts"
 
 export type JsonType = "string" | "number" | "integer" | "boolean" | "array" | "object"
 
-/** The types a union may combine (pilot.16): plain values only, never a list or an object. */
+/** The plain-value types (pilot.16). A union may also name `object` or `array` since 0.2.6. */
 export type ScalarType = "string" | "number" | "integer" | "boolean"
 
 export interface JsonSchemaNode {
     /**
-     * One type, or a list of scalar types any of which is valid (pilot.16): JSON Schema's own spelling,
-     * so the native dialect hands it to the endpoint unchanged. A union of lists or objects is refused
-     * where the schema is mapped, never represented here.
+     * One type, or a list of types any of which is valid: JSON Schema's own spelling, so the native
+     * dialect hands it to the endpoint unchanged. Plain values since pilot.16; `object` and `array`
+     * since 0.2.6, for a union the mapper could not merge into one shape (`json-schema.ts`). A value
+     * that already is one of the listed types is passed on as given.
      */
-    readonly type: JsonType | readonly ScalarType[]
+    readonly type: JsonType | readonly JsonType[]
     readonly description?: string
     /** Coercion matches case-insensitively against these, then reports the allowed set. */
     readonly enum?: readonly (string | number | boolean)[]

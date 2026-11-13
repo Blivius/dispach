@@ -1,0 +1,39 @@
+{
+    "type": "object",
+    "title": "GetProfileRequest",
+    "properties": {
+        "select": {
+            "anyOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "type": "string"
+                }
+            ],
+            "title": "Select",
+            "examples": [["id", "displayName", "mail"], "id,displayName,userPrincipalName"],
+            "description": "User profile properties to return. Pass a list (recommended) or a comma-separated string; both become one OData $select value. Omit or pass an empty value for Microsoft Graph's default profile fields."
+        },
+        "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "default": "me",
+            "examples": ["me", "AdeleV@contoso.onmicrosoft.com"],
+            "description": "The user's unique identifier or principal name. Use 'me' to get the profile of the authenticated user.",
+            "human_parameter_name": "User ID",
+            "human_parameter_description": "The email address or unique ID of the user whose Outlook profile you want to view. Enter 'me' to fetch your own profile."
+        },
+        "include_proxy_addresses": {
+            "type": "boolean",
+            "title": "Include Proxy Addresses",
+            "default": false,
+            "description": "Whether to include proxy addresses in the response. Proxy addresses are SMTP addresses prefixed with 'SMTP:' (primary) or 'smtp:' (secondary).",
+            "human_parameter_name": "Include Proxy Addresses",
+            "human_parameter_description": "Set to true to retrieve the user's proxy email addresses (SMTP addresses for the mailbox)."
+        }
+    }
+}

@@ -1,0 +1,82 @@
+{
+    "type": "object",
+    "title": "CreateSlackListRequest",
+    "required": ["name"],
+    "properties": {
+        "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": ["Sprint Tasks"],
+            "description": "The name (title) of the Slack List to create, e.g. 'Sprint Tasks'. This is shown as the List's title in Slack and is required.",
+            "human_parameter_description": "The title to give the new Slack List."
+        },
+        "schema": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": true
+            },
+            "title": "Schema",
+            "examples": [
+                [
+                    {
+                        "key": "name",
+                        "name": "Task",
+                        "type": "text"
+                    },
+                    {
+                        "key": "status",
+                        "name": "Status",
+                        "type": "select"
+                    }
+                ]
+            ],
+            "description": "Column definitions for the List. Each entry is a column object describing a typed column (its `name`, `type`, and any type-specific options such as `select` choices). Supported column types include `text`, `select`, `user`, `date`, `number`, `checkbox`, and others. Omit to create a List with Slack's default columns.",
+            "human_parameter_description": "The columns the List should have, each with a name and a type (such as text, select, user, date, number, or checkbox)."
+        },
+        "todo_mode": {
+            "type": "boolean",
+            "title": "Todo Mode",
+            "examples": [true],
+            "description": "Set to true to create the List in to-do mode, which adds Slack's built-in task-tracking columns (such as assignee, due date, and completion status) so the List behaves as a task tracker.",
+            "human_parameter_description": "Turn on task-tracking mode, which adds built-in columns like assignee, due date, and completion status."
+        },
+        "copy_from_list_id": {
+            "type": "string",
+            "title": "Copy From List Id",
+            "examples": ["F0123456789"],
+            "description": "ID of an existing Slack List to copy the structure from, e.g. 'F0123456789'. When provided, the new List is created with the same columns as that List. Use `include_copied_list_records` to also copy its rows.",
+            "human_parameter_description": "The ID of an existing List to copy the column structure from, instead of defining columns yourself."
+        },
+        "description_blocks": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            ],
+            "title": "Description Blocks",
+            "examples": ["Tasks for the current sprint."],
+            "description": "Rich text describing the List, shown beneath the title. Slack stores this as Block Kit `rich_text` blocks. For convenience you may pass a plain string (it is wrapped into a `rich_text` block automatically), a single block dict (wrapped in a list), or an already-formed list of blocks (passed through unchanged). Omit to create a List with no description.",
+            "human_parameter_description": "A description for the List. You can just type plain text, or pass Block Kit rich_text blocks if you want formatting."
+        },
+        "include_copied_list_records": {
+            "type": "boolean",
+            "title": "Include Copied List Records",
+            "examples": [true],
+            "description": "When copying from another List via `copy_from_list_id`, set to true to also copy that List's existing items (rows) into the new List. Has no effect unless `copy_from_list_id` is set.",
+            "human_parameter_description": "When copying from another List, also copy its existing rows (not just the columns)."
+        }
+    },
+    "description": "Request schema for `CreateSlackList` (slackLists.create)."
+}

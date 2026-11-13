@@ -188,7 +188,7 @@ test("a tool this runtime could not load is marked unavailable, not offered to p
         ...schema("GMAIL_CREATE_EMAIL_DRAFT", "Creates a draft.", []),
         input_parameters: {
             type: "object",
-            properties: { x: { anyOf: [{ type: "object", properties: {} }, { type: "string" }] } },
+            properties: { x: { $ref: "https://example.com/elsewhere.json" } },
         },
     }
     const { context } = stub(SEARCH_DATA, {
@@ -197,7 +197,7 @@ test("a tool this runtime could not load is marked unavailable, not offered to p
     const observation = await searchTool(context).handler({ use_case: "send an email" }, CONTEXT)
     expect(observation).toContain("n/a    GMAIL_CREATE_EMAIL_DRAFT")
     expect(observation).toContain("unavailable — do not pin it")
-    expect(observation).toContain("anyOf")
+    expect(observation).toContain("$ref")
     // The loadable ones are offered as before.
     expect(observation).toContain("write  GMAIL_SEND_EMAIL")
 })

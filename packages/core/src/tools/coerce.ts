@@ -13,7 +13,7 @@
 
 import { nearest } from "../nearest.ts"
 import { typeWords } from "./json-schema.ts"
-import type { FieldError, JsonSchemaNode, ScalarType, ToolSpec } from "./types.ts"
+import type { FieldError, JsonSchemaNode, JsonType, ToolSpec } from "./types.ts"
 
 export interface CoercionSuccess {
     readonly ok: true
@@ -42,17 +42,16 @@ function typeName(node: JsonSchemaNode): string {
 }
 
 /**
- * A value for a union of plain types (pilot.16): kept as written when it already is one of them, so a
- * Sheets cell sent as 5 stays a number and "5" stays text. Otherwise each non-text type is tried in
+ * A value for a union (plain types since pilot.16, objects and lists since 0.2.6): kept as written when
+ * it already is one of them, so a Sheets cell sent as 5 stays a number and "5" stays text. Otherwise each non-text type is tried in
  * order, which is what lets NLT, where every value arrives as text, still send a number or a yes/no.
  */
-function convertUnion(
-    node: JsonSchemaNode,
-    types: readonly ScalarType[],
-    value: unknown,
-): Converted {
-    const own =
-        typeof value === "string"
+function convertUnion(node: JsonSchemaNode, types: readonly JsonType[], value: unknown): Converted {
+    const own = Array.isArray(value)
+        ? "array"
+        : typeof value === "object" && value !== null
+          ? "object"
+          : typeof value === "string"
             ? "string"
             : typeof value === "boolean"
               ? "boolean"
@@ -64,6 +63,12 @@ function convertUnion(
     if (own !== undefined && types.includes(own)) return { ok: true, value }
     for (const type of types) {
         if (type === "string") continue
+        if (type === "array") {
+            // NLT writes a list as JSON text; a comma list would be ambiguous beside other types.
+            const parsed = typeof value === "string" ? parseJson(value) : undefined
+            if (Array.isArray(parsed)) return { ok: true, value: parsed }
+            continue
+        }
         const converted = convertScalar({ ...node, type }, value)
         if (converted.ok) return converted
     }
@@ -72,6 +77,14 @@ function convertUnion(
         `expected ${typeWords(types)}, got ${JSON.stringify(shorten(String(value)))}.`,
         `Write one of: ${typeWords(types)}.`,
     )
+}
+
+function parseJson(text: string): unknown {
+    try {
+        return JSON.parse(text)
+    } catch {
+        return undefined
+    }
 }
 
 interface Converted {
@@ -91,8 +104,7 @@ function shorten(value: string): string {
 }
 
 function convertScalar(node: JsonSchemaNode, value: unknown): Converted {
-    if (Array.isArray(node.type))
-        return convertUnion(node, node.type as readonly ScalarType[], value)
+    if (Array.isArray(node.type)) return convertUnion(node, node.type, value)
     switch (node.type) {
         case "string": {
             if (typeof value === "string") return { ok: true, value }
@@ -225,6 +237,11 @@ function convert(node: JsonSchemaNode, value: unknown, field: string): Converted
             out.push(converted.value)
         }
         return { ok: true, value: out }
+    }
+
+    // A union naming `array` takes a list as given (0.2.6); its items are the provider's to check.
+    if (Array.isArray(value) && Array.isArray(node.type) && node.type.includes("array")) {
+        return { ok: true, value }
     }
 
     // Repeated keys are how a list gets written by accident on a scalar field. Saying so is more
