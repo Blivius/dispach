@@ -19,7 +19,7 @@ export type FetchLike = (
     init?: {
         method?: string
         headers?: Record<string, string>
-        body?: string
+        body?: string | Uint8Array
         signal?: AbortSignal
     },
 ) => Promise<Response>
@@ -181,6 +181,53 @@ export class ComposioClient {
         const ok = body.successful !== false
         const error = typeof body.error === "string" && body.error !== "" ? body.error : undefined
         return { ok, data: body.data ?? body, ...(error === undefined ? {} : { error }) }
+    }
+
+    /**
+     * Put a file into Composio's storage for a tool to take, the way Composio's own SDK does:
+     * `POST /files/upload/request` names it (with its MD5) and answers a key and a signed URL; the
+     * bytes are PUT to that URL, which is storage's, so it carries no API key. The key is the
+     * `s3key` of the tool's `{name, mimetype, s3key}` field.
+     */
+    async uploadFile(
+        file: {
+            readonly name: string
+            readonly mimetype: string
+            readonly bytes: Uint8Array
+            readonly md5: string
+        },
+        tool: { readonly slug: string; readonly toolkit: string },
+        signal?: AbortSignal,
+    ): Promise<{ readonly name: string; readonly mimetype: string; readonly s3key: string }> {
+        const response = await this.#post(
+            `${this.#baseUrl}/files/upload/request`,
+            {
+                filename: file.name,
+                mimetype: file.mimetype,
+                md5: file.md5,
+                tool_slug: tool.slug,
+                toolkit_slug: tool.toolkit,
+            },
+            signal,
+        )
+        if (!response.ok) throw composioRequestFailed(response.status, await detailOf(response))
+        const body = asRecord(await response.json()) ?? {}
+        const key = body.key
+        const url = body.new_presigned_url ?? body.newPresignedUrl
+        if (typeof key !== "string" || typeof url !== "string") {
+            throw composioRequestFailed(response.status, "the upload answer had no key or URL")
+        }
+        const put = await this.#fetch(url, {
+            method: "PUT",
+            headers: {
+                "content-type": file.mimetype,
+                "content-length": String(file.bytes.byteLength),
+            },
+            body: file.bytes,
+            ...(signal === undefined ? {} : { signal }),
+        })
+        if (!put.ok) throw composioRequestFailed(put.status, "the file upload to storage failed")
+        return { name: file.name, mimetype: file.mimetype, s3key: key }
     }
 
     #post(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {

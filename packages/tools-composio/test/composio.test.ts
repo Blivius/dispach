@@ -172,25 +172,23 @@ test("an array's items map, including the empty properties object Composio emits
     expect(spec.parameters.properties.cc?.items?.type).toBe("string")
 })
 
-test("a structural keyword is refused, naming the tool, the field and the keyword", () => {
-    // Dropping anyOf would hand the model a schema the endpoint disagrees with. An object in a union
-    // is still that case after pilot.16 accepted unions of plain values.
+test("an unresolvable $ref is refused, naming the tool, the field and the keyword", () => {
+    // A union is flattened since 0.2.6; a reference to a schema this runtime cannot see is the one
+    // structural keyword left that it cannot express.
     let message = ""
     try {
         mapTool({
             slug: "WEIRD_TOOL",
             input_parameters: {
                 type: "object",
-                properties: {
-                    target: { anyOf: [{ type: "string" }, { type: "object", properties: {} }] },
-                },
+                properties: { target: { $ref: "#/$defs/Missing" } },
             },
         })
     } catch (error) {
         message = error instanceof Error ? error.message : String(error)
     }
     expect(message.includes("WEIRD_TOOL")).toBe(true)
-    expect(message.includes("anyOf")).toBe(true)
+    expect(message.includes("$ref")).toBe(true)
     expect(message.includes("target")).toBe(true)
 })
 
@@ -221,22 +219,19 @@ test("a union of plain values maps as one (pilot.16), the way Composio types a S
     expect(spec.parameters.properties.x?.type).toEqual(["string", "integer"])
 })
 
-test("a union is still refused when a variant carries a constraint the union form would drop", () => {
-    for (const property of [
-        { anyOf: [{ type: "string", format: "date" }, { type: "number" }] },
-        { allOf: [{ type: "string" }] },
-    ]) {
-        let code = ""
-        try {
-            mapTool({
-                slug: "UNION_TOOL",
-                input_parameters: { type: "object", properties: { x: property } },
-            })
-        } catch (error) {
-            code = (error as { code?: string }).code ?? ""
-        }
-        expect(code).toBe("composio_schema_unsupported")
-    }
+test("allOf merges and a constrained union keeps its types (0.2.6)", () => {
+    const spec = mapTool({
+        slug: "UNION_TOOL",
+        input_parameters: {
+            type: "object",
+            properties: {
+                x: { anyOf: [{ type: "string", format: "date" }, { type: "number" }] },
+                y: { allOf: [{ type: "string" }, { description: "A name." }] },
+            },
+        },
+    })
+    expect(spec.parameters.properties.x?.type).toEqual(["string", "number"])
+    expect(spec.parameters.properties.y).toEqual({ type: "string", description: "A name." })
 })
 
 test("a pinned tool Composio broke costs that tool, not the agent (pilot.16)", async () => {
@@ -249,7 +244,8 @@ test("a pinned tool Composio broke costs that tool, not the agent (pilot.16)", a
             input_parameters: {
                 type: "object",
                 properties: {
-                    x: { anyOf: [{ type: "object", properties: {} }, { type: "string" }] },
+                    // A union maps since 0.2.6; a `$ref` outside the schema still cannot.
+                    x: { $ref: "https://example.com/elsewhere.json" },
                 },
             },
         },
@@ -263,7 +259,7 @@ test("a pinned tool Composio broke costs that tool, not the agent (pilot.16)", a
     expect(slugs).not.toContain("SHEETS_BROKEN")
     const warning = registry.warnings.find((entry) => entry.code === "tool_schema_unsupported")
     expect(warning?.message).toContain("SHEETS_BROKEN")
-    expect(warning?.message).toContain("anyOf")
+    expect(warning?.message).toContain("$ref")
     expect(warning?.field).toBe("tools.pinned[1]")
     // Not reported as missing as well, which would blame a slug that exists.
     expect(registry.warnings.some((entry) => entry.code === "unknown_tool")).toBe(false)
@@ -603,4 +599,43 @@ test("no MCP transport anywhere in this package", () => {
         )
         expect(/new EventSource|text\/event-stream/.test(text)).toBe(false)
     }
+})
+
+test("the latest toolkit schemas that were refused load, in a shape a model can write (0.2.6)", async () => {
+    // Captured by `scripts/sweep-composio-schemas.ts` (toolkit_versions=latest, as VelaCrew's relay
+    // asks): each was refused before 0.2.6, the send tools among them.
+    const dir = join(import.meta.dirname, "fixtures", "latest")
+    const load = async (slug: string) =>
+        mapTool({
+            slug,
+            input_parameters: JSON.parse(readFileSync(join(dir, `${slug}.json`), "utf8")),
+        }).parameters
+    const gmail = await load("GMAIL_SEND_EMAIL")
+    expect(gmail.properties.attachment?.type).toBe("array")
+    // A file field is a workspace path to the model (VLC-431); the handler uploads it.
+    expect(gmail.properties.attachment?.items?.type).toBe("string")
+    expect(gmail.properties.attachment?.items?.description).toContain("from your workspace")
+    expect((await load("JIRA_CREATE_ISSUE")).properties.description?.type).toEqual([
+        "string",
+        "object",
+    ])
+    expect((await load("OUTLOOK_GET_PROFILE")).properties.select?.type).toBe("array")
+    expect((await load("GOOGLECALENDAR_CREATE_EVENT")).properties.attendees?.items?.type).toEqual([
+        "string",
+        "object",
+    ])
+    const target = (await load("EXCEL_AUTOFIT_RANGE")).properties.target
+    expect(target?.properties?.kind?.enum).toEqual(["worksheet", "named_item", "table_column"])
+    expect(target?.required).toEqual(["kind"])
+    const named = await load("EXCEL_ADD_NAMED_ITEM")
+    expect(named.required).toEqual(["item_id", "name"])
+    expect(named.properties.formula_mode?.default).toBe("invariant")
+    expect((await load("NOTION_MOVE_PAGE")).properties.parent?.properties?.type?.enum).toEqual([
+        "page_id",
+        "data_source_id",
+    ])
+    expect((await load("ODOO_CALL_ODOO_JSONRPC")).properties.args?.items?.type).toContain("array")
+    expect((await load("SLACK_CREATE_SLACK_LIST")).properties.description_blocks?.type).toBe(
+        "array",
+    )
 })

@@ -38,6 +38,7 @@ import {
     composioNotConnected,
     composioSessionKeyMissing,
 } from "./errors.ts"
+import { readWorkspaceFile, uploadablePaths, uploadFiles } from "./files.ts"
 import { type ComposioTool, isUnannotated, mapTool } from "./map.ts"
 import {
     CONNECT_SLUG,
@@ -352,7 +353,25 @@ export class ComposioProvider implements ToolProvider {
                 const client = this.#client
                 if (client === undefined) throw composioKeyMissing(this.#keyEnv)
 
-                const result = await client.execute(spec.slug, args, this.#userId, context.signal)
+                // Workspace paths at a file field become files in Composio's storage first (VLC-431).
+                const files = uploadablePaths(this.#tools[spec.slug]?.input_parameters)
+                const sent =
+                    files.length === 0
+                        ? args
+                        : await uploadFiles(args, files, async (path) =>
+                              client.uploadFile(
+                                  await readWorkspaceFile(context.dir, path),
+                                  {
+                                      slug: spec.slug,
+                                      toolkit:
+                                          this.#tools[spec.slug]?.toolkit?.slug ??
+                                          spec.tags[0] ??
+                                          "",
+                                  },
+                                  context.signal,
+                              ),
+                          )
+                const result = await client.execute(spec.slug, sent, this.#userId, context.signal)
                 if (!result.ok) {
                     const detail = result.error ?? "no detail supplied"
                     // Composio reports a missing connection as a tool failure rather than a status, and

@@ -26,6 +26,7 @@
 
 import { parametersFromJsonSchema, type ToolParameters, type ToolSpec } from "@dispach/core"
 import { composioSchemaUnsupported } from "./errors.ts"
+import { withWorkspacePaths } from "./files.ts"
 
 /** The fields of Composio's tool object this runtime reads. Everything else is ignored. */
 export interface ComposioTool {
@@ -45,7 +46,8 @@ export interface ComposioTool {
  * cannot disagree about what a schema means. Only the refusal is Composio's: it names the tool.
  */
 export function mapParameters(tool: ComposioTool): ToolParameters {
-    return parametersFromJsonSchema(tool.input_parameters, {
+    // A file field is a workspace path to the model; the handler uploads it (`files.ts`).
+    return parametersFromJsonSchema(withWorkspacePaths(tool.input_parameters), {
         unsupported: (path, keyword) => composioSchemaUnsupported(tool.slug, path, keyword),
         rootPath: "input_parameters",
     })
