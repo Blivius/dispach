@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.7 — 2026-11-13
+
 ### Added
 
 - `tools.providers.system.confine: workspace` confines `exec` and skill scripts to the agent's workspace: a command may read and write `<agentDir>/workspace`, the agent's private `.tmp` and the `writeRoots`, read `<agentDir>/skills`, and read the system's programs and libraries. The rest of the agent's own directory is refused by the kernel as well: its `.env` (a channel's bot token, a provider key), `agent.yaml` and a channel's session files. So an agent that holds credentials can still be given a shell. `confine: agent` is unchanged. Like `agent`, it confines reads, scrubs the environment, and is refused where Landlock is missing; the agent cannot change it.
