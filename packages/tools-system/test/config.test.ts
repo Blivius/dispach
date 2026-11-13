@@ -796,3 +796,31 @@ test("shown (the default): config_read is unchanged", async () => {
         "deepseek-chat",
     )
 })
+
+// ─── what the operator's policy keeps (0.2.6) ─────────────────────────────────────────────
+
+test("config_read lists only what config_set may change; the operator's denies are named as kept", async () => {
+    const { file, read } = fixture()
+    writeFileSync(
+        file,
+        MANIFEST.replace(
+            '      - "exec(rm *)"',
+            '      - "exec(rm *)"\n      - "config_set(schedules*)"\n      - "config_set(tools.providers*)"',
+        ),
+    )
+    const text = String(await read({}, toolContext()))
+    const [changeable = "", rest = ""] = text.split("Kept by whoever runs you")
+    expect(changeable).toContain("- tools.pinned")
+    expect(changeable).not.toContain("- schedules")
+    expect(changeable).not.toContain("- tools.providers")
+    expect(rest).toContain("tools.providers, schedules")
+})
+
+test("with no config_set rule nothing is said to be kept; mode deny keeps everything", async () => {
+    const { file, read } = fixture()
+    expect(String(await read({}, toolContext()))).not.toContain("Kept by whoever runs you")
+    writeFileSync(file, MANIFEST.replace("mode: allow", "mode: deny"))
+    const text = String(await read({}, toolContext()))
+    expect(text).toContain("(none: whoever runs you keeps every setting)")
+    expect(text).toContain("Kept by whoever runs you")
+})

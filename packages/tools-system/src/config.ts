@@ -49,6 +49,8 @@ import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import {
     AGENT_SETTABLE_PATHS,
+    DEFAULT_POLICY,
+    decidePolicy,
     editManifest,
     isHarnessError,
     type MediaProviderFactory,
@@ -337,36 +339,58 @@ export function configReadHandler(options: ConfigOptions): ToolHandler {
         // tokens to change one line. What it actually needs is "what can I change, and what is it
         // now", which is a fifth the size and directly actionable.
         const doc = parseDocument(source)
-        const rows = AGENT_ROWS.map((entry) => {
-            const current = doc.getIn(entry.path.split("."), false)
-            // Lists inline as `[a, b]` rather than as block YAML flattened onto one line, which
-            // renders `- a - b` and reads as a subtraction.
-            const plain = isMap(current) || isSeq(current) ? current.toJS(doc) : current
-            const value = hidden(doc) ? redactIdentity(entry.path.split("."), plain) : plain
-            const shown =
-                value === undefined || value === null
-                    ? "(not set)"
-                    : Array.isArray(value)
-                      ? // `String(entry)` on an object writes `[object Object]` — the same defect
-                        // this file's YAML writer had for a map value and then again for a sequence
-                        // of maps. `channels` is a list of objects, so it landed here third.
-                        //
-                        // JSON for those, not flattened YAML: collapsing a block's newlines produced
-                        // `[type: telegram id: tg tokenEnv: …]`, which reads as one run-on string
-                        // rather than as fields. JSON is what the model writes back anyway.
-                        `[${value.map((entry) => (typeof entry === "object" && entry !== null ? JSON.stringify(entry) : String(entry))).join(", ")}]`
-                      : stringify(value).trim()
-            const means =
-                entry.toAgent === undefined ? entry.means : `${entry.means}. ${entry.toAgent}`
-            return `- ${entry.path} = ${shown}\n    ${means}`
-        }).join("\n")
+        // What the operator's policy keeps (0.2.6): a `config_set(schedules*)` deny is refused at the
+        // call, so listing that row as changeable told the agent it could and then refused it, and
+        // an agent told one thing and shown another stops trusting either. The same decision the
+        // call gets; `ask` stays listed, a person can still say yes.
+        const policyNode = doc.getIn(["tools", "policy"], false)
+        const policy = {
+            ...DEFAULT_POLICY,
+            ...(isMap(policyNode) ? (policyNode.toJS(doc) as Record<string, unknown>) : {}),
+        } as typeof DEFAULT_POLICY
+        const kept = AGENT_ROWS.filter(
+            (entry) =>
+                decidePolicy(policy, { slug: CONFIG_SET_SPEC.slug, match: entry.path }).effect ===
+                "deny",
+        )
+        const rows = AGENT_ROWS.filter((entry) => !kept.includes(entry))
+            .map((entry) => {
+                const current = doc.getIn(entry.path.split("."), false)
+                // Lists inline as `[a, b]` rather than as block YAML flattened onto one line, which
+                // renders `- a - b` and reads as a subtraction.
+                const plain = isMap(current) || isSeq(current) ? current.toJS(doc) : current
+                const value = hidden(doc) ? redactIdentity(entry.path.split("."), plain) : plain
+                const shown =
+                    value === undefined || value === null
+                        ? "(not set)"
+                        : Array.isArray(value)
+                          ? // `String(entry)` on an object writes `[object Object]` — the same defect
+                            // this file's YAML writer had for a map value and then again for a sequence
+                            // of maps. `channels` is a list of objects, so it landed here third.
+                            //
+                            // JSON for those, not flattened YAML: collapsing a block's newlines produced
+                            // `[type: telegram id: tg tokenEnv: …]`, which reads as one run-on string
+                            // rather than as fields. JSON is what the model writes back anyway.
+                            `[${value.map((entry) => (typeof entry === "object" && entry !== null ? JSON.stringify(entry) : String(entry))).join(", ")}]`
+                          : stringify(value).trim()
+                const means =
+                    entry.toAgent === undefined ? entry.means : `${entry.means}. ${entry.toAgent}`
+                return `- ${entry.path} = ${shown}\n    ${means}`
+            })
+            .join("\n")
 
         return [
             `This agent is ${doc.get("name") ?? doc.get("id")}, configured at ${file}.`,
             "",
             "Settings config_set can change, with their current values:",
-            rows,
+            rows === "" ? "(none: whoever runs you keeps every setting)" : rows,
             "",
+            ...(kept.length === 0
+                ? []
+                : [
+                      `Kept by whoever runs you, so not settable from a conversation: ${kept.map((entry) => entry.path).join(", ")}. If one needs changing, say what and why, and they change it.`,
+                      "",
+                  ]),
             ...contextFiles(doc),
             "Anything not on this list is not settable from a conversation. A change takes effect when the agent next starts, not in the current conversation.",
             "",

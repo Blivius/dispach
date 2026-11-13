@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- `config_read` lists only the settings `config_set` may actually change. A path that the operator's `tools.policy` denies to `config_set`, for example `config_set(schedules*)`, appears under "Kept by whoever runs you". Before, it was listed as changeable and then refused when the agent tried. A narrower self-config list needs no new field: a `config_set(<path>*)` deny rule is it, and the agent cannot remove a deny rule.
 - A tool whose schema uses `anyOf`, `oneOf`, `allOf`, `$ref`, `not` or `const` loads instead of being refused as "configured but could not be loaded". Composio's latest toolkit versions spell 80 of 3,917 tools that way, including Gmail and Outlook send, draft and reply (`attachment`), Google Calendar create and update event (`attendees`), Jira create issue, and most Notion block writers. Options that are all objects merge into one object: a field every option requires stays required, and the field that tells them apart lists which fields each option needs. A list beside its single form becomes the list. Any other mix becomes a type list (`["string", "object"]`) that is passed on as given. `$ref` resolves through `$defs` and `definitions`, and a self-containing schema stops at a plain object. Only a `$ref` that cannot be resolved is still refused. The same rules apply to MCP tools.
 
 ### Added
