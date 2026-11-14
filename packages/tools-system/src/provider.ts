@@ -76,9 +76,10 @@ export interface SystemProviderOptions {
     readonly confineReads?: boolean
     /**
      * `confine: agent` (0.2.6): commands run inside the agent's own directory under Landlock, and
-     * reads are confined as by `confineReads`. Off by default.
+     * reads are confined as by `confineReads`. `workspace` (0.2.7) narrows commands to the workspace.
+     * `true` is `agent`. Off by default.
      */
-    readonly confine?: boolean
+    readonly confine?: boolean | "agent" | "workspace"
 }
 
 function normalise(slug: string): string {
@@ -100,9 +101,17 @@ export class SystemProvider implements ToolProvider {
         const roots = resolveRoots(
             options.dir,
             options.writeRoots ?? [],
-            options.confineReads === true || options.confine === true,
+            options.confineReads === true || !!options.confine,
         )
-        const confine = options.confine === true ? confinementFor(options.dir, roots) : undefined
+        // 0.2.7 passed `true` here and so ran every command at `agent` scope: the workspace scope
+        // reached only skill scripts, and `exec` could still read the agent's `.env`.
+        const confine = options.confine
+            ? confinementFor(
+                  options.dir,
+                  roots,
+                  options.confine === "workspace" ? "workspace" : "agent",
+              )
+            : undefined
         const shared = {
             sessions: this.#sessions,
             agentDir: options.dir,
@@ -280,6 +289,6 @@ export function systemFromConfig(
             ? { writeRoots: writeRoots.map((entry) => String(entry)) }
             : {}),
         ...(confineReads === true ? { confineReads: true } : {}),
-        ...(confine !== undefined ? { confine: true } : {}),
+        ...(confine !== undefined ? { confine } : {}),
     })
 }
