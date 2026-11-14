@@ -46,7 +46,18 @@ export function subagentTask(
         "",
         // What the call is for. Without it the child summarises blind, and a summary that drops the
         // one fact the person wanted is a smaller observation that answers nothing.
-        ...(asked === undefined || asked === "" ? [] : ["## What the person asked", "", asked, ""]),
+        // Context only: handed the whole request, a read-only child reported the parts it had no tool
+        // for ("could not save the file") and the parent repeated that instead of saving it (0.2.9).
+        ...(asked === undefined || asked === ""
+            ? []
+            : [
+                  "## What the person asked, for context only",
+                  "",
+                  "The agent that handed you this call does the rest of this request itself, with its own tools. Make only the call below and report what it returned; never say whether the rest can be done.",
+                  "",
+                  asked,
+                  "",
+              ]),
         "## The call to make",
         "",
         `Call \`${slug}\` with these arguments, then work from what it returns:`,
@@ -55,10 +66,44 @@ export function subagentTask(
     ].join("\n")
 }
 
+/** The one call a routed child is handed: the slug and the arguments the parent's call cleared with. */
+export interface HandedCall {
+    readonly slug: string
+    readonly args: Readonly<Record<string, unknown>>
+}
+
+/** JSON with object keys sorted, so a child that reorders the arguments still matches. */
+function sortedJson(value: unknown): string {
+    return JSON.stringify(value, (_key, v: unknown) =>
+        v !== null && typeof v === "object" && !Array.isArray(v)
+            ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1)))
+            : v,
+    )
+}
+
+/**
+ * The child's pass for its handed call: true once, for that slug with those arguments. The parent's
+ * call only reaches the child after the policy, the write gate and any person's answer allowed it,
+ * so the same call in the child needs no second question; a different one, or a second, still asks.
+ */
+export function handedClaim(
+    handed: HandedCall,
+): (slug: string, args: Readonly<Record<string, unknown>>) => boolean {
+    const want = sortedJson(handed.args)
+    let used = false
+    return (slug, args) => {
+        if (used || slug !== handed.slug || sortedJson(args) !== want) return false
+        used = true
+        return true
+    }
+}
+
 /** A child run, as the agent provides one: itself, with the child's options closed over. */
 export type SubagentRunner = (
     child: SubagentConfig,
     context: ToolContext,
+    /** The routed call the child is handed, already cleared on the parent (`handedClaim`). */
+    handed?: HandedCall,
 ) => HandoffTarget & {
     readonly tainted: () => boolean
     /** The parent turn's input, so the child knows what the call is for. */
@@ -86,7 +131,7 @@ export function routedTool(init: {
         spec: tool.spec,
         trustOf: (args) => (taint.get(args) === true ? "untrusted" : "trusted"),
         async handler(args, context) {
-            const target = init.runner(child, context)
+            const target = init.runner(child, context, { slug: tool.spec.slug, args })
             const outcome = await runHandoff({
                 member: target,
                 task: subagentTask(child, tool.spec.slug, args, target.asked),
@@ -111,7 +156,7 @@ export function routedTool(init: {
             taint.set(args, target.tainted())
             if (outcome.kind === "ok") {
                 return [
-                    `${tool.spec.slug} ran in subagent ${child.name}, which returned:`,
+                    `${tool.spec.slug} ran in subagent ${child.name}, which made only this call; the rest of the request is yours to do with your own tools. It returned:`,
                     JSON.stringify(outcome.artifact, null, 2),
                 ].join("\n")
             }

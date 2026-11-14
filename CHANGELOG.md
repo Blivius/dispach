@@ -5,6 +5,8 @@
 ### Fixed
 
 - On Bedrock, a system message after the start of the conversation (the turn note, the restated instructions, a remembered excerpt) is fenced in `<runtime_context>…</runtime_context>` instead of `<system>…</system>`. Converse sends it as text inside the person's own message, and system tags there are what a prompt injection looks like: Claude came to treat the whole message as one, and refused its owner's own requests in their own chat ("that instruction arrived in the same block as a system note"). The turn note's header now also says the person's own words come after it.
+- A subagent is told the person's request is context only, and makes only the call it was handed. Handed the whole request, a read-only child (`web`) reported the part it had no tool for ("could not save the file"), and the parent repeated that instead of saving the file with its own tool. What the parent reads back now says the rest of the request is its own to do.
+- One approval covers a routed call. The call reaches its child only after the parent's policy, write gate and any person's answer allowed it, so the child's identical call (same tool, same arguments, keys in any order) runs without asking again, once. A different call, a second one, or anything a rule denies still asks or is refused. Before, the person was asked twice for one Gmail send: the agent's call, then its app child's.
 
 ## 0.2.8 — 2026-11-14
 

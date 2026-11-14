@@ -128,7 +128,7 @@ import {
 } from "../store/store.ts"
 import { ASK_AGENT } from "../team/ask.ts"
 import { DELEGATE, delegateTool } from "../team/delegate.ts"
-import { routedTool, type SubagentRunner } from "../team/subagents.ts"
+import { handedClaim, routedTool, type SubagentRunner } from "../team/subagents.ts"
 import { HANDOFF } from "../team/supervisor.ts"
 import { type DialectId, passThroughFilter, type StreamFilter } from "../tools/dialect/dialect.ts"
 import { nativeDialect, nativeWireTokens } from "../tools/dialect/native.ts"
@@ -322,6 +322,8 @@ export interface AgentSendOptions {
      * `policy.allow`; see `ExecuteInput.defer`.
      */
     readonly deferMutations?: ExecuteInput["defer"]
+    /** A subagent's handed call, cleared on its parent. See `ExecuteInput.claimDelegated`. */
+    readonly claimDelegated?: ExecuteInput["claimDelegated"]
     /** Runtime-authored text before the input, outside its fence. See `TurnInput.runtimeNote`. */
     readonly runtimeNote?: string
     /** The embedder's note about this message. See `TurnInput.turnNote`. Kept on the turn row. */
@@ -1213,7 +1215,7 @@ export class Agent {
      * parent's taint, its stand-in deferral and its acting participant (`runHandoff` forwards that
      * one), on the child's tools only, under the routed call's own deadline.
      */
-    readonly #subagent: SubagentRunner = (child, context) => {
+    readonly #subagent: SubagentRunner = (child, context, handed) => {
         let tainted = false
         const defer = this.#defers.get(context.turnId)
         const asked = this.#inputs.get(context.turnId)
@@ -1234,6 +1236,7 @@ export class Agent {
                     ...(child.maxSteps === undefined ? {} : { maxSteps: child.maxSteps }),
                     ...(role === undefined ? {} : { role }),
                     ...(defer === undefined ? {} : { deferMutations: defer }),
+                    ...(handed === undefined ? {} : { claimDelegated: handedClaim(handed) }),
                     child: {
                         usageRole: "subagent",
                         parent: { turnId: context.turnId, sessionKey: context.sessionKey },
@@ -1880,6 +1883,9 @@ export class Agent {
             ...(options.deferMutations === undefined
                 ? {}
                 : { deferMutations: options.deferMutations }),
+            ...(options.claimDelegated === undefined
+                ? {}
+                : { claimDelegated: options.claimDelegated }),
             ...(runtimeNote === undefined ? {} : { runtimeNote }),
             ...(options.images === undefined || options.images.length === 0
                 ? {}

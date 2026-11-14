@@ -99,6 +99,13 @@ export interface ExecuteInput {
      */
     readonly approve?: (request: ApprovalRequest) => Promise<boolean>
     /**
+     * A subagent's one handed call, already cleared on the delegating turn (a person approved it, or
+     * it needed nobody): true, once, for that exact slug and arguments. Without it the person was
+     * asked twice for one call, the parent's and then the child's own (0.2.9). Only turns `ask` into
+     * `allow`; a rule's deny still stands.
+     */
+    readonly claimDelegated?: (slug: string, args: Readonly<Record<string, unknown>>) => boolean
+    /**
      * Plugin middleware wrapping each call.
      *
      * Wraps the **policy decision as well as the execution**, and that placement is the safety
@@ -428,6 +435,10 @@ async function decideAndRun(
         onMutate: input.onMutate,
         approver: input.approve !== undefined,
     })
+
+    if (decision.effect === "ask" && input.claimDelegated?.(spec.slug, entry.args) === true) {
+        decision = { effect: "allow", reason: "The call this run was handed, already cleared." }
+    }
 
     if (decision.effect === "ask" && input.approve !== undefined) {
         const approvalId = newApprovalId()
