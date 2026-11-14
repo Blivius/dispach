@@ -112,7 +112,7 @@ describe("request mapping", () => {
             { toolResult: { toolUseId: "tu_1", content: [{ text: "12:00" }] } },
             // A later system message is user text on Converse, fenced so it never reads as the
             // person's (pilot.14).
-            { text: "<system>\nreminder: be brief\n</system>" },
+            { text: "<runtime_context>\nreminder: be brief\n</runtime_context>" },
             { cachePoint: { type: "default" } },
         ])
         expect(input.toolConfig?.tools?.[0]).toEqual({
