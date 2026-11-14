@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.9 — 2026-11-14
+
 ### Fixed
 
 - On Bedrock, a system message after the start of the conversation (the turn note, the restated instructions, a remembered excerpt) is fenced in `<runtime_context>…</runtime_context>` instead of `<system>…</system>`. Converse sends it as text inside the person's own message, and system tags there are what a prompt injection looks like: Claude came to treat the whole message as one, and refused its owner's own requests in their own chat ("that instruction arrived in the same block as a system note"). The turn note's header now also says the person's own words come after it.

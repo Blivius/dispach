@@ -12,4 +12,4 @@
  * writes the manifest and this line together, and a bump made any other way turns the suite red
  * until both agree.
  */
-export const VERSION = "0.2.8"
+export const VERSION = "0.2.9"
