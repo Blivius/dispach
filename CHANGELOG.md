@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.8 — 2026-11-14
+
 ### Fixed
 
 - `confine: workspace` now confines `exec` itself. In 0.2.7 only skill scripts got the workspace scope: `exec` was still confined at `agent` scope, so a command could read the agent's `.env` (a channel's bot token, a provider key), `agent.yaml` and its channel sessions. The kernel test that covers this runs only where Landlock exists, so it was skipped on macOS; run `bun test packages/tools-system/test/confine.test.ts` on Linux before a release.

@@ -57,7 +57,7 @@
     },
     "packages/cli": {
       "name": "dispach",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "bin": {
         "dispach": "dist/index.js",
       },
