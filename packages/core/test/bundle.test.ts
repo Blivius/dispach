@@ -4,7 +4,7 @@
  * not load leaves nothing behind.
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -154,6 +154,21 @@ describe("an agent bundle", () => {
         expect(report.reload).toBe("loaded")
         await runtime.agent("beta").send("anything at all")
         expect(last()).toContain("fiscal year ends in March")
+        await runtime.stop()
+    })
+
+    test("a new agent with no memory or knowledge folder yet takes the bundle (0.2.10)", async () => {
+        const { runtime, bDir, reload, last } = await pair()
+        rmSync(join(bDir, "memory"), { recursive: true, force: true })
+        rmSync(join(bDir, "knowledge"), { recursive: true, force: true })
+        const report = await importBundle({
+            agent: runtime.agent("beta"),
+            bundle: exportBundle(runtime.agent("alpha")),
+            reload,
+        })
+        expect(report.added).toEqual(["memory/2026-08.md", "knowledge/deploys.md"])
+        await runtime.agent("beta").send("when do we deploy?")
+        expect(last()).toContain("blue pipeline")
         await runtime.stop()
     })
 
