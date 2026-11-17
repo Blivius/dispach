@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Fixed
+
+- Importing a bundle into a new agent works. `POST /v1/agents/:id/import` wrote each note into the agent's `memory/` or `knowledge/` folder without creating it, and a new agent has neither until something writes one. So the first note failed with `ENOENT` ("An unexpected failure"), and the whole import was rolled back. The import now creates the folder first. Moving an existing agent's memory into a newly created one, for example a migration from another runtime, depends on this. Covered by a new test in `packages/core/test/bundle.test.ts` that imports into an agent with neither folder.
 
 ## 0.2.9 — 2026-11-14
 
