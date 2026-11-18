@@ -433,6 +433,7 @@ export {
 } from "./runtime/runtime.ts"
 export type { ReconcileReport } from "./runtime/schedules.ts"
 export {
+    deliverScheduleResult,
     prepareScheduleWrite,
     reconcileSchedules,
     scheduleRunner,
