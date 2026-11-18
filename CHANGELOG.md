@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.11 — 2026-11-18
+
 ### Fixes
 
 - Ignore self-chat messages sent by any agent on the account
