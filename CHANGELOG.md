@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Fixes
+
+- Ignore self-chat messages sent by any agent on the account
+- A manual run delivers its reply like the timed run
 
 ## 0.2.10 — 2026-11-17
 
