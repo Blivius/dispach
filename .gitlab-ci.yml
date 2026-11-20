@@ -40,9 +40,9 @@ variables:
   MODEL_API_KEY: ci-not-a-real-key
 
 .bun:
-  image: node:24
+  image: node:26.13.0
   before_script:
-    - npm install --global --silent bun@latest
+    - npm install --global --silent bun@1.4.5
     - bun --version
 
 .docker:
@@ -460,7 +460,7 @@ docker-hub:
 release:
   extends: .tag-npm
   stage: release
-  image: node:24
+  image: node:26.13.0
   needs: [npm, standalone]
   timeout: 10m
   script:

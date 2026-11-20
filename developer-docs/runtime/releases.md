@@ -13,7 +13,7 @@ before installing.
 
 ## Install the line you intend to test
 
-Install the stable CLI (Node <!-- fact:node -->24<!-- /fact -->+) through the default npm tag:
+Install the stable CLI (Node <!-- fact:node -->26.13.0<!-- /fact -->+) through the default npm tag:
 
 ```bash
 npm install --global dispach@latest

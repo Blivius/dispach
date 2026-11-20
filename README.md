@@ -10,7 +10,7 @@ with memory, tools, schedules, channels and approvals, on any OpenAI-compatible 
 
 ```bash
 curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh
-#   or: npm i -g dispach (Node 24+)
+#   or: npm i -g dispach (Node 26.13.0+)
 dispach init          # name the agent, pick a model, paste a key
 dispach run milo      # talk to it in the terminal
 ```
@@ -228,7 +228,7 @@ curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/d
 ```
 
 macOS and Linux (glibc), arm64 and x64. Each release attaches one archive per platform: an official
-Node 24, checked against nodejs.org's checksums, beside the same npm tarball the other installs use.
+Node 26.13.0, checked against nodejs.org's checksums, beside the same npm tarball the other installs use.
 It is not a single compiled file on purpose — Bun can compile one, and Bun cannot complete the
 WhatsApp handshake (see below), so what ships is Node. The script checks the archive against the
 release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links
@@ -278,7 +278,7 @@ docker pull docker.io/moeenmahmud007/dispach:0.2.11
 ```
 
 The [Docker](#docker) and [Compose](#hosting-with-compose) sections below have the run lines and
-the reasons behind them. The image is `node:24-trixie-slim` with `git`, `python3`, `uv` and `jq`,
+the reasons behind them. The image is `node:26.13.0-trixie-slim` with `git`, `python3`, `uv` and `jq`,
 because the agent has a shell.
 
 ### Or from a checkout
@@ -307,7 +307,7 @@ Four things that are not obvious:
   every provider package — tools, channels, the Bedrock transport, media — from their `dist`
   (`packages/cli/src/lib/providers.ts` is the list), so building only `core` and `cli` leaves the binary running yesterday's provider code — and the symptom is the
   worst kind: your change is correct, a test fails, and the stack trace points into a stale `dist`.
-- **Node <!-- fact:node -->24<!-- /fact -->+ must be on your `PATH`.** The built entry's shebang is `#!/usr/bin/env node`; Bun builds
+- **Node <!-- fact:node -->26.13.0<!-- /fact -->+ must be on your `PATH`.** The built entry's shebang is `#!/usr/bin/env node`; Bun builds
   it and Node runs it — the same runtime every install ships.
 - **`DISPACH_HOME` relocates the whole sandbox.** Point it at a temporary directory and every agent,
   the store and the logs go there instead of `~/.dispach` — which is how to try things out, and how
@@ -677,7 +677,7 @@ as anything `dispach init` creates inside the container. There is **one agents d
 there was not before: the image used to set `DISPACH_HOME=/state`, so `init` wrote to `/state/agents`
 while the CMD served `/agent`, and an agent created in the container was invisible to every listing.
 
-The image is `node:24-trixie-slim` and the runtime stage installs **the published npm tarball** with
+The image is `node:26.13.0-trixie-slim` and the runtime stage installs **the published npm tarball** with
 `npm i -g` — the container runs byte-for-byte what `npm i -g dispach` runs on a laptop. No Bun: it
 is the dev toolchain, and the runtime that cannot finish a WhatsApp pairing. glibc rather than musl
 is deliberate and is about Python: PyPI's
@@ -726,7 +726,7 @@ bun run bench:boot   # must stay under 1000 ms
 bun run bench:schedule  # 100 schedules on one timer — reports drift, does not assert it
 ```
 
-Bun is the development toolchain: install, build and test. Everything shipped runs under Node <!-- fact:node -->24<!-- /fact -->+.
+Bun is the development toolchain: install, build and test. Everything shipped runs under Node <!-- fact:node -->26.13.0<!-- /fact -->+.
 
 A few house rules that bite first, all enforced by tests rather than review:
 

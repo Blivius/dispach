@@ -19,7 +19,7 @@ reaches the runtime's npm tarball.
 
 ## Run it
 
-Needs Node 24+ and a Docker daemon it may use. Nothing is built; Node runs the TypeScript directly.
+Needs Node 26.13.0+ and a Docker daemon it may use. Nothing is built; Node runs the TypeScript directly.
 
 ```bash
 export DISPACH_CONTROL_TOKEN="$(openssl rand -base64 32)"

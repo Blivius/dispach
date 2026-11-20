@@ -1,7 +1,7 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        // Shipped as source: Node 24 strips the types, so nothing builds and nothing is emitted.
+        // Shipped as source: Node 26.13.0 strips the types, so nothing builds and nothing is emitted.
         "noEmit": true,
         "declaration": false,
         "declarationMap": false,

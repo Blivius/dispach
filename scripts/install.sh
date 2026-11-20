@@ -37,12 +37,12 @@ case $(uname -s) in
         fail "native Windows is not supported yet" \
             "run this inside WSL (wsl --install), or use the container: docker run $image"
         ;;
-    *) fail "no standalone build for $(uname -s)" "npm i -g $slug (needs Node 24), or the container image" ;;
+    *) fail "no standalone build for $(uname -s)" "npm i -g $slug (needs Node 26.13.0), or the container image" ;;
 esac
 case $(uname -m) in
     arm64 | aarch64) arch=arm64 ;;
     x86_64 | amd64) arch=x64 ;;
-    *) fail "no standalone build for $(uname -m)" "npm i -g $slug (needs Node 24), or the container image" ;;
+    *) fail "no standalone build for $(uname -m)" "npm i -g $slug (needs Node 26.13.0), or the container image" ;;
 esac
 # A shell under Rosetta reports x86_64 on Apple silicon; the native build is the right one.
 if [ "$os" = darwin ] && [ "$arch" = x64 ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = 1 ]; then

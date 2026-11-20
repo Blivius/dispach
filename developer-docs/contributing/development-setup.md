@@ -1,10 +1,10 @@
 # Development setup
 
-Dispach runs under Node 24 in production and uses Bun for dependency management, builds, linting, and tests.
+Dispach runs under Node 26.13.0 in production and uses Bun for dependency management, builds, linting, and tests.
 
 ## Prerequisites
 
-- Node.js 24 or newer
+- Node.js 26.13.0 or newer
 - Bun
 - Git
 - Docker only for container and control-plane work

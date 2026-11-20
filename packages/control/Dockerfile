@@ -9,7 +9,7 @@
 # Only the static CLI binary is taken from here; the daemon is the host's.
 FROM docker:29-cli AS docker
 
-FROM node:24-trixie-slim
+FROM node:26.13.0-trixie-slim
 COPY --from=docker /usr/local/bin/docker /usr/local/bin/docker
 WORKDIR /app
 COPY packages/control/package.json packages/control/LICENSE.md packages/control/README.md ./

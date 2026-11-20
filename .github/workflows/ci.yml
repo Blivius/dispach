@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - run: bun install
 
       # Cheapest first, so a lint error does not wait on a build. This is the only step that can
@@ -320,10 +320,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 26.13.0
       - run: bun install
 
       # Required, not defensive: the CLI resolves every sibling package through its `dist/`, so on a
@@ -452,7 +452,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}

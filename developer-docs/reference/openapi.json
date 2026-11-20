@@ -385,13 +385,9 @@
                                                         }
                                                     },
                                                     "entryPhase": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
+                                                        "type": [
+                                                            "string",
+                                                            "null"
                                                         ]
                                                     },
                                                     "phases": {
@@ -404,13 +400,9 @@
                                                         "type": "string"
                                                     },
                                                     "assignee": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
+                                                        "type": [
+                                                            "string",
+                                                            "null"
                                                         ]
                                                     }
                                                 },
@@ -764,13 +756,9 @@
                                                     }
                                                 },
                                                 "entryPhase": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
+                                                    "type": [
+                                                        "string",
+                                                        "null"
                                                     ]
                                                 },
                                                 "phases": {
@@ -9381,13 +9369,9 @@
                                             "type": "string"
                                         },
                                         "phase": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
+                                            "type": [
+                                                "string",
+                                                "null"
                                             ]
                                         }
                                     },

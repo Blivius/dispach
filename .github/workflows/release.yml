@@ -59,10 +59,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 26.13.0
           registry-url: https://registry.npmjs.org
       - run: bun install --frozen-lockfile
 
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - name: release notes
         run: bun scripts/changelog-section.ts "${{ needs.npm.outputs.version }}" > /tmp/notes.md && cat /tmp/notes.md
       - uses: softprops/action-gh-release@v2
@@ -158,10 +158,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 26.13.0
 
       # The registry can take a moment to serve a just-published version. Bounded: five minutes,
       # after which the failure names the version rather than hashing a 404 page.
@@ -218,7 +218,7 @@ jobs:
           fi
 
   # ─────────────────────────────────────────────────────────────────────────────────────────
-  # The standalone builds: Node 24 plus the published tarball, one archive per platform, and the
+  # The standalone builds: Node 26.13.0 plus the published tarball, one archive per platform, and the
   # `install.sh` that fetches them (`curl -fsSL …/releases/latest/download/install.sh | sh`).
   #
   # Built from the bytes the registry serves, like the formula, so all three installs carry the same
@@ -233,10 +233,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 26.13.0
       - run: bun install --frozen-lockfile
 
       - name: the published tarball

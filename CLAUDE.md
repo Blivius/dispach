@@ -69,7 +69,7 @@ framework explainers, go straight to the specific thing.
 
 | | |
 | --- | --- |
-| Runtime | Node 24+ ships (npm bin, brew formula, container). Bun is the dev toolchain only: install, `bun build`, `bun test`. Nothing shipped runs under Bun since 0.1.3 — it cannot complete the WhatsApp handshake |
+| Runtime | Node 26.13.0+ ships (npm bin, brew formula, container). Bun is the dev toolchain only: install, `bun build`, `bun test`. Nothing shipped runs under Bun since 0.1.3 — it cannot complete the WhatsApp handshake |
 | Package manager | `bun` — never npm, pnpm, or yarn |
 | Workspaces | Bun workspaces, monorepo |
 | Build | `bun build` + `tsc --emitDeclarationOnly` |

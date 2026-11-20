@@ -4,7 +4,7 @@ Install the command, create an agent, and start the HTTP server on `127.0.0.1:74
 
 ## Install
 
-With Node <!-- fact:node -->24<!-- /fact --> or later:
+With Node <!-- fact:node -->26.13.0<!-- /fact --> or later:
 
 ```bash
 npm install --global dispach

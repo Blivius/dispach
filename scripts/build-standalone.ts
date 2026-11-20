@@ -1,5 +1,5 @@
 /**
- * Build the standalone tarballs: one per platform, each an official Node 24 plus the npm package.
+ * Build the standalone tarballs: one per platform, each an official Node 26.13.0 plus the npm package.
  *
  * ## Why Node is bundled rather than compiled in
  *
@@ -44,7 +44,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const CLI = join(ROOT, "packages", "cli")
 const SLUG = (JSON.parse(readFileSync(join(CLI, "package.json"), "utf8")) as { name: string }).name
 const TARGETS = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"] as const
-const NODE_DIST = "https://nodejs.org/dist/latest-v24.x"
+const NODE_DIST = "https://nodejs.org/dist/v26.13.0"
 
 function flag(name: string): string | undefined {
     const at = process.argv.indexOf(`--${name}`)
@@ -164,10 +164,10 @@ try {
     for (const target of targets) {
         const line = sums
             .split("\n")
-            .find((row) => new RegExp(`node-v24\\.[0-9.]+-${target}\\.tar\\.gz$`).test(row))
+            .find((row) => new RegExp(`node-v26\\.13\\.0-${target}\\.tar\\.gz$`).test(row))
         const [expected, file] = line?.split(/\s+/) ?? []
         if (expected === undefined || file === undefined)
-            throw new Error(`SHASUMS256.txt names no Node 24 build for ${target}`)
+            throw new Error(`SHASUMS256.txt names no Node 26.13.0 build for ${target}`)
         const bytes = await download(`${NODE_DIST}/${file}`)
         const actual = sha256(bytes)
         if (actual !== expected)

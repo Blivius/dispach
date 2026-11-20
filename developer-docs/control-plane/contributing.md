@@ -6,7 +6,7 @@ Control-plane changes must preserve three boundaries:
 2. Keep runtime and control-plane imports separate in both directions.
 3. Keep control-plane code out of the published `dispach` package.
 
-The package runs directly under Node 24 and uses the repository's Bun, Biome, and TypeScript toolchain.
+The package runs directly under Node 26.13.0 and uses the repository's Bun, Biome, and TypeScript toolchain.
 
 ```bash
 bun test packages/control
