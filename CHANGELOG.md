@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.12 — 2026-11-20
+
 ### Breaking
 
 - Needs Node 26.13.0 or later. An npm install on Node 24 now warns and is no longer tested; the container image and the standalone archives carry their own Node.
