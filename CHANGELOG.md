@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Breaking
+
+- Needs Node 26.13.0 or later. An npm install on Node 24 now warns and is no longer tested; the container image and the standalone archives carry their own Node.
+
+### Changed
+
+- The container image and the standalone archives run on Node 26.13.0 (was the latest Node 24).
 
 ## 0.2.11 — 2026-11-18
 
