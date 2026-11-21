@@ -144,10 +144,13 @@ export default function HomePage() {
                             </h1>
 
                             <p className="mt-4 max-w-xl text-base leading-relaxed text-fd-muted-foreground sm:text-lg">
-                                The harness isn&apos;t just scaffolding—it decides whether agents
-                                finish tasks, what inference costs, and what your application
-                                controls. Persistent memory, policy-gated tools, schedules, and
-                                detached streams on any OpenAI-compatible model or AWS Bedrock.
+                                <span className="font-serif text-[1.12em] italic text-fd-foreground">
+                                    The harness is not just scaffolding.
+                                </span>{" "}
+                                It decides whether agents finish tasks, what inference costs, and
+                                what your application controls. Persistent memory, policy-gated
+                                tools, schedules, and detached streams on any OpenAI-compatible
+                                model or AWS Bedrock.
                             </p>
 
                             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -310,7 +313,7 @@ export default function HomePage() {
                             </h3>
                             <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">
                                 One process hosts many agents on your own servers, containers, or
-                                Kubernetes cluster—with zero telemetry and no gateway requirement.
+                                Kubernetes cluster, with zero telemetry and no gateway requirement.
                             </p>
                             <ul className="mt-5 space-y-2 text-sm text-fd-muted-foreground">
                                 <li>
@@ -359,7 +362,7 @@ export default function HomePage() {
                             </h3>
                             <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">
                                 For teams operating isolated agent silos per user or team. There is
-                                no hosted cloud GA yet—we are partnering directly with engineering
+                                no hosted cloud GA yet. We are partnering directly with engineering
                                 teams building production agent products.
                             </p>
                             <ul className="mt-5 space-y-2 text-sm text-fd-muted-foreground">

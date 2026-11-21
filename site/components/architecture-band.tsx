@@ -9,7 +9,7 @@ const BUILT_IN = [
     ],
     [
         "Lexical memory",
-        `SQLite FTS5 + BM25 recalls notes and past turns in ${evidence.memoryMedianMs} ms median over ${evidence.memoryPassages.toLocaleString("en-US")} passages—zero vector store.`,
+        `SQLite FTS5 + BM25 recalls notes and past turns in ${evidence.memoryMedianMs} ms median over ${evidence.memoryPassages.toLocaleString("en-US")} passages, with zero vector store.`,
     ],
     [
         "Tools under policy",
@@ -23,7 +23,7 @@ const BUILT_IN = [
     ],
     [
         "Schedules",
-        "Cron, interval, and one-shot jobs—DST-correct, delivered through the same idempotent outbox as replies.",
+        "Cron, interval, and one-shot jobs, DST-correct, delivered through the same idempotent outbox as replies.",
     ],
     [
         "Channels & console",
@@ -50,7 +50,7 @@ export function ArchitectureBand() {
                     <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">
                         Most agent failures and runaway bills come from mutating the prompt prefix
                         or slamming into an emergency 95% context truncation. This runtime keeps
-                        static identity and pinned tools frozen in slots 0–1 for prompt caching,
+                        static identity and pinned tools frozen in slots 0 to 1 for prompt caching,
                         gates knowledge by keyword, and compacts progressively starting at 60%.
                     </p>
                     <div className="mt-5 flex flex-wrap gap-4 font-mono text-xs">

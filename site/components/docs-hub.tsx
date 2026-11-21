@@ -12,7 +12,7 @@ const RUNTIME_PATHS = [
     {
         code: "02",
         title: "Run with Docker",
-        desc: "Boot the container with a single token—web console, API, and /docs on one origin.",
+        desc: "Boot the container with a single token: web console, API, and /docs on one origin.",
         href: `${docsRoute}/runtime/quickstart/run-with-docker`,
     },
     {

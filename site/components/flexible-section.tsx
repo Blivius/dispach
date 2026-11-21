@@ -325,7 +325,7 @@ export function FlexibleSection() {
                     Flexible by design
                 </h2>
                 <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground">
-                    Four primitives inside one TypeScript runtime—no mandatory proxy, no vector
+                    Four primitives inside one TypeScript runtime: no mandatory proxy, no vector
                     database, and no network I/O before readiness.
                 </p>
             </div>
