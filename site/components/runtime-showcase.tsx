@@ -27,7 +27,7 @@ const DEMOS: readonly DemoItem[] = [
         id: "floor",
         code: "02",
         label: "Containment floor live",
-        title: "Agent told to widen writeRoots to ~ — refused at the hardline floor",
+        title: "Agent told to widen writeRoots to ~, refused at the hardline floor",
         caption:
             "The terminal UI during an interactive turn: the agent invokes config_set to widen its write root and the settings containment floor blocks it deterministically.",
         src: "/media/tui.gif",
@@ -61,7 +61,7 @@ export function RuntimeShowcase() {
                         See the runtime in action
                     </h2>
                     <p className="mt-2 text-sm text-fd-muted-foreground">
-                        Unedited terminal captures from the shipped container image and CLI—HTTP
+                        Unedited terminal captures from the shipped container image and CLI: HTTP
                         provisioning, the containment floor firing live, and a zero-Node Linux boot.
                     </p>
                 </div>

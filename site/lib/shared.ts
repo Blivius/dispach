@@ -15,5 +15,5 @@ export const parentCompany = {
     letterUrl: "https://blivius.com/letter",
     researchUrl: "https://blivius.com/research",
     email: "hello@blivius.com",
-    designPartnerHref: `mailto:hello@blivius.com?subject=${encodeURIComponent(`${brand.name} — Design Partner`)}`,
+    designPartnerHref: `mailto:hello@blivius.com?subject=${encodeURIComponent(`${brand.name}: Design Partner`)}`,
 } as const
