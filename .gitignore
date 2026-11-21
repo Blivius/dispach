@@ -60,3 +60,5 @@ control.db*
 # Browser-automation output
 .playwright-mcp/
 dist-standalone/
+.vercel
+.env*
