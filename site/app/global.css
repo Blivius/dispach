@@ -71,8 +71,72 @@ html > body[data-scroll-locked] {
     border-color: var(--color-fd-border);
 }
 
+@keyframes flex-float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-3.5px);
+    }
+}
+
+@keyframes flex-pulse {
+    0%,
+    100% {
+        opacity: 0.42;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes flex-dash {
+    from {
+        stroke-dashoffset: 0;
+    }
+    to {
+        stroke-dashoffset: -18;
+    }
+}
+
+@keyframes flex-shield {
+    0%,
+    100% {
+        opacity: 0.55;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.anim-flex-float {
+    animation: flex-float 5.2s ease-in-out infinite;
+}
+
+.anim-flex-pulse {
+    animation: flex-pulse 2.8s ease-in-out infinite;
+}
+
+.anim-flex-dash {
+    animation: flex-dash 2.2s linear infinite;
+}
+
+.anim-flex-dash-slow {
+    animation: flex-dash 3.2s linear infinite;
+}
+
+.anim-flex-shield {
+    animation: flex-shield 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .animate-pulse {
+    .animate-pulse,
+    .anim-flex-float,
+    .anim-flex-pulse,
+    .anim-flex-dash,
+    .anim-flex-dash-slow,
+    .anim-flex-shield {
         animation: none;
     }
 }

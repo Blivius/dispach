@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArchitectureBand } from "@/components/architecture-band"
 import { BenchmarkTable } from "@/components/benchmark-table"
+import { FaqSection } from "@/components/faq-section"
 import { FlexibleSection } from "@/components/flexible-section"
 import { HeroConsole } from "@/components/hero-console"
 import { type InstallOption, InstallTabs } from "@/components/install-tabs"
@@ -399,6 +400,8 @@ export default function HomePage() {
                         </article>
                     </div>
                 </section>
+                {/* Tesser-inspired 2-column hairline FAQ accordion */}
+                <FaqSection />
             </div>
 
             <SiteFooter />
