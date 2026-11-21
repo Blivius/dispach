@@ -21,9 +21,21 @@
     --font-mono: var(--font-mono);
 }
 
-:root,
+:root {
+    --color-fd-primary: #a63ba6;
+    --color-fd-background: #fafaf9;
+    --color-fd-card: #ffffff;
+    --color-fd-secondary: #f3f3f1;
+    --color-fd-border: rgba(18, 18, 18, 0.1);
+}
+
 .dark {
     --color-fd-primary: #d75fd7;
+    --color-fd-background: #121212;
+    --color-fd-card: #161616;
+    --color-fd-secondary: #1b1b1b;
+    --color-fd-border: rgba(255, 255, 255, 0.09);
+    --color-fd-muted-foreground: #a3a3a8;
 }
 
 html {
@@ -35,4 +47,31 @@ html > body[data-scroll-locked] {
     margin-right: 0px !important;
     /* biome-ignore lint/complexity/noImportantStyles: overrides the scroll-lock library's inline style */
     --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Subtle architectural dot grid for hero/schematic surfaces, never noisy. */
+.bg-term-grid {
+    background-image: radial-gradient(
+        color-mix(in srgb, currentColor 14%, transparent) 1px,
+        transparent 1px
+    );
+    background-size: 20px 20px;
+}
+
+/* Crisp docs polish across Fumadocs prose and code surfaces. */
+.prose :where(code):not(:where(pre code)) {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.85em;
+    border-radius: 0.35rem;
+    padding: 0.12rem 0.35rem;
+}
+
+.prose pre {
+    border-color: var(--color-fd-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-pulse {
+        animation: none;
+    }
 }
