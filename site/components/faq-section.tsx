@@ -200,12 +200,9 @@ export function FaqSection() {
 
             <div className="grid gap-10 lg:grid-cols-[0.82fr_1.45fr] lg:items-start">
                 <div className="lg:sticky lg:top-24">
-                    <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                        questions
-                    </p>
                     <h2
                         id="faq-heading"
-                        className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl"
+                        className="text-2xl font-semibold tracking-tight sm:text-3xl"
                     >
                         Frequently asked questions
                     </h2>

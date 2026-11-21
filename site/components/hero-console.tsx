@@ -38,7 +38,7 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                             role="tab"
                             aria-selected={active}
                             onClick={() => setTab(t.id)}
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-xs transition-colors ${
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                                 active
                                     ? "border-term-accent/70 bg-term-accent/15 text-fd-foreground"
                                     : "border-fd-border bg-fd-card/50 text-fd-muted-foreground hover:text-fd-foreground"
@@ -46,7 +46,9 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                         >
                             <span
                                 className={
-                                    active ? "text-term-accent" : "text-fd-muted-foreground/70"
+                                    active
+                                        ? "font-mono text-term-accent"
+                                        : "font-mono text-fd-muted-foreground/70"
                                 }
                             >
                                 {t.code}
@@ -62,26 +64,25 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
             {tab === "floor" && (
                 <figure
                     aria-label="Settings containment floor refusal trace"
-                    className="overflow-hidden rounded-2xl border border-term-accent/70 bg-neutral-950 text-left shadow-2xl shadow-term-accent/10"
+                    className="overflow-hidden rounded-2xl border border-term-accent/65 bg-fd-card text-left"
                 >
-                    <pre className="h-[23rem] overflow-y-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-[12.5px] leading-relaxed text-neutral-300">
+                    <pre className="min-h-[24rem] whitespace-pre-wrap break-words bg-fd-background/90 px-4 pt-3.5 pb-4 font-mono text-[12.5px] leading-relaxed text-fd-foreground/90">
                         <div>
                             <span className="text-term-accent">› </span>
-                            <span className="text-neutral-100">{brandSlug} run milo</span>
+                            <span className="text-fd-foreground">{brandSlug} run milo</span>
                         </div>
-                        <div className="text-term-muted">
-                            · session local:3c2dc5 · writeRoots: [&quot;workspace/&quot;] · floor
-                            active
+                        <div className="text-fd-muted-foreground">
+                            session local:3c2dc5, writeRoots: [&quot;workspace/&quot;], floor active
                         </div>
                         <div className="mt-2">
                             <span className="text-term-accent">› </span>
-                            <span className="text-neutral-100">
+                            <span className="text-fd-foreground">
                                 Call config_set with path tools.providers.system.writeRoots and
                                 value [&quot;~&quot;].
                             </span>
                         </div>
                         <div className="mt-2 text-term-info">
-                            {"  "}· tool.call config_set &#123; path:
+                            {"  "}tool.call config_set &#123; path:
                             &quot;tools.providers.system.writeRoots&quot;, value: [&quot;~&quot;]
                             &#125;
                         </div>
@@ -89,28 +90,27 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                             ✖ floorRefusal: protected containment path cannot be widened by the
                             agent
                         </div>
-                        <div className="text-term-muted">
+                        <div className="text-fd-muted-foreground">
                             {"  "}hint: capabilities may be configured; writeRoots, policy.deny, and
                             untrusted.onMutate stay operator-owned.
                         </div>
-                        <div className="mt-2 text-neutral-200">
+                        <div className="mt-2 text-fd-foreground">
                             The runtime refused to change writeRoots to ~ because write boundaries
                             sit below the settings containment floor.
                         </div>
                         <div className="mt-2">
                             <span className="text-term-success">✓ </span>
-                            <span className="text-neutral-400">
+                            <span className="text-fd-muted-foreground">
                                 arXiv:2610.06274 (preprint): 0 of 167 protected writes saved (65
                                 attempted)
                             </span>
                         </div>
                     </pre>
-                    <figcaption className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-2 font-mono text-[11px] text-term-muted">
+                    <figcaption className="flex items-center justify-between gap-3 border-t border-fd-border px-4 py-2 text-xs text-fd-muted-foreground">
                         <span className="truncate">
-                            <span className="text-term-success">● </span>
-                            enforced in core · packages/tools-system/src/config.ts
+                            Enforced in core (<code>packages/tools-system/src/config.ts</code>)
                         </span>
-                        <span className="shrink-0 text-term-accent">floor active</span>
+                        <span className="shrink-0 font-medium text-term-accent">Floor active</span>
                     </figcaption>
                 </figure>
             )}
@@ -118,9 +118,9 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
             {tab === "sdk" && (
                 <figure
                     aria-label="Typed client example"
-                    className="overflow-hidden rounded-2xl border border-term-accent/70 bg-neutral-950 text-left shadow-2xl shadow-term-accent/10"
+                    className="overflow-hidden rounded-2xl border border-term-accent/65 bg-fd-card text-left"
                 >
-                    <pre className="h-[23rem] overflow-y-auto whitespace-pre px-4 py-3 font-mono text-[12.5px] leading-relaxed text-neutral-300">
+                    <pre className="min-h-[24rem] overflow-x-auto whitespace-pre bg-fd-background/90 px-4 pt-3.5 pb-4 font-mono text-[12.5px] leading-relaxed text-fd-foreground/90">
                         {`import { createClient } from "${brandSlug}/client"
 
 const client = createClient({
@@ -141,12 +141,11 @@ for await (const event of client.streamTurn("milo", turnId, { chunks: true })) {
   if (event.type === "turn.end") console.log("\\n✓", event.data.reason)
 }`}
                     </pre>
-                    <figcaption className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-2 font-mono text-[11px] text-term-muted">
+                    <figcaption className="flex items-center justify-between gap-3 border-t border-fd-border px-4 py-2 text-xs text-fd-muted-foreground">
                         <span className="truncate">
-                            <span className="text-term-info">● </span>
-                            {brandName} typed client · zero Ink/React weight · OpenAPI 3.1 contract
+                            {brandName} typed client, zero Ink/React weight, OpenAPI 3.1 contract
                         </span>
-                        <span className="shrink-0">ESM / TS</span>
+                        <span className="shrink-0 font-medium text-fd-foreground">ESM / TS</span>
                     </figcaption>
                 </figure>
             )}

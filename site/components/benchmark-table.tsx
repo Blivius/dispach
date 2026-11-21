@@ -72,10 +72,7 @@ export function BenchmarkTable(props: BenchmarkTableProps) {
         <section className="border-t border-fd-border px-5 py-16 sm:px-8">
             <div className="flex flex-wrap items-end justify-between gap-6">
                 <div className="max-w-3xl">
-                    <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                        head-to-head, by the numbers
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+                    <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
                         {props.brandName} matches or beats {props.hermesName} on{" "}
                         {props.atLeastHermes} of {props.rows.length} models, and costs the least on{" "}
                         {props.cheapest}.
@@ -92,12 +89,14 @@ export function BenchmarkTable(props: BenchmarkTableProps) {
                 </div>
 
                 {props.sonnet && sonnetSavings && (
-                    <div className="rounded-xl border border-term-accent/40 bg-term-accent/8 px-4 py-3 font-mono text-xs">
-                        <p className="text-term-accent">{props.sonnet.name} · 125 runs</p>
-                        <p className="mt-1 text-sm font-semibold text-fd-foreground">
+                    <div className="rounded-xl border border-term-accent/40 bg-term-accent/8 px-4 py-3 text-xs">
+                        <p className="font-medium text-term-accent">
+                            {props.sonnet.name} (125 runs)
+                        </p>
+                        <p className="mt-1 font-mono text-sm font-semibold text-fd-foreground">
                             {props.sonnet.runtime.pass}/{props.sonnet.runtime.n} at $
                             {props.sonnet.runtime.cost.toFixed(2)}{" "}
-                            <span className="font-normal text-fd-muted-foreground">
+                            <span className="font-sans font-normal text-fd-muted-foreground">
                                 vs. {props.openclawName} {props.sonnet.openclaw.pass}/
                                 {props.sonnet.openclaw.n} at $
                                 {props.sonnet.openclaw.cost.toFixed(2)} ({sonnetSavings}× lower
@@ -112,7 +111,7 @@ export function BenchmarkTable(props: BenchmarkTableProps) {
                 <div
                     role="tablist"
                     aria-label="Filter benchmark models"
-                    className="inline-flex rounded-lg border border-fd-border bg-fd-card/50 p-1 font-mono text-xs"
+                    className="inline-flex flex-wrap gap-1 rounded-lg border border-fd-border bg-fd-card/50 p-1 text-xs"
                 >
                     {[
                         { id: "all" as const, label: `All (${props.rows.length})` },
@@ -127,9 +126,9 @@ export function BenchmarkTable(props: BenchmarkTableProps) {
                                 role="tab"
                                 aria-selected={active}
                                 onClick={() => setFilter(tab.id)}
-                                className={`rounded-md px-2.5 py-1 transition-colors ${
+                                className={`whitespace-nowrap rounded-md px-2.5 py-1.5 font-medium transition-colors ${
                                     active
-                                        ? "bg-term-accent/15 font-medium text-term-accent"
+                                        ? "bg-term-accent/15 text-term-accent"
                                         : "text-fd-muted-foreground hover:text-fd-foreground"
                                 }`}
                             >
@@ -141,11 +140,15 @@ export function BenchmarkTable(props: BenchmarkTableProps) {
 
                 <Link
                     href={props.benchmarkHref}
-                    className="font-mono text-xs text-term-accent hover:underline"
+                    className="text-xs font-medium text-term-accent underline-offset-4 hover:underline"
                 >
-                    Full methodology &amp; intervals →
+                    Full methodology &amp; intervals
                 </Link>
             </div>
+
+            <p className="mt-3 text-xs text-fd-muted-foreground sm:hidden">
+                Scroll horizontally to compare all three harnesses.
+            </p>
 
             <div className="mt-4 overflow-x-auto rounded-2xl border border-fd-border bg-fd-card/40">
                 <table className="w-full min-w-[580px] text-left">

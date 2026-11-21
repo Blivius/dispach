@@ -41,30 +41,27 @@ export function ArchitectureBand() {
             {/* Alternating architectural deep-dive: Context prefix & 5-stage compaction */}
             <div className="grid items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1.15fr]">
                 <div>
-                    <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                        harness mechanics
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                         Cache-stable context and five-stage compaction
                     </h2>
                     <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">
                         Most agent failures and runaway bills come from mutating the prompt prefix
                         or slamming into an emergency 95% context truncation. This runtime keeps
-                        static identity and pinned tools frozen in slots 0 to 1 for prompt caching,
+                        static identity and pinned tools frozen in slots 0 and 1 for prompt caching,
                         gates knowledge by keyword, and compacts progressively starting at 60%.
                     </p>
-                    <div className="mt-5 flex flex-wrap gap-4 font-mono text-xs">
+                    <div className="mt-5 flex flex-wrap gap-5 text-sm font-medium">
                         <Link
                             href={`${docsRoute}/runtime/concepts/architecture`}
-                            className="text-term-accent hover:underline"
+                            className="text-term-accent underline-offset-4 hover:underline"
                         >
-                            Architecture →
+                            Read architecture
                         </Link>
                         <Link
                             href={`${docsRoute}/runtime/guides/workspaces-and-memory`}
-                            className="text-fd-muted-foreground hover:text-fd-foreground hover:underline"
+                            className="text-fd-muted-foreground underline-offset-4 hover:text-fd-foreground hover:underline"
                         >
-                            Workspaces &amp; memory →
+                            Workspaces &amp; memory
                         </Link>
                     </div>
                 </div>
@@ -108,10 +105,10 @@ export function ArchitectureBand() {
                             fontFamily="monospace"
                             fontWeight="600"
                         >
-                            SLOTS 0–1 · PINNED
+                            SLOTS 0, 1 PINNED
                         </text>
                         <text x="24" y="65" fill="currentColor" fillOpacity="0.82" fontSize="11">
-                            SOUL · AGENTS · Tools
+                            SOUL, AGENTS, Tools
                         </text>
 
                         <line
@@ -149,10 +146,10 @@ export function ArchitectureBand() {
                             fontFamily="monospace"
                             fontWeight="600"
                         >
-                            TIER 2–3 · BUDGETED
+                            Tier 2, 3 (budgeted)
                         </text>
                         <text x="196" y="65" fill="currentColor" fillOpacity="0.82" fontSize="11">
-                            FTS5 Memory · Knowledge
+                            FTS5 memory, knowledge
                         </text>
 
                         <line
@@ -190,10 +187,10 @@ export function ArchitectureBand() {
                             fontFamily="monospace"
                             fontWeight="600"
                         >
-                            STEP LOOP · OUTBOX
+                            Step loop, outbox
                         </text>
                         <text x="390" y="65" fill="currentColor" fillOpacity="0.82" fontSize="11">
-                            Parse → Policy → Persist
+                            Parse, policy, persist
                         </text>
 
                         {/* Breakpoint label */}
@@ -219,15 +216,15 @@ export function ArchitectureBand() {
                             fontSize="10"
                             fontFamily="monospace"
                         >
-                            PROGRESSIVE COMPACTION LADDER (FROM 60% PRESSURE)
+                            Progressive compaction ladder (from 60% pressure)
                         </text>
 
                         {[
-                            { x: 12, tag: "S1 · 60%", label: "Trim observations", accent: false },
-                            { x: 120, tag: "S2 · 70%", label: "Drop Tier 3", accent: false },
-                            { x: 228, tag: "S3 · 78%", label: "Fold old calls", accent: false },
-                            { x: 336, tag: "S4 · 85%", label: "Checkpoint", accent: true },
-                            { x: 444, tag: "S5 · 92%", label: "Hard summary", accent: true },
+                            { x: 12, tag: "S1 (60%)", label: "Trim observations", accent: false },
+                            { x: 120, tag: "S2 (70%)", label: "Drop Tier 3", accent: false },
+                            { x: 228, tag: "S3 (78%)", label: "Fold old calls", accent: false },
+                            { x: 336, tag: "S4 (85%)", label: "Checkpoint", accent: true },
+                            { x: 444, tag: "S5 (92%)", label: "Hard summary", accent: true },
                         ].map((stage) => (
                             <g key={stage.tag}>
                                 <rect
@@ -270,10 +267,7 @@ export function ArchitectureBand() {
 
             {/* Built-in primitives bento */}
             <div className="border-t border-fd-border bg-fd-card/30 px-5 py-16 sm:px-8">
-                <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                    what you don&apos;t build
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                     Everything around the model call, already wired
                 </h2>
                 <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

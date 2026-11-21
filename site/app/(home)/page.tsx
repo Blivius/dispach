@@ -112,12 +112,15 @@ export default function HomePage() {
                         <div className="min-w-0">
                             <Link
                                 href={`${docsRoute}/runtime/whats-new-since-0-2-0`}
-                                className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/80 px-3 py-1 font-mono text-xs text-fd-muted-foreground transition-colors hover:border-term-accent/60 hover:text-fd-foreground"
+                                className="inline-flex flex-wrap items-center gap-2 rounded-full border border-fd-border bg-fd-card/80 px-3 py-1 text-xs text-fd-muted-foreground transition-colors hover:border-term-accent/60 hover:text-fd-foreground"
                             >
                                 <span className="size-1.5 rounded-full bg-term-success" />
-                                <span>
-                                    v{evidence.version} · Apache-2.0 · {evidence.endpoints} OpenAPI
-                                    3.1 endpoints
+                                <span className="font-mono text-fd-foreground">
+                                    v{evidence.version}
+                                </span>
+                                <span className="border-l border-fd-border pl-2">Apache-2.0</span>
+                                <span className="border-l border-fd-border pl-2">
+                                    {evidence.endpoints} OpenAPI 3.1 endpoints
                                 </span>
                             </Link>
 
@@ -157,19 +160,19 @@ export default function HomePage() {
                             <div className="mt-7 flex flex-wrap items-center gap-3">
                                 <Link
                                     href={QUICKSTART}
-                                    className="rounded-lg bg-term-accent px-4 py-2.5 text-sm font-medium text-neutral-950 transition-all hover:brightness-110"
+                                    className="whitespace-nowrap rounded-lg bg-term-accent px-4 py-2.5 text-sm font-medium text-neutral-950 transition-[filter,background-color] hover:brightness-110"
                                 >
-                                    Run it in five minutes →
+                                    Run it in five minutes
                                 </Link>
                                 <Link
                                     href={`${docsRoute}/reference`}
-                                    className="rounded-lg border border-fd-border bg-fd-card/60 px-4 py-2.5 text-sm font-medium transition-colors hover:border-term-accent/50 hover:bg-fd-accent"
+                                    className="whitespace-nowrap rounded-lg border border-fd-border bg-fd-card/60 px-4 py-2.5 text-sm font-medium transition-colors hover:border-term-accent/50 hover:bg-fd-accent"
                                 >
                                     API reference
                                 </Link>
                                 <a
                                     href={parentCompany.designPartnerHref}
-                                    className="px-2 py-2 text-sm text-fd-muted-foreground underline-offset-4 hover:text-fd-foreground hover:underline"
+                                    className="whitespace-nowrap px-2 py-2 text-sm text-fd-muted-foreground underline-offset-4 hover:text-fd-foreground hover:underline"
                                 >
                                     Design partners
                                 </a>
@@ -182,7 +185,7 @@ export default function HomePage() {
                             brandName={brand.name}
                             brandSlug={brand.slug}
                             lines={replay}
-                            caption={`recorded run · ${capturedAt} · ${capturedModel}`}
+                            caption={`Recorded ${capturedAt} (${capturedModel})`}
                         />
                     </div>
                 </section>
@@ -241,10 +244,7 @@ export default function HomePage() {
 
                 {/* Proof cards with transparent caveats */}
                 <section className="border-t border-fd-border px-5 py-16 sm:px-8">
-                    <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                        proof, with the caveats
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                         Every number traced to a committed file
                     </h2>
                     <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -263,9 +263,9 @@ export default function HomePage() {
                                 </p>
                                 <Link
                                     href={p.href}
-                                    className="mt-auto pt-4 font-mono text-xs text-term-accent hover:underline"
+                                    className="mt-auto pt-4 text-sm font-medium text-term-accent underline-offset-4 hover:underline"
                                 >
-                                    {p.link} →
+                                    {p.link}
                                 </Link>
                             </article>
                         ))}
@@ -287,10 +287,7 @@ export default function HomePage() {
                 {/* Honest Open-Core & Deployment Comparison */}
                 <section className="border-t border-fd-border bg-fd-card/30 px-5 py-16 sm:px-8">
                     <div className="max-w-2xl">
-                        <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                            open core &amp; roadmap
-                        </p>
-                        <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                             Run it yourself today. Partner with us for managed scale.
                         </h2>
                         <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground">
@@ -302,10 +299,10 @@ export default function HomePage() {
                     <div className="mt-8 grid gap-6 lg:grid-cols-2">
                         <article className="flex flex-col rounded-2xl border border-fd-border bg-fd-background/80 p-6">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="font-mono text-xs text-term-success">
-                                    ● available today
+                                <span className="text-xs font-medium text-term-success">
+                                    Available today
                                 </span>
-                                <span className="rounded-md border border-fd-border px-2 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
+                                <span className="rounded-md border border-fd-border px-2 py-0.5 text-xs text-fd-muted-foreground">
                                     Apache-2.0
                                 </span>
                             </div>
@@ -336,13 +333,13 @@ export default function HomePage() {
                             <div className="mt-auto flex flex-wrap gap-3 pt-6">
                                 <Link
                                     href={QUICKSTART}
-                                    className="rounded-lg bg-term-accent px-4 py-2 text-sm font-medium text-neutral-950 hover:brightness-110"
+                                    className="whitespace-nowrap rounded-lg bg-term-accent px-4 py-2 text-sm font-medium text-neutral-950 hover:brightness-110"
                                 >
-                                    Install &amp; serve →
+                                    Install &amp; serve
                                 </Link>
                                 <a
                                     href={repoUrl}
-                                    className="rounded-lg border border-fd-border px-4 py-2 text-sm font-medium hover:bg-fd-accent"
+                                    className="whitespace-nowrap rounded-lg border border-fd-border px-4 py-2 text-sm font-medium hover:bg-fd-accent"
                                 >
                                     View source
                                 </a>
@@ -351,10 +348,10 @@ export default function HomePage() {
 
                         <article className="flex flex-col rounded-2xl border border-dashed border-term-accent/50 bg-fd-background/80 p-6">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="font-mono text-xs text-term-warning">
-                                    ● seeking design partners
+                                <span className="text-xs font-medium text-term-warning">
+                                    Seeking design partners
                                 </span>
-                                <span className="rounded-md border border-fd-border px-2 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
+                                <span className="rounded-md border border-fd-border px-2 py-0.5 text-xs text-fd-muted-foreground">
                                     FSL-1.1 / Managed
                                 </span>
                             </div>
@@ -386,13 +383,13 @@ export default function HomePage() {
                             <div className="mt-auto flex flex-wrap gap-3 pt-6">
                                 <a
                                     href={parentCompany.designPartnerHref}
-                                    className="rounded-lg border border-term-accent/70 bg-term-accent/15 px-4 py-2 text-sm font-medium text-fd-foreground hover:bg-term-accent/25"
+                                    className="whitespace-nowrap rounded-lg border border-term-accent/70 bg-term-accent/15 px-4 py-2 text-sm font-medium text-fd-foreground hover:bg-term-accent/25"
                                 >
-                                    Become a design partner →
+                                    Become a design partner
                                 </a>
                                 <Link
                                     href={`${docsRoute}/control-plane`}
-                                    className="rounded-lg border border-fd-border px-4 py-2 text-sm font-medium hover:bg-fd-accent"
+                                    className="whitespace-nowrap rounded-lg border border-fd-border px-4 py-2 text-sm font-medium hover:bg-fd-accent"
                                 >
                                     Control plane docs
                                 </Link>

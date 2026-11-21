@@ -17,7 +17,7 @@ const DEMOS: readonly DemoItem[] = [
         id: "quickstart",
         code: "01",
         label: "HTTP provision & SSE",
-        title: "Docker start → live agent provision → streamed reply in three requests",
+        title: "Docker start, live agent provision, and streamed reply in three requests",
         caption:
             "Recorded against the published container image: zero agents at start, live POST /v1/agents adoption without restart, then streaming tokens over SSE.",
         src: "/media/quickstart.gif",
@@ -54,10 +54,7 @@ export function RuntimeShowcase() {
         <section className="border-t border-fd-border px-5 py-16 sm:px-8">
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="max-w-2xl">
-                    <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                        recorded sessions
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                         See the runtime in action
                     </h2>
                     <p className="mt-2 text-sm text-fd-muted-foreground">
@@ -80,13 +77,15 @@ export function RuntimeShowcase() {
                                 role="tab"
                                 aria-selected={selected}
                                 onClick={() => setActiveId(demo.id)}
-                                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-xs transition-colors ${
+                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                                     selected
                                         ? "border-term-accent/70 bg-term-accent/15 text-fd-foreground"
                                         : "border-fd-border bg-fd-card/50 text-fd-muted-foreground hover:text-fd-foreground"
                                 }`}
                             >
-                                <span className={selected ? "text-term-accent" : "opacity-60"}>
+                                <span
+                                    className={`font-mono ${selected ? "text-term-accent" : "opacity-60"}`}
+                                >
                                     {demo.code}
                                 </span>
                                 <span>{demo.label}</span>
@@ -96,17 +95,14 @@ export function RuntimeShowcase() {
                 </div>
             </div>
 
-            <figure className="mt-6 overflow-hidden rounded-2xl border border-fd-border bg-neutral-950">
-                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5 font-mono text-xs text-neutral-400">
-                    <span className="inline-flex items-center gap-2 truncate">
-                        <span className="text-term-accent">●</span>
-                        <span className="truncate text-neutral-200">{current.title}</span>
-                    </span>
-                    <span className="hidden shrink-0 text-[11px] text-term-muted sm:inline">
-                        recorded terminal capture
+            <figure className="mt-6 overflow-hidden rounded-2xl border border-fd-border bg-fd-card">
+                <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5 text-xs text-fd-muted-foreground">
+                    <span className="truncate font-medium text-fd-foreground">{current.title}</span>
+                    <span className="hidden shrink-0 text-xs text-fd-muted-foreground sm:inline">
+                        Terminal capture
                     </span>
                 </div>
-                <div className="flex justify-center bg-[#181825] p-2 sm:p-4">
+                <div className="flex justify-center bg-term-stage p-2 sm:p-4">
                     {/* biome-ignore lint/performance/noImgElement: animated GIF recordings bypass Next image optimization */}
                     <img
                         key={current.id}
@@ -115,7 +111,7 @@ export function RuntimeShowcase() {
                         className="max-h-[460px] w-auto rounded-lg object-contain"
                     />
                 </div>
-                <figcaption className="border-t border-white/10 px-4 py-3 text-xs leading-relaxed text-neutral-400">
+                <figcaption className="border-t border-fd-border px-4 py-3 text-xs leading-relaxed text-fd-muted-foreground">
                     {current.caption}
                 </figcaption>
             </figure>

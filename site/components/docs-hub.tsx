@@ -57,16 +57,24 @@ export function RuntimeDocsHub() {
     return (
         <div className="not-prose mb-10 space-y-5">
             <div className="rounded-xl border border-fd-border bg-fd-card/60 p-4 sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-mono text-xs text-term-accent">
-                        {brand.name} · v{evidence.version} · Apache-2.0
-                    </span>
-                    <span className="font-mono text-xs text-fd-muted-foreground">
-                        {evidence.bootMs} ms boot · {evidence.memoryMedianMs} ms memory
-                        {sonnet
-                            ? ` · ${sonnet.runtime.pass}/${sonnet.runtime.n} (${sonnet.name}, $${sonnet.runtime.cost.toFixed(2)})`
-                            : ""}
-                    </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2 text-term-accent">
+                        <span className="font-medium">{brand.name}</span>
+                        <span className="border-l border-fd-border pl-2">v{evidence.version}</span>
+                        <span className="border-l border-fd-border pl-2">Apache-2.0</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 font-mono text-fd-muted-foreground">
+                        <span>{evidence.bootMs} ms boot</span>
+                        <span className="border-l border-fd-border pl-2">
+                            {evidence.memoryMedianMs} ms memory
+                        </span>
+                        {sonnet ? (
+                            <span className="border-l border-fd-border pl-2">
+                                {sonnet.runtime.pass}/{sonnet.runtime.n} ({sonnet.name}, $
+                                {sonnet.runtime.cost.toFixed(2)})
+                            </span>
+                        ) : null}
+                    </div>
                 </div>
                 <div className="mt-3 overflow-x-auto rounded-lg border border-fd-border bg-fd-background px-3 py-2 font-mono text-xs text-fd-foreground">
                     <span className="mr-2 select-none text-term-accent">›</span>

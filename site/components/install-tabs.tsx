@@ -47,9 +47,9 @@ export function InstallTabs({ options }: { options: readonly InstallOption[] }) 
                                     setActiveId(opt.id)
                                     setCopied(false)
                                 }}
-                                className={`rounded-md px-2.5 py-1 font-mono text-xs transition-colors ${
+                                className={`whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                                     selected
-                                        ? "bg-term-accent/15 font-medium text-term-accent"
+                                        ? "bg-term-accent/15 text-term-accent"
                                         : "text-fd-muted-foreground hover:text-fd-foreground"
                                 }`}
                             >
@@ -58,7 +58,7 @@ export function InstallTabs({ options }: { options: readonly InstallOption[] }) 
                         )
                     })}
                 </div>
-                <span className="hidden font-mono text-[11px] text-fd-muted-foreground sm:inline">
+                <span className="hidden text-xs text-fd-muted-foreground sm:inline">
                     {current.note}
                 </span>
             </div>
@@ -70,9 +70,9 @@ export function InstallTabs({ options }: { options: readonly InstallOption[] }) 
                 <button
                     type="button"
                     onClick={copyCommand}
-                    className="shrink-0 rounded-md border border-fd-border bg-fd-background px-2.5 py-1 font-mono text-[11px] text-fd-muted-foreground transition-colors hover:border-term-accent/60 hover:text-fd-foreground"
+                    className="shrink-0 whitespace-nowrap rounded-md border border-fd-border bg-fd-background px-2.5 py-1.5 text-xs font-medium text-fd-muted-foreground transition-colors hover:border-term-accent/60 hover:text-fd-foreground"
                 >
-                    {copied ? "copied ✓" : "copy"}
+                    {copied ? "Copied" : "Copy"}
                 </button>
             </div>
         </div>

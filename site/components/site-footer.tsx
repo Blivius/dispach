@@ -31,7 +31,7 @@ export function SiteFooter() {
                                 ))}
                             </svg>
                             <span>{brand.name}</span>
-                            <span className="font-mono text-xs font-normal text-fd-muted-foreground">
+                            <span className="text-xs font-normal text-fd-muted-foreground">
                                 v{evidence.version}
                             </span>
                         </Link>
@@ -53,9 +53,7 @@ export function SiteFooter() {
                     </div>
 
                     <div>
-                        <p className="font-mono text-xs uppercase tracking-wider text-fd-muted-foreground">
-                            Runtime
-                        </p>
+                        <p className="text-xs font-semibold text-fd-foreground">Runtime</p>
                         <ul className="mt-3 space-y-2 text-sm text-fd-muted-foreground">
                             <li>
                                 <Link
@@ -93,9 +91,7 @@ export function SiteFooter() {
                     </div>
 
                     <div>
-                        <p className="font-mono text-xs uppercase tracking-wider text-fd-muted-foreground">
-                            Verification
-                        </p>
+                        <p className="text-xs font-semibold text-fd-foreground">Verification</p>
                         <ul className="mt-3 space-y-2 text-sm text-fd-muted-foreground">
                             <li>
                                 <Link
@@ -130,18 +126,18 @@ export function SiteFooter() {
                     </div>
 
                     <div>
-                        <p className="font-mono text-xs uppercase tracking-wider text-fd-muted-foreground">
+                        <p className="text-xs font-semibold text-fd-foreground">
                             {parentCompany.name} &amp; Source
                         </p>
                         <ul className="mt-3 space-y-2 text-sm text-fd-muted-foreground">
                             <li>
                                 <a href={parentCompany.url} className="hover:text-fd-foreground">
-                                    {parentCompany.name} ↗
+                                    {parentCompany.name}
                                 </a>
                             </li>
                             <li>
                                 <a href={paperUrl} className="hover:text-fd-foreground">
-                                    Containment paper (arXiv) ↗
+                                    Containment paper (arXiv)
                                 </a>
                             </li>
                             <li>
@@ -154,7 +150,7 @@ export function SiteFooter() {
                             </li>
                             <li>
                                 <a href={repoUrl} className="hover:text-fd-foreground">
-                                    GitLab repository ↗
+                                    GitLab repository
                                 </a>
                             </li>
                             <li>

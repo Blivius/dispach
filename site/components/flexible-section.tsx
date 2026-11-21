@@ -19,9 +19,9 @@ export function FlexibleSection() {
                     preserveAspectRatio="xMidYMid meet"
                     fill="none"
                     className="block h-32 w-full text-fd-foreground transition-opacity duration-200 group-hover:opacity-100"
-                    aria-hidden="true"
+                    role="img"
+                    aria-label="Isolated multi-tenant agent silos inside one process"
                 >
-                    {/* Subtle architectural floor grid */}
                     <g stroke="currentColor" strokeOpacity="0.12" strokeWidth="1">
                         <path d="M120 12 L212 58 L120 104 L28 58 Z" />
                         <path d="M74 35 L166 81 M166 35 L74 81" />
@@ -111,7 +111,7 @@ export function FlexibleSection() {
         {
             title: "Detached turns & replay",
             body: "Every turn returns HTTP 202 and outlives the request socket. Refresh a browser or drop mobile connectivity, then reattach by turn ID over SSE or WebSocket.",
-            code: "202 → stream.replay",
+            code: "HTTP 202, stream.replay",
             svg: (
                 <svg
                     width={240}
@@ -120,7 +120,8 @@ export function FlexibleSection() {
                     preserveAspectRatio="xMidYMid meet"
                     fill="none"
                     className="block h-32 w-full text-fd-foreground transition-opacity duration-200 group-hover:opacity-100"
-                    aria-hidden="true"
+                    role="img"
+                    aria-label="Detached turn buffer replaying events to a reattached client"
                 >
                     {/* Subtle reference rail */}
                     <line
@@ -264,7 +265,8 @@ export function FlexibleSection() {
                     preserveAspectRatio="xMidYMid meet"
                     fill="none"
                     className="block h-32 w-full text-fd-foreground transition-opacity duration-200 group-hover:opacity-100"
-                    aria-hidden="true"
+                    role="img"
+                    aria-label="Hardline containment floor refusing self-widening writes"
                 >
                     {/* Upper open capability plane */}
                     <rect
@@ -366,7 +368,7 @@ export function FlexibleSection() {
         {
             title: "Model & surface agnostic",
             body: "One loop over OpenAI-compatible endpoints, AWS Bedrock, or local Ollama/vLLM. Pin native or NLT tool dialects, remote MCP servers, Composio, and channels.",
-            code: "native | nlt · MCP",
+            code: "native, nlt, MCP",
             svg: (
                 <svg
                     width={240}
@@ -375,7 +377,8 @@ export function FlexibleSection() {
                     preserveAspectRatio="xMidYMid meet"
                     fill="none"
                     className="block h-32 w-full text-fd-foreground transition-opacity duration-200 group-hover:opacity-100"
-                    aria-hidden="true"
+                    role="img"
+                    aria-label="Single runtime loop routing multiple model providers to downstream surfaces"
                 >
                     {/* Left upstream provider nodes */}
                     <g
@@ -484,10 +487,7 @@ export function FlexibleSection() {
     return (
         <section className="border-t border-fd-border px-5 py-16 sm:px-8">
             <div className="max-w-2xl">
-                <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                    runtime architecture
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                     Built for real agent workloads
                 </h2>
                 <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground">

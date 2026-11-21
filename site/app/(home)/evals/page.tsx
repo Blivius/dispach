@@ -117,12 +117,7 @@ export default function EvalsPage() {
     return (
         <main className="flex flex-1 flex-col">
             <div className="mx-auto w-full max-w-5xl border-x border-fd-border/70 px-5 py-12 sm:px-8">
-                <p className="font-mono text-xs uppercase tracking-wider text-term-accent">
-                    claim register
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Evaluations
-                </h1>
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Evaluations</h1>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
                     Every number {brand.name} states in public has a row here naming the committed
                     file it comes from. Negative results are listed beside the positive ones, and a
