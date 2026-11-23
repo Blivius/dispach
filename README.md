@@ -36,7 +36,7 @@ Open source and self-hosted: one API for agents with memory, tools, schedules, c
 
 ---
 
-| **~65 ms** boot | **125 / 125** on 6 frontier models | **0 / 167** floor breaches | **<!-- fact:endpoints -->90<!-- /fact -->** OpenAPI 3.1 endpoints |
+| **~65 ms** boot | **125 / 125** on 5 frontier models | **0 / 167** floor breaches | **<!-- fact:endpoints -->90<!-- /fact -->** OpenAPI 3.1 endpoints |
 | --- | --- | --- | --- |
 | Zero network I/O before `runtime.ready` ([`bench:boot`](#boot-budget)) | Head-to-head multi-turn tool benchmark ([`evals/harness`](evals/harness/README.md)) | Measured settings containment floor ([arXiv 2610.06274](https://arxiv.org/abs/2610.06274)) | Detached `HTTP 202` turns, SSE/WS replay, scoped keys |
 

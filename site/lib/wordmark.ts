@@ -18,6 +18,3 @@ function grid(text: string, columns: number) {
 }
 
 export const pixels = grid(brand.name, 60)
-
-/** The name's first letter alone, for the favicon. Nine columns, so a 5-pixel glyph is drawn one cell per pixel rather than doubled. */
-export const initial = grid(brand.name.slice(0, 1), 9)

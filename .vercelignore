@@ -1,9 +1,11 @@
 # Deny everything at repo root by default so private packages, control plane,
 # scripts, internal docs, and local state are never uploaded to Vercel.
+# Negations name a directory without a trailing slash: the Vercel CLI tests a directory's path as
+# `site`, not `site/`, so `!site/` never re-includes it under `/*` and the upload is empty.
 /*
 
 # Site application (standalone package.json + bun.lock)
-!site/
+!site
 site/node_modules
 site/.next
 site/.source
@@ -13,42 +15,43 @@ site/.env*
 site/.DS_Store
 
 # Developer documentation & OpenAPI spec
-!developer-docs/
+!developer-docs
 developer-docs/**/.DS_Store
 
 # Exact 6 eval JSON files imported by site/lib/evidence.ts and site/app/(home)/evals/page.tsx
-!evals/
+!evals
 evals/*
 !evals/index.json
-!evals/boot/
+!evals/boot
 evals/boot/*
 !evals/boot/results.json
-!evals/harness/
+!evals/harness
 evals/harness/*
 !evals/harness/summary.json
-!evals/memory/
+!evals/memory
 evals/memory/*
 !evals/memory/results.json
-!evals/tenancy/
+!evals/tenancy
 evals/tenancy/*
 !evals/tenancy/results.json
-!evals/tools/
+!evals/tools
 evals/tools/*
 !evals/tools/results.json
 
 # Exact 3 metadata files imported by site/lib/shared.ts, evidence.ts, and wordmark.ts
-!packages/
+!packages
 packages/*
-!packages/core/
+!packages/core
 packages/core/*
-!packages/core/src/
+!packages/core/src
 packages/core/src/*
 !packages/core/src/brand.ts
-!packages/cli/
+!packages/cli
 packages/cli/*
 !packages/cli/package.json
-!packages/cli/src/
+!packages/cli/src
 packages/cli/src/*
-!packages/cli/src/lib/
+!packages/cli/src/lib
 packages/cli/src/lib/*
 !packages/cli/src/lib/wordmark.ts
+!packages/cli/src/lib/rows.ts

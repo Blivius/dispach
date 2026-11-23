@@ -220,11 +220,23 @@ export function ArchitectureBand() {
                         </text>
 
                         {[
-                            { x: 12, tag: "S1 (60%)", label: "Trim observations", accent: false },
-                            { x: 120, tag: "S2 (70%)", label: "Drop Tier 3", accent: false },
-                            { x: 228, tag: "S3 (78%)", label: "Fold old calls", accent: false },
-                            { x: 336, tag: "S4 (85%)", label: "Checkpoint", accent: true },
-                            { x: 444, tag: "S5 (92%)", label: "Hard summary", accent: true },
+                            // The defaults in core's manifest schema (`compaction.thresholds`) and the
+                            // order of `STAGE_ORDER`; the two accented stages are the ones that call a model.
+                            { x: 12, tag: "snip · 60%", label: "Cut big results", accent: false },
+                            {
+                                x: 120,
+                                tag: "micro · 70%",
+                                label: "Swap for pointer",
+                                accent: false,
+                            },
+                            {
+                                x: 228,
+                                tag: "collapse · 80%",
+                                label: "Digest old turns",
+                                accent: true,
+                            },
+                            { x: 336, tag: "reset · 88%", label: "Checkpoint", accent: true },
+                            { x: 444, tag: "trim · 95%", label: "Keep requests", accent: false },
                         ].map((stage) => (
                             <g key={stage.tag}>
                                 <rect

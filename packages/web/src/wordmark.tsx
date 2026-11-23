@@ -29,8 +29,6 @@ function grid(text: string, columns: number): Grid {
 }
 
 const NAME = grid(DEFAULT_BRAND.name, 60)
-/** The first letter alone, for the favicon and the collapsed mark. */
-const INITIAL = grid(DEFAULT_BRAND.name.slice(0, 1), 9)
 
 function Pixels(props: {
     readonly grid: Grid
@@ -57,15 +55,15 @@ export function Wordmark(props: { readonly height?: number }): React.ReactElemen
     return <Pixels grid={NAME} height={props.height ?? 14} />
 }
 
-/** The initial on the dark ground, as an SVG data URI: the favicon, text like everything else here. */
+/** The Sliced Monolith emblem on the dark ground, as an SVG data URI favicon. */
 export function faviconHref(): string {
-    const pad = 2
-    const size = Math.max(INITIAL.width, INITIAL.height) + pad * 2
-    const left = (size - INITIAL.width) / 2
-    const top = (size - INITIAL.height) / 2
-    const rects = INITIAL.cells
-        .map(({ x, y }) => `<rect x='${x + left}' y='${y + top}' width='1' height='1'/>`)
-        .join("")
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${size} ${size}' shape-rendering='crispEdges'><rect width='${size}' height='${size}' rx='1.5' fill='#121212'/><g fill='#d75fd7'>${rects}</g></svg>`
+    const svg =
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none'>" +
+        "<rect width='120' height='120' rx='26' fill='#121212'/>" +
+        "<g transform='translate(14 14) scale(0.7667)'>" +
+        "<path d='M22 66 L60 104 H22 Z' fill='#f4f4f6'/>" +
+        "<path d='M22 16 H26 L95.71 85.71 A44 44 0 0 1 75.27 101.27 L22 48 Z' fill='#f4f4f6' fill-opacity='0.58'/>" +
+        "<path d='M44 16 H60 A44 44 0 0 1 101.78 73.78 Z' fill='#d75fd7'/>" +
+        "</g></svg>"
     return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
