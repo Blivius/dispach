@@ -1,7 +1,7 @@
 # Dispach
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![CI](https://github.com/moeen-mahmud/dispach/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/moeen-mahmud/dispach/actions/workflows/ci.yml)
+[![CI](https://github.com/blivius/dispach/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/blivius/dispach/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dispach)](https://www.npmjs.com/package/dispach)
 [![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/moeen-mahmud/badge.svg)](https://hub.xerj.org/contributors/moeen-mahmud)
 
@@ -9,15 +9,15 @@
 with memory, tools, schedules, channels and approvals, on any OpenAI-compatible model.
 
 ```bash
-curl -fsSL https://github.com/moeen-mahmud/dispach/releases/latest/download/install.sh | sh
-#   or: npm i -g dispach (Node 24+) · brew install moeen-mahmud/tap/dispach
+curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+#   or: npm i -g dispach (Node 26.13.0+) · brew install blivius/tap/dispach
 dispach init          # name the agent, pick a model, paste a key
 dispach run milo      # talk to it in the terminal
 ```
 
-![A fresh Linux machine with no Node: the curl installer, init, serve, /v1/ready, then a first message in the terminal UI](https://raw.githubusercontent.com/moeen-mahmud/dispach/HEAD/.github/assets/install.gif)
+![A fresh Linux machine with no Node: the curl installer, init, serve, /v1/ready, then a first message in the terminal UI](https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/install.gif)
 
-![The terminal UI: told to give itself write access to the whole home directory, the agent tries, and the settings floor refuses](https://raw.githubusercontent.com/moeen-mahmud/dispach/HEAD/.github/assets/tui.gif)
+![The terminal UI: told to give itself write access to the whole home directory, the agent tries, and the settings floor refuses](https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/tui.gif)
 
 Told to widen its own write access to `~`, the agent makes the call and the runtime refuses it: an
 agent may grant itself abilities, never reach. That floor is measured in the research below.
@@ -27,7 +27,7 @@ agent and streams its reply in three requests.
 
 ```bash
 docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach \
-  -e DISPACH_API_TOKEN=pick-a-secret ghcr.io/moeen-mahmud/dispach:0.2.4
+  -e DISPACH_API_TOKEN=pick-a-secret ghcr.io/blivius/dispach:0.2.13
 ```
 
 The named volume is where the store, every agent and every key live; without it a `docker rm` for
@@ -52,26 +52,25 @@ they work for, and stand in for them, openly, when they are away. That half ship
 Everything else described in this README is stable.
 
 **Docs:** [dispach.blivius.com/docs](https://dispach.blivius.com/docs) ·
-**New in <!-- fact:version -->0.2.4<!-- /fact -->:** [the changelog, with upgrade notes](CHANGELOG.md) ·
+**New in <!-- fact:version -->0.2.13<!-- /fact -->:** [the changelog, with upgrade notes](CHANGELOG.md) ·
 **New since 0.2.0:** [what each release added](developer-docs/runtime/whats-new-since-0-2-0.md) ·
 **Limits:** [what is measured, and what it does not do](developer-docs/runtime/limits-and-evidence.md)
 
-**Contributing:** start with a [good first issue](https://github.com/moeen-mahmud/dispach/labels/good%20first%20issue)
-or the [larger pieces that need an owner](https://github.com/moeen-mahmud/dispach/labels/help%20wanted), and
-[Start here](https://github.com/moeen-mahmud/dispach/discussions/38) for how a change gets in. The
-[roadmap](https://github.com/moeen-mahmud/dispach/discussions/56) says what is planned and where Dispach is behind.
+**Contributing:** start with a [good first issue](https://github.com/blivius/dispach/labels/good%20first%20issue)
+or the [larger pieces that need an owner](https://github.com/blivius/dispach/labels/help%20wanted), and
+[making a change](developer-docs/contributing/making-a-change.md) for how a change gets in.
 
 > To dispatch is to send a thing on its way with the authority to see it done — to decide
 > what handles it, hand it over, and answer for the result.
 
 ## Call it over HTTP
 
-![Starting the server, creating an agent over HTTP, and streaming its reply](https://raw.githubusercontent.com/moeen-mahmud/dispach/HEAD/.github/assets/quickstart.gif)
+![Starting the server, creating an agent over HTTP, and streaming its reply](https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/quickstart.gif)
 
 ```bash
 export TOKEN=pick-a-secret
 docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach -e DISPACH_API_TOKEN=$TOKEN \
-  ghcr.io/moeen-mahmud/dispach:0.2.4
+  ghcr.io/blivius/dispach:0.2.13
 
 curl -s -H "Authorization: Bearer $TOKEN" localhost:7420/v1/agents \
   -d '{"answers":{"user":"you","name":"milo","apiKey":"sk-…"}}'
@@ -124,7 +123,7 @@ gap of a few runs is noise. Hermes leads on Gemini 4 Argon and the two small ope
 
 ## Status
 
-**<!-- fact:version -->0.2.4<!-- /fact -->**, from npm, Homebrew, the container image or the standalone installer. Every install
+**<!-- fact:version -->0.2.13<!-- /fact -->**, from npm, Homebrew, the container image or the standalone installer. Every install
 runs under Node. [`CHANGELOG.md`](CHANGELOG.md) has what landed in each release.
 
 Built and in use:
@@ -203,7 +202,7 @@ Full rationale for every decision, including the negative ones, is in `docs/00-D
 
 ```bash
 npm i -g dispach          # the `dispach` command
-dispach --version         # 0.2.4
+dispach --version         # 0.2.13
 ```
 
 and in an application that talks to a running server:
@@ -225,11 +224,11 @@ business paying the ~170-210 ms that importing Ink and React costs.
 ### Or without Node
 
 ```bash
-curl -fsSL https://github.com/moeen-mahmud/dispach/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
 ```
 
 macOS and Linux (glibc), arm64 and x64. Each release attaches one archive per platform: an official
-Node 24, checked against nodejs.org's checksums, beside the same npm tarball the other installs use.
+Node 26.13.0, checked against nodejs.org's checksums, beside the same npm tarball the other installs use.
 It is not a single compiled file on purpose — Bun can compile one, and Bun cannot complete the
 WhatsApp handshake (see below), so what ships is Node. The script checks the archive against the
 release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links
@@ -238,7 +237,7 @@ Nothing needs root. Run it again to upgrade.
 
 | Variable | Effect |
 | --- | --- |
-| `DISPACH_VERSION=0.2.4` | that release instead of the latest |
+| `DISPACH_VERSION=0.2.13` | that release instead of the latest |
 | `DISPACH_NO_MODIFY_PATH=1` | change no rc file; it prints the line to add |
 | `DISPACH_INSTALL_DIR=<dir>` | install somewhere other than `~/.dispach` |
 
@@ -248,12 +247,12 @@ version, and `dispach daemon install` moves it. To uninstall, delete `~/.dispach
 `~/.dispach/versions` and the `PATH` line; your agents beside them in `~/.dispach` are left alone.
 
 **Windows:** run it inside WSL (`wsl --install`), or use the container. A native build needs the
-shell tool and the service manager ported; that is [open for contributions (#76)](https://github.com/moeen-mahmud/dispach/issues/76).
+shell tool and the service manager ported; that is [open for contributions (#76)](https://github.com/blivius/dispach/issues/76).
 
 ### Or with Homebrew
 
 ```bash
-brew install moeen-mahmud/tap/dispach
+brew install blivius/tap/dispach
 ```
 
 The formula depends on `node` and installs the same npm tarball, so a brew install and an npm
@@ -262,8 +261,8 @@ a Bun-compiled binary, and Bun cannot complete the WhatsApp handshake; see below
 
 The name is fully qualified on purpose. Homebrew taps from it with no separate `brew tap`, and
 naming a formula in full is *itself* what Homebrew accepts as consent to load a third-party tap —
-`brew install dispach` after a plain `brew tap moeen-mahmud/tap` is the same install and refuses
-until `brew trust moeen-mahmud/tap` is run, because a bare name carries no such consent.
+`brew install dispach` after a plain `brew tap blivius/tap` is the same install and refuses
+until `brew trust blivius/tap` is run, because a bare name carries no such consent.
 
 `brew services start dispach` then runs the always-on server; `brew info` prints the rest. Use it or
 `init`'s background service, not both: pass `--daemon none` to `init`, or two hosts contend for the
@@ -272,11 +271,11 @@ same agents.
 ### Or the container
 
 ```bash
-docker pull ghcr.io/moeen-mahmud/dispach:0.2.4
+docker pull ghcr.io/blivius/dispach:0.2.13
 ```
 
 The [Docker](#docker) and [Compose](#hosting-with-compose) sections below have the run lines and
-the reasons behind them. The image is `node:24-trixie-slim` with `git`, `python3`, `uv` and `jq`,
+the reasons behind them. The image is `node:26.13.0-trixie-slim` with `git`, `python3`, `uv` and `jq`,
 because the agent has a shell.
 
 ### Or from a checkout
@@ -285,13 +284,13 @@ For working on Dispach itself. The order matters: `bin` points at `dist/`, so a 
 the build points at nothing.
 
 ```bash
-git clone https://github.com/moeen-mahmud/dispach && cd dispach
+git clone https://github.com/blivius/dispach && cd dispach
 bun install
 bun run build                       # builds every package the binary imports
 cd packages/cli && bun link         # puts `dispach` on your PATH
 cd ../..
 
-dispach --version                   # 0.2.4
+dispach --version                   # 0.2.13
 dispach --help
 ```
 
@@ -305,7 +304,7 @@ Four things that are not obvious:
   every provider package — tools, channels, the Bedrock transport, media — from their `dist`
   (`packages/cli/src/lib/providers.ts` is the list), so building only `core` and `cli` leaves the binary running yesterday's provider code — and the symptom is the
   worst kind: your change is correct, a test fails, and the stack trace points into a stale `dist`.
-- **Node <!-- fact:node -->24<!-- /fact -->+ must be on your `PATH`.** The built entry's shebang is `#!/usr/bin/env node`; Bun builds
+- **Node <!-- fact:node -->26.13.0<!-- /fact -->+ must be on your `PATH`.** The built entry's shebang is `#!/usr/bin/env node`; Bun builds
   it and Node runs it — the same runtime every install ships.
 - **`DISPACH_HOME` relocates the whole sandbox.** Point it at a temporary directory and every agent,
   the store and the logs go there instead of `~/.dispach` — which is how to try things out, and how
@@ -498,7 +497,7 @@ token.
 
 ```bash
 cp .env.example .env               # then DISPACH_API_TOKEN
-docker compose up -d --wait        # pulls ghcr.io/moeen-mahmud/dispach, DISPACH_VERSION pins a tag
+docker compose up -d --wait        # pulls ghcr.io/blivius/dispach, DISPACH_VERSION pins a tag
 curl localhost:7420/v1/ready       # {"status":"ready","agents":0}
 docker compose logs server         # the claim link — open it once to get a browser key
 ```
@@ -533,7 +532,7 @@ webhooks, backups and scoped keys. Reading the container's own output is what co
 first ownership, which grants nothing new to anyone who could already run `docker compose logs`.
 
 **A plain `up` pulls the published image once and never again.** `image:` names
-`ghcr.io/moeen-mahmud/dispach:${DISPACH_VERSION:-latest}` with `pull_policy: missing`, so a machine
+`ghcr.io/blivius/dispach:${DISPACH_VERSION:-latest}` with `pull_policy: missing`, so a machine
 that pulled `latest` last month keeps serving it until `docker compose pull`; pin `DISPACH_VERSION`
 in `.env` to make an upgrade a visible edit. Working from a checkout, `up -d --build --wait` builds
 this tree under the same tag — and then **`--build` is not optional after the first run**, because
@@ -654,14 +653,14 @@ consequence: run it on a laptop and the policy is the only boundary there is.
 ## Docker
 
 ```bash
-docker pull ghcr.io/moeen-mahmud/dispach:0.2.4          # or build it: docker build -f docker/Dockerfile -t dispach .
+docker pull ghcr.io/blivius/dispach:0.2.13          # or build it: docker build -f docker/Dockerfile -t dispach .
 cp examples/minimal/.env.example examples/minimal/.env  # then MODEL_API_KEY; only the example is tracked
 docker run --rm --init -p 7420:7420 \
   --env-file examples/minimal/.env \
   -e DISPACH_API_TOKEN=pick-something \
   -v "$PWD/examples/minimal:/agent" \
   -v dispach-home:/home/dispach \
-  ghcr.io/moeen-mahmud/dispach:0.2.4
+  ghcr.io/blivius/dispach:0.2.13
 ```
 
 The token is not optional and is not boilerplate. The image binds `0.0.0.0`, because a process
@@ -675,7 +674,7 @@ as anything `dispach init` creates inside the container. There is **one agents d
 there was not before: the image used to set `DISPACH_HOME=/state`, so `init` wrote to `/state/agents`
 while the CMD served `/agent`, and an agent created in the container was invisible to every listing.
 
-The image is `node:24-trixie-slim` and the runtime stage installs **the published npm tarball** with
+The image is `node:26.13.0-trixie-slim` and the runtime stage installs **the published npm tarball** with
 `npm i -g` — the container runs byte-for-byte what `npm i -g dispach` runs on a laptop. No Bun: it
 is the dev toolchain, and the runtime that cannot finish a WhatsApp pairing. glibc rather than musl
 is deliberate and is about Python: PyPI's
@@ -724,7 +723,7 @@ bun run bench:boot   # must stay under 1000 ms
 bun run bench:schedule  # 100 schedules on one timer — reports drift, does not assert it
 ```
 
-Bun is the development toolchain: install, build and test. Everything shipped runs under Node <!-- fact:node -->24<!-- /fact -->+.
+Bun is the development toolchain: install, build and test. Everything shipped runs under Node <!-- fact:node -->26.13.0<!-- /fact -->+.
 
 A few house rules that bite first, all enforced by tests rather than review:
 

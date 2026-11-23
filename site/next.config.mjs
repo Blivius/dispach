@@ -9,6 +9,7 @@ const root = fileURLToPath(new URL("..", import.meta.url))
 /** @type {import('next').NextConfig} */
 const config = {
     reactStrictMode: true,
+    experimental: { agentUpgrade: "security" },
     turbopack: { root },
     outputFileTracingRoot: root,
     // Search indexes the OpenAPI document at request time, and the tracer cannot see a path built at

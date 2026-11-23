@@ -200,7 +200,7 @@ export function page(summary: ReturnType<typeof build>): string {
 ${name} is measured on ${summary.tasks} multi-turn agent tasks, ${summary.repeats} times each, against the
 same tools and pinned model providers as two other open-source harnesses. Each task is graded on the tools'
 final state, never on the reply's wording. Every run is committed, with its replies, under
-[\`evals/harness/\`](https://github.com/moeen-mahmud/dispach/tree/main/evals/harness).
+[\`evals/harness/\`](https://github.com/blivius/dispach/tree/main/evals/harness).
 
 ## Against other harnesses
 
@@ -212,7 +212,7 @@ ${span(dates("openclaw"))}, with the same tasks, isolation and providers.
 ${table(summary)}
 
 With 125 runs an arm, a gap of a few runs is noise: the 95% intervals are in
-[\`evals/harness/summary.json\`](https://github.com/moeen-mahmud/dispach/blob/main/evals/harness/summary.json).
+[\`evals/harness/summary.json\`](https://github.com/blivius/dispach/blob/main/evals/harness/summary.json).
 
 ## Tool-call dialects
 
@@ -227,12 +227,12 @@ ${summary.models.map((m) => `| ${m.name} | ${score(m.native)} | ${all5(m.native)
 ## How it is run
 
 - **Tasks:** single calls, chains, recall across turns, abstention, recovery from injected tool failures,
-  and long files ([\`scripts/bench/tasks.ts\`](https://github.com/moeen-mahmud/dispach/blob/main/scripts/bench/tasks.ts)).
+  and long files ([\`scripts/bench/tasks.ts\`](https://github.com/blivius/dispach/blob/main/scripts/bench/tasks.ts)).
 - **Isolation:** every harness runs in its own container, its state restored before every attempt.
 - **Scoring:** a run that errors scores 0. A run the provider rate-limited is re-run, not scored.
 - **Limits:** one benchmark of our own design, each harness on its own defaults. Where ${name} loses,
   and why, is written up in the
-  [benchmark README](https://github.com/moeen-mahmud/dispach/blob/main/evals/harness/README.md).
+  [benchmark README](https://github.com/blivius/dispach/blob/main/evals/harness/README.md).
 `
 }
 

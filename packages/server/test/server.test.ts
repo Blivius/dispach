@@ -695,7 +695,9 @@ describe("sessions", () => {
         expect(((await short.json()) as { error: { code: string } }).error.code).toBe(
             "session_too_short",
         )
-        for (const text of ["two", "three"]) {
+        // A long one, as a pasted document is: a digest of terse turns would save nothing and is
+        // refused (`nothing_to_gain`).
+        for (const text of [`two ${"pasted detail ".repeat(300)}`, "three"]) {
             await call("POST", "/v1/agents/assistant/messages", {
                 body: { text, sessionKey: "api:s" },
             })

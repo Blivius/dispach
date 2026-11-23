@@ -3,7 +3,7 @@
 ## Supported versions
 
 Security fixes go into the **latest release on npm** (`npm view dispach version`) and the matching
-container image (`ghcr.io/moeen-mahmud/dispach:latest`). Older releases are not patched: upgrade.
+container image (`ghcr.io/blivius/dispach:latest`). Older releases are not patched: upgrade.
 
 Pre-releases (`0.2.0-pilot.N`, npm `next`) are not patched in place. A fix ships in the next
 pre-release.
@@ -13,7 +13,7 @@ pre-release.
 **Please do not open a public issue, discussion or pull request for a vulnerability.**
 
 Report it privately through GitHub:
-[**Security → Report a vulnerability**](https://github.com/moeen-mahmud/dispach/security/advisories/new).
+[**Security → Report a vulnerability**](https://github.com/blivius/dispach/security/advisories/new).
 
 Include what you can of:
 

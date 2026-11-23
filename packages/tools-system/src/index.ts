@@ -8,6 +8,7 @@
  */
 
 import type { Plugin } from "@dispach/core"
+import type { Confinement } from "./confine.ts"
 import type { EnvPolicy } from "./env.ts"
 import { systemFromConfig } from "./provider.ts"
 import { SystemScriptRunner } from "./scripts.ts"
@@ -110,13 +111,19 @@ export default {
     setup(context) {
         // One agent's provider and runner share its `env` policy; setup runs once per agent.
         let policy: EnvPolicy = "inherit"
+        let confine: Confinement | undefined
         context.defineToolProvider("system", (providerContext) =>
-            systemFromConfig(providerContext, (chosen) => {
+            systemFromConfig(providerContext, (chosen, confined) => {
                 policy = chosen
+                confine = confined
             }),
         )
         context.defineScriptRunner(
-            new SystemScriptRunner({ env: context.env, policy: () => policy }),
+            new SystemScriptRunner({
+                env: context.env,
+                policy: () => policy,
+                confine: () => confine,
+            }),
         )
     },
 } satisfies Plugin

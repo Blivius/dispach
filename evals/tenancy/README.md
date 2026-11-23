@@ -10,7 +10,7 @@ bun run eval:tenancy                                  # 1, 10, 100 agents, 3 run
 # inside the image — measures the published tarball, not this checkout:
 docker run --rm --entrypoint sh -v "$PWD/scripts:/repo/scripts:ro" \
   -v "$PWD/packages/core/src:/repo/packages/core/src:ro" -v "$PWD/evals/tenancy:/out" \
-  ghcr.io/moeen-mahmud/dispach:latest \
+  ghcr.io/blivius/dispach:latest \
   -c 'node /repo/scripts/eval-tenancy.ts --entry "$(npm root -g)/dispach/dist/index.js" --out /out'
 ```
 

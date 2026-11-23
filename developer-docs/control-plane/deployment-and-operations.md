@@ -4,7 +4,7 @@ The bundled deployment runs one control-plane container with access to the host 
 
 ```bash
 export DISPACH_CONTROL_TOKEN="$(openssl rand -base64 32)"
-export DISPACH_IMAGE="ghcr.io/moeen-mahmud/dispach:<version>"
+export DISPACH_IMAGE="ghcr.io/blivius/dispach:<version>"
 docker compose -f packages/control/compose.yaml up -d --build
 ```
 

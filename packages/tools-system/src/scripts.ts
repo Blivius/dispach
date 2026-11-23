@@ -22,7 +22,9 @@ import { statSync } from "node:fs"
 import { mkdir, rm } from "node:fs/promises"
 import { delimiter, join } from "node:path"
 import type { ScriptRunner, ScriptRunRequest, ScriptRunResult } from "@dispach/core"
+import { type Confinement, confinedTemp, confineUnsupported } from "./confine.ts"
 import { childEnv, type EnvPolicy } from "./env.ts"
+import { execConfineUnavailable } from "./errors.ts"
 import { readOutput } from "./output.ts"
 import { spillDir } from "./paths.ts"
 import { runCommand } from "./run.ts"
@@ -35,6 +37,8 @@ export interface SystemScriptRunnerOptions {
      * is registered, so the policy is not known yet when the constructor runs. Absent is `inherit`.
      */
     readonly policy?: () => EnvPolicy
+    /** The system provider's `confine: agent`, read at each run like the policy (0.2.6). */
+    readonly confine?: () => Confinement | undefined
 }
 
 /** POSIX single-quoting, so a path with a space or a quote in it survives the shell. */
@@ -45,10 +49,12 @@ function quote(value: string): string {
 export class SystemScriptRunner implements ScriptRunner {
     readonly #env: Readonly<Record<string, string | undefined>>
     readonly #policy: () => EnvPolicy
+    readonly #confine: () => Confinement | undefined
 
     constructor(options: SystemScriptRunnerOptions) {
         this.#env = options.env
         this.#policy = options.policy ?? (() => "inherit")
+        this.#confine = options.confine ?? (() => undefined)
     }
 
     /**
@@ -73,7 +79,13 @@ export class SystemScriptRunner implements ScriptRunner {
     }
 
     async run(request: ScriptRunRequest): Promise<ScriptRunResult> {
-        const dir = spillDir()
+        const confine = this.#confine()
+        if (confine !== undefined) {
+            const why = confineUnsupported()
+            if (why !== undefined) throw execConfineUnavailable(why)
+        }
+        const dir =
+            confine === undefined ? spillDir() : join(confinedTemp(confine.agentDir), "spill")
         await mkdir(dir, { recursive: true })
         // Named from the command rather than a clock or a counter, both of which make a test
         // non-deterministic — the same trick `exec` uses for the same reason.
@@ -92,6 +104,7 @@ export class SystemScriptRunner implements ScriptRunner {
             signal: request.signal,
             outPath,
             statusPath,
+            ...(confine === undefined ? {} : { confine }),
         })
 
         const observation = await readOutput(outPath)

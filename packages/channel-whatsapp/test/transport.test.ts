@@ -19,8 +19,10 @@ import type { ChannelHost, ChannelInput, ChannelStatus } from "@dispach/core"
 import { conformance } from "@dispach/core/testing"
 import plugin, { allowFromProblem, whatsappChannel } from "../src/index.ts"
 import {
+    agentMessageId,
     type BaileysApi,
     type ConnectionUpdate,
+    isAgentMessageId,
     jidOf,
     type MessagesUpsert,
     numberOf,
@@ -75,6 +77,8 @@ function fakeBaileys(): {
     deliver: (upsert: MessagesUpsert) => void
     saveCreds: () => Promise<void>
     sent: { jid: string; text: string; image?: string; voice?: boolean }[]
+    /** The message ids the transport asked Baileys to send under. */
+    ids: string[]
 } {
     const handlers: {
         update?: (update: ConnectionUpdate) => void
@@ -82,6 +86,7 @@ function fakeBaileys(): {
         messages?: (upsert: MessagesUpsert) => void
     } = {}
     const sent: { jid: string; text: string; image?: string; voice?: boolean }[] = []
+    const ids: string[] = []
     const state = { connects: 0 }
 
     const socket: WhatsAppSocket = {
@@ -96,7 +101,8 @@ function fakeBaileys(): {
                     handlers.messages = handler as (upsert: MessagesUpsert) => void
             },
         } as unknown as WhatsAppSocket["ev"],
-        sendMessage: async (jid, content) => {
+        sendMessage: async (jid, content, options) => {
+            if (options?.messageId !== undefined) ids.push(options.messageId)
             sent.push(
                 "text" in content
                     ? { jid, text: content.text }
@@ -131,6 +137,7 @@ function fakeBaileys(): {
             await handlers.creds?.()
         },
         sent,
+        ids,
     }
 }
 
@@ -373,6 +380,9 @@ describe("sending", () => {
         })
         expect(result.ok).toBe(true)
         expect(fake.sent[0]?.jid).toBe("8801711223344@s.whatsapp.net")
+        // Sent under an id any agent's transport recognises as an agent's.
+        expect(fake.ids).toHaveLength(1)
+        expect(isAgentMessageId(fake.ids[0] ?? "")).toBe(true)
         await channel.stop()
     })
 
@@ -669,6 +679,40 @@ describe("the chat with yourself is the agent's conversation", () => {
 
     test("the agent's own reply is not read back, even in that chat", () => {
         expect(toInbound(at(me, { id: "SENT-1" }), context)).toBeUndefined()
+    })
+
+    /**
+     * Two agents were paired to one number, and in its chat with yourself each read the other's
+     * reply as the owner typing: `fromMe`, the owner's own chat, an id it never sent. Fifteen
+     * replies in a minute, each answering the last. The same hole let one agent answer its own
+     * replies after a restart, when the ids it remembered were gone.
+     */
+    test("another agent's reply in that chat is not the owner typing", () => {
+        const theirs = agentMessageId()
+        expect(context.sentIds).not.toContain(theirs)
+        expect(toInbound(at(me, { id: theirs }), context)).toBeUndefined()
+        expect(
+            toInbound(at(me, { id: theirs }), { ownJids: new Set([me]), sentIds: [] }),
+        ).toBeUndefined()
+    })
+
+    test("what the owner types is never mistaken for an agent's", () => {
+        // A phone's id, and a web client's: `3EB0` and then anything but the mark.
+        expect(toInbound(at(me, { id: "A5F0C1D2E3B4A5968778695A4B3C2D1E" }), context)?.text).toBe(
+            "hello agent",
+        )
+        expect(toInbound(at(me, { id: "3EB0C431F8A2D09B7E6A" }), context)?.text).toBe("hello agent")
+        expect(isAgentMessageId(agentMessageId())).toBe(true)
+        expect(agentMessageId()).toMatch(/^3EB0[0-9A-F]{36}$/)
+        expect(agentMessageId()).not.toBe(agentMessageId())
+    })
+
+    test("the mark means nothing on a message somebody else sent", () => {
+        const raw = toInbound({
+            key: { remoteJid: "15551234567@s.whatsapp.net", fromMe: false, id: agentMessageId() },
+            message: { conversation: "hello" },
+        })
+        expect(raw?.text).toBe("hello")
     })
 
     test("the owner talking to somebody else from their phone is not the agent's business", () => {

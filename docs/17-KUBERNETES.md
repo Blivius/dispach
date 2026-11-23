@@ -3,7 +3,7 @@
 What a pod needs from the stock image to run well rather than merely run, for one silo per pod.
 Nothing here is specific to EKS except where it says so. `examples/kubernetes/silo.yaml` is a working starting point.
 
-The image is the same one Docker Compose runs (`ghcr.io/moeen-mahmud/dispach`). It runs `serve
+The image is the same one Docker Compose runs (`ghcr.io/blivius/dispach`). It runs `serve
 --host 0.0.0.0` as uid 1000, from `/home/dispach`.
 
 ---
@@ -119,6 +119,12 @@ A turn still running at the deadline is left as it is without a drain: the next 
 `turn_abandoned`. New turns are not refused while draining, since a message a channel already
 received is better answered than dropped. Unset, a stop does not wait (the behaviour on a laptop and
 under launchd). A malformed value refuses to start.
+
+**A frozen server is killed.** A turn that blocks the event loop freezes every agent and
+`/v1/ready` with it, and SIGTERM is answered on that same loop. A watchdog thread kills the process
+(SIGKILL, after a `dispach: event loop stalled for Ns` line on stderr) when the loop has not turned
+for `DISPACH_LOOP_STALL_S` seconds, default 60, so the pod restarts instead of hanging. `0` turns it
+off; a malformed value refuses to start.
 
 ## 5. Credentials
 

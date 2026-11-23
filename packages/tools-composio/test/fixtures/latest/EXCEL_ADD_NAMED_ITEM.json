@@ -1,0 +1,91 @@
+{
+    "type": "object",
+    "oneOf": [
+        {
+            "type": "object",
+            "required": ["reference"],
+            "properties": {
+                "formula_mode": {
+                    "type": "string",
+                    "const": "invariant",
+                    "description": "Use invariant formula syntax in reference."
+                }
+            }
+        },
+        {
+            "type": "object",
+            "required": ["formula"],
+            "properties": {
+                "formula_mode": {
+                    "type": "string",
+                    "const": "local",
+                    "description": "Use user-local formula syntax in formula."
+                }
+            }
+        }
+    ],
+    "title": "AddNamedItemRequest",
+    "required": ["item_id", "name"],
+    "properties": {
+        "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The new named item's name."
+        },
+        "comment": {
+            "type": "string",
+            "title": "Comment",
+            "description": "Optional comment associated with the name."
+        },
+        "formula": {
+            "type": "string",
+            "title": "Formula",
+            "description": "Locale-specific formula; required in local mode."
+        },
+        "item_id": {
+            "type": "string",
+            "title": "Item Id",
+            "description": "The Excel workbook drive-item ID."
+        },
+        "drive_id": {
+            "type": "string",
+            "title": "Drive Id",
+            "description": "Optional drive ID."
+        },
+        "reference": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "boolean"
+                }
+            ],
+            "title": "Reference",
+            "description": "Invariant formula or range reference; required in invariant mode."
+        },
+        "worksheet": {
+            "type": "string",
+            "title": "Worksheet",
+            "description": "Optional worksheet ID or name for worksheet scope."
+        },
+        "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Optional workbook session ID."
+        },
+        "formula_mode": {
+            "enum": ["invariant", "local"],
+            "type": "string",
+            "title": "Formula Mode",
+            "default": "invariant",
+            "description": "Select invariant to require reference, or local to require formula. The unused expression field must be omitted."
+        }
+    }
+}

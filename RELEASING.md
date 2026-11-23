@@ -18,17 +18,17 @@ One package, one number, one tag. Semver. Short bullets in `CHANGELOG.md`; the r
    `test`, `typecheck`, `lint`, `docs:check`, `verify:package`), and prints the two git commands. It commits nothing.
 3. **Review the diff, commit, tag, push the tag.** The tag is what publishes.
 4. **Watch the workflow.** `release.yml` publishes to npm, creates the GitHub Release with the
-   changelog section as its body, commits the formula to `moeen-mahmud/homebrew-tap`, builds the
+   changelog section as its body, commits the formula to `blivius/homebrew-tap`, builds the
    four standalone archives from the published tarball, installs them on Linux and macOS, attaches
-   them with `SHA256SUMS` and `install.sh` to the release, and pushes the image to GHCR. It needs two secrets: `NPM_TOKEN` and `TAP_TOKEN` (a fine-grained PAT with
-   contents:write on the tap). Either missing **fails the job by name** rather than skipping.
+   them with `SHA256SUMS` and `install.sh` to the release, and pushes the image to GHCR and to Docker Hub (`docker.io/moeenmahmud007/dispach`). It needs three secrets:
+   `NPM_TOKEN`, `TAP_TOKEN` (a fine-grained PAT with contents:write on the tap) and `DOCKERHUB_TOKEN`. Any one missing **fails the job by name** rather than skipping.
 5. **Check the four installs**:
 
    ```bash
    npm view dispach version
-   brew update && brew info moeen-mahmud/tap/dispach
-   docker pull ghcr.io/moeen-mahmud/dispach:0.2.0
-   curl -fsSL https://github.com/moeen-mahmud/dispach/releases/latest/download/install.sh | sh
+   brew update && brew info blivius/tap/dispach
+   docker pull ghcr.io/blivius/dispach:0.2.0
+   curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
    ```
 
    `bun scripts/build-standalone.ts --targets darwin-arm64` builds one archive locally (packing the

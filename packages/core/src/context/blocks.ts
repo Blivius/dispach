@@ -171,7 +171,7 @@ export const MEMORY_END = "End of the remembered excerpt; the person's message f
 
 /** Frames a `SLOT.note` block, so the model can tell it from what the person wrote. */
 export const NOTE_HEADER =
-    "From the application this conversation runs in, about the next message. The person did not write this."
+    "From the application this conversation runs in, about the person's message after this block. The person did not write this block; their own words come after it."
 
 /**
  * The reminder tier's frame (pilot.14). It was the one block after the history with none,

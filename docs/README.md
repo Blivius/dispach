@@ -1,7 +1,7 @@
 # Dispach — Planning Documents
 
 Design and implementation plan for **Dispach**, a lightweight, model-agnostic agent
-runtime. Apache-2.0. Repo: `github.com/moeen-mahmud/dispach` (moves to HelicanHQ later).
+runtime. Apache-2.0. Repo: `github.com/blivius/dispach`.
 VelaOps is its first consumer, not its owner.
 
 > A dispach holds and governs a keep on behalf of its lord — commands the garrison,

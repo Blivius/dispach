@@ -20,8 +20,8 @@
  *   it writes files, and files are what that pass enumerates.
  */
 
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { isAbsolute, join, resolve } from "node:path"
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { dirname, isAbsolute, join, resolve } from "node:path"
 import { HarnessError, isHarnessError } from "../errors.ts"
 import { isSessionSource } from "../memory/conversation.ts"
 import { isScopeSource } from "../memory/scopes.ts"
@@ -248,6 +248,8 @@ export async function importBundle(input: {
     let needsReload = false
     try {
         for (const { file, abs, kind } of targets) {
+            // A new agent has no memory/ or knowledge/ folder until something writes one.
+            mkdirSync(dirname(abs), { recursive: true })
             const before = snapshot.get(abs)
             if (kind === "knowledge") {
                 if (before === file.content || (before !== undefined && mode === "skip")) {

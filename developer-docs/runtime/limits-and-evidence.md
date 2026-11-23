@@ -2,21 +2,21 @@
 
 What Dispach claims, where each number comes from, what it does not claim, and what it does not do.
 Every public number has a row in
-[`evals/CLAIMS.md`](https://github.com/moeen-mahmud/dispach/blob/main/evals/CLAIMS.md) naming the
+[`evals/CLAIMS.md`](https://github.com/blivius/dispach/blob/main/evals/CLAIMS.md) naming the
 committed file behind it. A number with no row is not used anywhere.
 
 ## What is measured
 
 | Claim | Evidence | What it does not show |
 | --- | --- | --- |
-| Ahead of OpenClaw 2026.10.5 on all 11 models compared, level with or ahead of Hermes 0.19.0 on 8, cheapest of the three on 10 | [Benchmarks](benchmarks.md), [`evals/harness/`](https://github.com/moeen-mahmud/dispach/tree/main/evals/harness) | One benchmark of our own design: 25 tasks × 5 runs, each harness on its own defaults. Every Dispach–Hermes pair's 95% intervals overlap |
+| Ahead of OpenClaw 2026.10.5 on all 11 models compared, level with or ahead of Hermes 0.19.0 on 8, cheapest of the three on 10 | [Benchmarks](benchmarks.md), [`evals/harness/`](https://github.com/blivius/dispach/tree/main/evals/harness) | One benchmark of our own design: 25 tasks × 5 runs, each harness on its own defaults. Every Dispach–Hermes pair's 95% intervals overlap |
 | Hermes scores higher on Gemini 4 Argon, qwen3.5-9b and gpt-oss-20b | Same | On qwen the intervals overlap widely, on gpt-oss only just |
 | Native tool calls tie or beat NLT on all 13 models measured both ways | Same | qwen3.5-9b under NLT is paused part-way and not reported as a rate |
-| NLT wins a single-call routing test (37 fixtures) | [`evals/tools/`](https://github.com/moeen-mahmud/dispach/tree/main/evals/tools) | No tool is executed; the qwen margin is one fixture. A published +14.9pp NLT result did not reproduce on multi-turn work here |
+| NLT wins a single-call routing test (37 fixtures) | [`evals/tools/`](https://github.com/blivius/dispach/tree/main/evals/tools) | No tool is executed; the qwen margin is one fixture. A published +14.9pp NLT result did not reproduce on multi-turn work here |
 | With the settings floor, 0 of 167 protected writes were saved; the models attempted one in 65 | [preprint, arXiv 2610.06274](https://arxiv.org/abs/2610.06274) | The paper's runs, not committed here; a preprint, not peer-reviewed |
-| Boot to `runtime.ready` in about 65 ms; CI fails above 1,200 ms | [`evals/boot/results.json`](https://github.com/moeen-mahmud/dispach/blob/main/evals/boot/results.json) | Boot, not response latency, on one machine |
-| Memory retrieval: median 0.34 ms over 5,000 passages | [`evals/memory/`](https://github.com/moeen-mahmud/dispach/tree/main/evals/memory) | Lexical (FTS5); a paraphrase with no shared words is missed |
-| An idle silo holds 104 / 120 / 178 MiB for 1 / 10 / 100 agents | [`evals/tenancy/`](https://github.com/moeen-mahmud/dispach/tree/main/evals/tenancy) | One machine |
+| Boot to `runtime.ready` in about 65 ms; CI fails above 1,200 ms | [`evals/boot/results.json`](https://github.com/blivius/dispach/blob/main/evals/boot/results.json) | Boot, not response latency, on one machine |
+| Memory retrieval: median 0.34 ms over 5,000 passages | [`evals/memory/`](https://github.com/blivius/dispach/tree/main/evals/memory) | Lexical (FTS5); a paraphrase with no shared words is missed |
+| An idle silo holds 104 / 120 / 178 MiB for 1 / 10 / 100 agents | [`evals/tenancy/`](https://github.com/blivius/dispach/tree/main/evals/tenancy) | One machine |
 
 ## Negative results, kept
 

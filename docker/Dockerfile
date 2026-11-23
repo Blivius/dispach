@@ -52,7 +52,7 @@
 # runtime stages copy the same tarball. Without `--platform` buildx ran it once per platform, and the
 # arm64 copy under QEMU on an amd64 runner: `bun run build` measured 795 s there against 115 s native,
 # thirteen of the release job's seventeen minutes spent producing bytes it already had.
-FROM --platform=$BUILDPLATFORM oven/bun:1 AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.5 AS builder
 WORKDIR /build
 
 # The lockfile and every workspace manifest first, so a source-only change reuses this layer.
@@ -104,7 +104,7 @@ RUN mkdir /out && cd packages/cli && bun pm pack --destination /out --ignore-scr
 #
 # The official Node image on the same Debian release as before, so the apt layer below is unchanged
 # and glibc is the one the builder has. `-slim` carries `node`, `npm` and `corepack` and nothing else.
-FROM node:24-trixie-slim AS runtime
+FROM node:26.13.0-trixie-slim AS runtime
 
 # ─── What the agent's shell can reach ─────────────────────────────────────────────────────
 #
@@ -220,7 +220,7 @@ EXPOSE 7420
 # So this answers "can it serve a turn", which is the question an orchestrator is actually asking.
 #
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:7420/v1/ready > /dev/null || exit 1
+    CMD curl -fsS --max-time 2 http://127.0.0.1:7420/v1/ready > /dev/null || exit 1
 
 # `serve` rather than `run`: it is the only command that starts channels and binds the port, and a
 # container with no terminal has nobody to talk to a REPL.

@@ -1,0 +1,114 @@
+{
+    "type": "object",
+    "title": "AutofitRangeRequest",
+    "required": ["item_id", "target", "dimension"],
+    "properties": {
+        "target": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "title": "WorksheetRangeTarget",
+                    "required": ["kind", "worksheet_id"],
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "const": "worksheet",
+                            "title": "Kind",
+                            "description": "Select a worksheet-addressed range."
+                        },
+                        "address": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Address",
+                            "default": null,
+                            "description": "The A1-style range address or range name. Required for range navigation and formatting operations."
+                        },
+                        "worksheet_id": {
+                            "type": "string",
+                            "title": "Worksheet Id",
+                            "description": "The worksheet ID or name."
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "title": "NamedItemRangeTarget",
+                    "required": ["kind", "name"],
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "const": "named_item",
+                            "title": "Kind",
+                            "description": "Select a workbook named-item range."
+                        },
+                        "name": {
+                            "type": "string",
+                            "title": "Name",
+                            "description": "The workbook named-item name or ID."
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "title": "TableColumnRangeTarget",
+                    "required": ["kind", "table_id", "column_id"],
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "const": "table_column",
+                            "title": "Kind",
+                            "description": "Select a table-column range."
+                        },
+                        "table_id": {
+                            "type": "string",
+                            "title": "Table Id",
+                            "description": "The table ID or name."
+                        },
+                        "column_id": {
+                            "type": "string",
+                            "title": "Column Id",
+                            "description": "The table column ID or name."
+                        }
+                    }
+                }
+            ],
+            "title": "Target",
+            "description": "The range whose dimensions to fit.",
+            "discriminator": {
+                "mapping": {
+                    "worksheet": "#/$defs/WorksheetRangeTarget",
+                    "named_item": "#/$defs/NamedItemRangeTarget",
+                    "table_column": "#/$defs/TableColumnRangeTarget"
+                },
+                "propertyName": "kind"
+            }
+        },
+        "item_id": {
+            "type": "string",
+            "title": "Item Id",
+            "description": "The Excel workbook drive-item ID."
+        },
+        "drive_id": {
+            "type": "string",
+            "title": "Drive Id",
+            "description": "The explicit drive ID; omit for /me/drive."
+        },
+        "dimension": {
+            "enum": ["columns", "rows"],
+            "type": "string",
+            "title": "Dimension",
+            "description": "Whether to autofit column widths or row heights."
+        },
+        "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "An optional workbook session ID."
+        }
+    }
+}

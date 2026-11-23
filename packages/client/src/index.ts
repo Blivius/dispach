@@ -361,7 +361,7 @@ export interface AgentClient {
     /**
      * Fold everything before the last `keepTurns` turns (default 2) into a saved digest, so the next
      * turn starts from it (decision 15.21). Every message stays stored. `409 session_too_short` when
-     * nothing is older than the kept turns.
+     * nothing is older than the kept turns, `409 nothing_to_gain` when the digest would be no smaller.
      */
     compactSession(
         sessionKey: string,

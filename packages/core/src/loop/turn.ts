@@ -268,6 +268,8 @@ export interface TurnInput {
     readonly withheld?: readonly string[]
     /** Every mutating call is queued rather than run: a stand-in's turn. See `ExecuteInput.defer`. */
     readonly deferMutations?: ExecuteInput["defer"]
+    /** A subagent's handed call, cleared on its parent. See `ExecuteInput.claimDelegated`. */
+    readonly claimDelegated?: ExecuteInput["claimDelegated"]
     /** Forwarded to `ToolContext.writeNote`: set when this agent is the space writer (Phase 29). */
     readonly writeNote?: (text: string) => Promise<string>
     /** Forwarded to `ToolContext.shareNote`: the owner's pool, beside a private save (15.8). */
@@ -1489,6 +1491,9 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                           ...(input.deferMutations === undefined
                               ? {}
                               : { defer: input.deferMutations }),
+                          ...(input.claimDelegated === undefined
+                              ? {}
+                              : { claimDelegated: input.claimDelegated }),
                       })
 
             transientFailed =

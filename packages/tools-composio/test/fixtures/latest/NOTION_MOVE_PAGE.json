@@ -1,0 +1,69 @@
+{
+    "type": "object",
+    "title": "MovePageRequest",
+    "required": ["page_id", "parent"],
+    "properties": {
+        "parent": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "title": "PageParentDestination",
+                    "required": ["type", "page_id"],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "const": "page_id",
+                            "title": "Type",
+                            "description": "The constant string 'page_id'."
+                        },
+                        "page_id": {
+                            "type": "string",
+                            "title": "Page Id",
+                            "examples": ["f336d0bc-b841-465b-8045-024475c079dd"],
+                            "description": "UUID of the parent page (with or without dashes). Must reference an actual page, not a database. If moving to a database, use type='data_source_id' instead."
+                        }
+                    },
+                    "description": "Parent destination as a page."
+                },
+                {
+                    "type": "object",
+                    "title": "DataSourceParentDestination",
+                    "required": ["type", "data_source_id"],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "const": "data_source_id",
+                            "title": "Type",
+                            "description": "The constant string 'data_source_id'."
+                        },
+                        "data_source_id": {
+                            "type": "string",
+                            "title": "Data Source Id",
+                            "examples": ["1c7b35e6-e67f-8096-bf3f-000ba938459e"],
+                            "description": "UUID of the database's data source (NOT database_id). Retrieve using the database endpoint."
+                        }
+                    },
+                    "description": "Parent destination as a data source (database)."
+                }
+            ],
+            "title": "Parent",
+            "examples": [
+                {
+                    "type": "page_id",
+                    "page_id": "f336d0bc-b841-465b-8045-024475c079dd"
+                },
+                {
+                    "type": "data_source_id",
+                    "data_source_id": "1c7b35e6-e67f-8096-bf3f-000ba938459e"
+                }
+            ],
+            "description": "Parent destination for the page. Use type='page_id' with page_id to move under another page (the page_id must reference a page, not a database). Use type='data_source_id' with data_source_id to move into a database. Common mistake: Using type='page_id' with a database ID will fail - databases require type='data_source_id'."
+        },
+        "page_id": {
+            "type": "string",
+            "title": "Page Id",
+            "examples": ["59833787-2cf9-4fdf-8782-e53db20768a5"],
+            "description": "The ID of the page to move. UUID format with or without dashes is supported."
+        }
+    }
+}

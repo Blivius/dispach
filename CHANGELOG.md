@@ -4,6 +4,80 @@
 
 _Nothing yet._
 
+## 0.2.13 — 2026-11-23
+
+### Changed
+
+- The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again; the GitLab project is archived.
+- The image is published to `ghcr.io/blivius/dispach` and, unchanged, to `docker.io/moeenmahmud007/dispach`.
+- npm publishing and the Homebrew tap (`brew install blivius/tap/dispach`) resume.
+
+## 0.2.12 — 2026-11-20
+
+### Breaking
+
+- Needs Node 26.13.0 or later. An npm install on Node 24 now warns and is no longer tested; the container image and the standalone archives carry their own Node.
+
+### Changed
+
+- The container image and the standalone archives run on Node 26.13.0 (was the latest Node 24).
+
+## 0.2.11 — 2026-11-18
+
+### Fixes
+
+- Ignore self-chat messages sent by any agent on the account
+- A manual run delivers its reply like the timed run
+
+## 0.2.10 — 2026-11-17
+
+### Fixed
+
+- Importing a bundle into a new agent works. `POST /v1/agents/:id/import` wrote each note into the agent's `memory/` or `knowledge/` folder without creating it, and a new agent has neither until something writes one. So the first note failed with `ENOENT` ("An unexpected failure"), and the whole import was rolled back. The import now creates the folder first. Moving an existing agent's memory into a newly created one, for example a migration from another runtime, depends on this. Covered by a new test in `packages/core/test/bundle.test.ts` that imports into an agent with neither folder.
+
+## 0.2.9 — 2026-11-14
+
+### Fixed
+
+- On Bedrock, a system message after the start of the conversation (the turn note, the restated instructions, a remembered excerpt) is fenced in `<runtime_context>…</runtime_context>` instead of `<system>…</system>`. Converse sends it as text inside the person's own message, and system tags there are what a prompt injection looks like: Claude came to treat the whole message as one, and refused its owner's own requests in their own chat ("that instruction arrived in the same block as a system note"). The turn note's header now also says the person's own words come after it.
+- A subagent is told the person's request is context only, and makes only the call it was handed. Handed the whole request, a read-only child (`web`) reported the part it had no tool for ("could not save the file"), and the parent repeated that instead of saving the file with its own tool. What the parent reads back now says the rest of the request is its own to do.
+- One approval covers a routed call. The call reaches its child only after the parent's policy, write gate and any person's answer allowed it, so the child's identical call (same tool, same arguments, keys in any order) runs without asking again, once. A different call, a second one, or anything a rule denies still asks or is refused. Before, the person was asked twice for one Gmail send: the agent's call, then its app child's.
+
+## 0.2.8 — 2026-11-14
+
+### Fixed
+
+- `confine: workspace` now confines `exec` itself. In 0.2.7 only skill scripts got the workspace scope: `exec` was still confined at `agent` scope, so a command could read the agent's `.env` (a channel's bot token, a provider key), `agent.yaml` and its channel sessions. The kernel test that covers this runs only where Landlock exists, so it was skipped on macOS; run `bun test packages/tools-system/test/confine.test.ts` on Linux before a release.
+
+## 0.2.7 — 2026-11-13
+
+### Added
+
+- `tools.providers.system.confine: workspace` confines `exec` and skill scripts to the agent's workspace: a command may read and write `<agentDir>/workspace`, the agent's private `.tmp` and the `writeRoots`, read `<agentDir>/skills`, and read the system's programs and libraries. The rest of the agent's own directory is refused by the kernel as well: its `.env` (a channel's bot token, a provider key), `agent.yaml` and a channel's session files. So an agent that holds credentials can still be given a shell. `confine: agent` is unchanged. Like `agent`, it confines reads, scrubs the environment, and is refused where Landlock is missing; the agent cannot change it.
+
+## 0.2.6 — 2026-11-13
+
+### Fixed
+
+- `config_read` lists only the settings `config_set` may actually change. A path that the operator's `tools.policy` denies to `config_set`, for example `config_set(schedules*)`, appears under "Kept by whoever runs you". Before, it was listed as changeable and then refused when the agent tried. A narrower self-config list needs no new field: a `config_set(<path>*)` deny rule is it, and the agent cannot remove a deny rule.
+- A tool whose schema uses `anyOf`, `oneOf`, `allOf`, `$ref`, `not` or `const` loads instead of being refused as "configured but could not be loaded". Composio's latest toolkit versions spell 80 of 3,917 tools that way, including Gmail and Outlook send, draft and reply (`attachment`), Google Calendar create and update event (`attendees`), Jira create issue, and most Notion block writers. Options that are all objects merge into one object: a field every option requires stays required, and the field that tells them apart lists which fields each option needs. A list beside its single form becomes the list. Any other mix becomes a type list (`["string", "object"]`) that is passed on as given. `$ref` resolves through `$defs` and `definitions`, and a self-containing schema stops at a plain object. Only a `$ref` that cannot be resolved is still refused. The same rules apply to MCP tools.
+- "Compact now" shrinks a conversation that holds a long message. A checkpoint kept every request the person made word for word beside the digest, so a pasted document stayed at full size and compacting changed almost nothing. A request over 600 tokens is now kept as its opening, and the full text is stored. The marker gives its `artifact_read` id when the agent has that tool; otherwise it says the full text is in the stored conversation. A compaction that would not make the conversation smaller is refused with `409 nothing_to_gain` and saves nothing. A failing compactor model is reported as `agent.warning` `compactor_failed` instead of silently falling back to the plain digest.
+
+### Added
+
+- `tools.providers.system.confine: agent` confines `exec` and skill scripts to the agent's own directory, using Linux's Landlock. A command may read and write the agent's directory and its `writeRoots`, and read the system's programs and libraries. Everything else is refused by the kernel: other agents' files in the same runtime, the runtime's `store.db`, and the runtime's `/proc/<pid>/environ`. It needs no privilege and works under Docker's default seccomp, where bubblewrap's user namespaces do not. The setting also confines reads (`confineReads`) and scrubs the environment unless `env` lists names to pass. It moves `TMPDIR`, `HOME` and the command's output files into the agent's private `.tmp`. Where Landlock or `python3` is missing, a command is refused (`exec_confine_unavailable`) rather than run unconfined. The agent cannot change the setting.
+- A Composio tool can attach a file from the agent's workspace. A field Composio marks `file_uploadable` (Gmail and Outlook `attachment`, Slack file upload) appears to the model as a workspace path, or a list of paths. At the call, each file is uploaded to Composio's storage (`POST /files/upload/request`, then a PUT to the signed URL) and sent as the `{name, mimetype, s3key}` the tool expects. A file already in Composio's storage is passed through unchanged. Paths are confined to `<agentDir>/workspace`, checked on the real path, so a symlink cannot reach outside. `.env` files are refused, and a file over 25 MB is refused with a hint to share a link instead. A relay in front of Composio must forward `POST /files/upload/request`.
+- `serve` kills itself when its event loop freezes. A turn that blocks the loop froze every agent, every channel and `/v1/ready`, and SIGTERM could not stop it, because SIGTERM is handled on that same loop. A watchdog thread now writes `dispach: event loop stalled for Ns` to stderr and sends SIGKILL once the loop has not turned for `DISPACH_LOOP_STALL_S` seconds (default 60; `0` turns it off), so the supervisor restarts the process. The container's HEALTHCHECK passes `curl --max-time 2`, so a frozen server fails its check instead of hanging the probe.
+- `scripts/sweep-composio-schemas.ts` puts every tool of the named Composio toolkits (latest versions) through the schema converter and lists each refusal. With `--out` it saves each refused tool's schema as a fixture.
+
+## 0.2.5 — 2026-11-12
+
+### Changed
+
+- The repository, CI and releases moved to `gitlab.com/moeen-mahmud/dispach` while the GitHub account is suspended. The `curl … install.sh | sh` one-liner downloads from the GitLab release.
+- The container image is `docker.io/moeenmahmud007/dispach`; `ghcr.io/moeen-mahmud/dispach` is unreachable.
+- The Homebrew tap and npm publishing are paused; `npm i -g dispach` still installs 0.2.4.
+
 ## 0.2.4 — 2026-11-03
 
 ### Documentation

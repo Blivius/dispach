@@ -154,11 +154,16 @@ describe("a routed call", () => {
         expect(children.some((body) => body.includes("MAILBOX-RAW"))).toBe(true)
         // And it was told what the call was for: the person's own question.
         expect(children[0]).toContain("anything new?")
+        // As context only: a read-only child handed the whole request reported what it had no tool
+        // for, and the parent repeated it instead of doing that part itself.
+        expect(children[0]).toContain("for context only")
+        expect(children[0]).toContain("never say whether the rest can be done")
         // And read all of it: a child's own window is its limit, not the parent's observation cap.
         expect(children[1]).toContain("MIDDLE-FACT")
         const after = parent[1] ?? ""
         expect(after).toContain("Two unread, one from Ada about the numbers.")
         expect(after).toContain("ran in subagent inbox")
+        expect(after).toContain("the rest of the request is yours")
         expect(after).not.toContain("MAILBOX-RAW")
         // Harness metadata never reaches a chat-completions body, on a later step either.
         expect(after).not.toContain("turnInput")

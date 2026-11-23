@@ -1,12 +1,12 @@
 #!/bin/sh
 # Install the standalone build from a GitHub release.
 #
-#   curl -fsSL https://github.com/moeen-mahmud/dispach/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
 #
 # Puts the release in ~/.dispach/versions/<version>, links ~/.dispach/bin/dispach at it, and adds
 # ~/.dispach/bin to PATH in your shell's rc file (it says which). Nothing needs root.
 #
-#   DISPACH_VERSION=0.2.4        a specific release instead of the latest
+#   DISPACH_VERSION=0.2.13        a specific release instead of the latest
 #   DISPACH_NO_MODIFY_PATH=1     leave every rc file alone
 #   DISPACH_INSTALL_DIR=<dir>    install somewhere other than ~/.dispach
 #   DISPACH_DOWNLOAD_BASE=<url>  fetch the archive and SHA256SUMS from a mirror (or a test build)
@@ -17,7 +17,7 @@
 set -eu
 
 slug=dispach
-repo=moeen-mahmud/dispach
+repo=blivius/dispach
 version=${DISPACH_VERSION:-latest}
 root=${DISPACH_INSTALL_DIR:-$HOME/.$slug}
 
@@ -36,12 +36,12 @@ case $(uname -s) in
         fail "native Windows is not supported yet" \
             "run this inside WSL (wsl --install), or use the container: docker run ghcr.io/$repo"
         ;;
-    *) fail "no standalone build for $(uname -s)" "npm i -g $slug (needs Node 24), or the container image" ;;
+    *) fail "no standalone build for $(uname -s)" "npm i -g $slug (needs Node 26.13.0), or the container image" ;;
 esac
 case $(uname -m) in
     arm64 | aarch64) arch=arm64 ;;
     x86_64 | amd64) arch=x64 ;;
-    *) fail "no standalone build for $(uname -m)" "npm i -g $slug (needs Node 24), or the container image" ;;
+    *) fail "no standalone build for $(uname -m)" "npm i -g $slug (needs Node 26.13.0), or the container image" ;;
 esac
 # A shell under Rosetta reports x86_64 on Apple silicon; the native build is the right one.
 if [ "$os" = darwin ] && [ "$arch" = x64 ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = 1 ]; then

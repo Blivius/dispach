@@ -347,7 +347,7 @@ export function scheduleRunner(options: ScheduleRunnerOptions) {
             ...scheduleSendOptions(schedule),
         })
 
-        await deliverResult(options.hub, schedule, sessionKey, result)
+        await deliverScheduleResult(options.hub, schedule, sessionKey, result)
 
         // After delivery, so what the turn did produce still reaches its recipient. A turn that ran
         // out of time or steps returns rather than throws, and the run used to be recorded `ok`; now
@@ -356,7 +356,15 @@ export function scheduleRunner(options: ScheduleRunnerOptions) {
     }
 }
 
-async function deliverResult(
+/**
+ * Send a schedule's reply where its `deliver` says.
+ *
+ * Shared by the scheduler and `POST …/schedules/:sid/run` for the reason `scheduleSendOptions` is: a
+ * manual run is how a schedule is tested. The manual route ran the turn and stopped, so pressing
+ * "run now" on a schedule that delivers to WhatsApp sent nothing — it looked broken to the person
+ * testing it, while the timed run it stood in for worked.
+ */
+export async function deliverScheduleResult(
     hub: ChannelHub,
     schedule: ScheduleRecord,
     sessionKey: string,

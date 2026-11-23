@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - run: bun install
 
       # Cheapest first, so a lint error does not wait on a build. This is the only step that can
@@ -275,7 +275,7 @@ jobs:
           # The image is already built by the first step; tagging it under the compose file's
           # `image:` (the GHCR name, default `latest`) is what makes `pull_policy: missing` use it
           # rather than reach for the registry.
-          docker tag dispach:ci ghcr.io/moeen-mahmud/dispach:latest
+          docker tag dispach:ci ghcr.io/blivius/dispach:latest
           docker compose up -d --wait || { docker compose logs; exit 1; }
           curl -sf localhost:7420/v1/ready || { docker compose logs; exit 1; }
           # The token is required, so an unauthenticated write must be refused — the property the
@@ -320,10 +320,10 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 26.13.0
       - run: bun install
 
       # Required, not defensive: the CLI resolves every sibling package through its `dist/`, so on a
@@ -452,7 +452,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.5
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}

@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "Dispach agent server",
-        "version": "0.2.4",
+        "version": "0.2.13",
         "description": "Generated from the router table and the request and response schemas — see openapi.ts. Every declared response body is checked against the handler by the server's test harness. The binding contract is docs/04-SPEC-WIRE.md, which is checked against the code."
     },
     "servers": [
@@ -385,13 +385,9 @@
                                                         }
                                                     },
                                                     "entryPhase": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
+                                                        "type": [
+                                                            "string",
+                                                            "null"
                                                         ]
                                                     },
                                                     "phases": {
@@ -404,13 +400,9 @@
                                                         "type": "string"
                                                     },
                                                     "assignee": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
+                                                        "type": [
+                                                            "string",
+                                                            "null"
                                                         ]
                                                     }
                                                 },
@@ -764,13 +756,9 @@
                                                     }
                                                 },
                                                 "entryPhase": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
+                                                    "type": [
+                                                        "string",
+                                                        "null"
                                                     ]
                                                 },
                                                 "phases": {
@@ -9381,13 +9369,9 @@
                                             "type": "string"
                                         },
                                         "phase": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
+                                            "type": [
+                                                "string",
+                                                "null"
                                             ]
                                         }
                                     },
@@ -9695,7 +9679,7 @@
                         }
                     },
                     "409": {
-                        "description": "session_too_short: nothing older than the turns kept verbatim to fold",
+                        "description": "session_too_short: nothing older than the turns kept verbatim to fold; or nothing_to_gain: the digest would be no smaller than what it replaces; nothing changed",
                         "content": {
                             "application/json": {
                                 "schema": {

@@ -224,10 +224,12 @@ function contentOf(message: ChatMessage): { role: "user" | "assistant"; content:
     }
     // `user`, and a `system` message after the conversation started. Converse has no system role
     // past the top, so that one is sent as user text, fenced so it never reads as the person's words
-    // (pilot.14): unfenced, a reminder merged with the input looked pasted.
+    // (pilot.14): unfenced, a reminder merged with the input looked pasted. Not `<system>`: system tags
+    // inside a user message are what an injection looks like, so the model came to distrust the whole
+    // message, the person's own request included, and refused its owner (0.2.9).
     const text =
         message.role === "system" && message.content !== ""
-            ? `<system>\n${message.content}\n</system>`
+            ? `<runtime_context>\n${message.content}\n</runtime_context>`
             : message.content
     const content: ContentBlock[] = text === "" ? [] : [{ text }]
     for (const image of message.images ?? []) {

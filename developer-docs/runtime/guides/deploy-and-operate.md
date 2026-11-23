@@ -1,6 +1,6 @@
 # Deploy and operate
 
-The shipped container runs the published Node 24 package as a non-root user. The process needs persistent storage for agents, stores, keys, and logs.
+The shipped container runs the published Node 26.13.0 package as a non-root user. The process needs persistent storage for agents, stores, keys, and logs.
 
 To run outside a container, install through npm, Homebrew, or the install script: see [Install and serve](../quickstart/install-and-serve.md).
 

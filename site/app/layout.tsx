@@ -2,10 +2,19 @@ import { Analytics } from "@vercel/analytics/next"
 import { RootProvider } from "fumadocs-ui/provider/next"
 import "./global.css"
 import type { Metadata } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
+import { JetBrains_Mono, Newsreader, Schibsted_Grotesk } from "next/font/google"
 import { brand } from "@/lib/shared"
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const sans = Schibsted_Grotesk({
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700", "800"],
+    variable: "--font-sans",
+})
+const serif = Newsreader({
+    subsets: ["latin"],
+    style: ["normal", "italic"],
+    variable: "--font-serif",
+})
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 // Vercel sets this to the production domain, so the address is never written into the tree.
@@ -19,7 +28,11 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<"/">) {
     return (
-        <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+        <html
+            lang="en"
+            className={`${sans.variable} ${serif.variable} ${mono.variable}`}
+            suppressHydrationWarning
+        >
             <body className="flex min-h-screen flex-col font-sans">
                 {/* Terminal-native: dark unless the reader picks light. */}
                 <RootProvider theme={{ defaultTheme: "dark" }}>{children}</RootProvider>

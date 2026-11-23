@@ -70,6 +70,7 @@ import {
     templatesDir,
     writeHostToken,
 } from "#lib/sandbox"
+import { loopStallFrom, startLoopWatchdog } from "#lib/watchdog"
 
 export interface ServeOptions {
     /**
@@ -108,6 +109,7 @@ function defaultServerConfig(): ReturnType<typeof AgentManifestSchema.parse>["se
 export async function serveCommand(options: ServeOptions): Promise<number> {
     const env = ambientEnv(options.manifestPaths)
     const drainMs = drainFrom(env)
+    const loopStallS = loopStallFrom(env)
 
     /**
      * What to host, and what is switched off.
@@ -655,6 +657,8 @@ export async function serveCommand(options: ServeOptions): Promise<number> {
     // The port is bound now, which `Runtime.create` could not know — it returns before `serve` runs.
     // Told before the first turn, so slot 2 says "on" rather than "enabled but not listening".
     for (const agent of agents) agent.reportRuntimeState({ serverListening: true })
+    // After the bind: a slow start is not a stall, and before it there is nothing to restart for.
+    const stopWatchdog = startLoopWatchdog(loopStallS)
 
     if (options.json === true) {
         process.stdout.write(
@@ -889,6 +893,7 @@ export async function serveCommand(options: ServeOptions): Promise<number> {
     const shutdown = async () => {
         if (stopped) return
         stopped = true
+        stopWatchdog()
         // Before the server closes, so a readiness probe sees `draining` and a client watching a
         // turn's stream sees it end.
         if (drainMs > 0 && runtime.all().some((agent) => agent.inFlight > 0)) {

@@ -28,9 +28,10 @@
  */
 
 import { mkdir, realpath, rm, stat } from "node:fs/promises"
-import { isAbsolute, resolve } from "node:path"
+import { dirname, isAbsolute, join, resolve } from "node:path"
 import type { Tool, ToolContext, ToolHandler, ToolProviderContext } from "@dispach/core"
-import { execCommandEmpty, execWorkdirMissing } from "./errors.ts"
+import { type Confinement, confinedTemp, confineUnsupported } from "./confine.ts"
+import { execCommandEmpty, execConfineUnavailable, execWorkdirMissing } from "./errors.ts"
 import { humanBytes, readOutput, stripLeadingEcho } from "./output.ts"
 import { SYSTEM_PROVIDER_ID, spillDir } from "./paths.ts"
 import { locate, type Roots } from "./root.ts"
@@ -71,6 +72,8 @@ export interface ExecOptions {
      * reasonably assume otherwise.
      */
     readonly roots: Roots
+    /** `confine: agent`: every command runs inside the agent's own directory (`confine.ts`). */
+    readonly confine?: Confinement
 }
 
 export const EXEC_SPEC: Tool["spec"] = {
@@ -140,8 +143,14 @@ function numberArg(value: unknown): number | undefined {
 }
 
 /** Where this call's output and status files live. Unique per call, so nothing collides. */
-function paths(context: ToolContext, callSalt: string): { out: string; status: string } {
-    const dir = spillDir()
+function paths(
+    context: ToolContext,
+    callSalt: string,
+    confine?: Confinement,
+): { out: string; status: string } {
+    // A confined command writes its own status file, and the shared spill directory would hand it
+    // every other agent's command output, so it gets its own.
+    const dir = confine === undefined ? spillDir() : join(confinedTemp(confine.agentDir), "spill")
     return {
         out: resolve(dir, `${context.turnId}-${callSalt}.log`),
         status: resolve(dir, `${context.turnId}-${callSalt}.status`),
@@ -151,6 +160,10 @@ function paths(context: ToolContext, callSalt: string): { out: string; status: s
 export function execHandler(options: ExecOptions): ToolHandler {
     return async (args, context) => {
         const command = typeof args.command === "string" ? args.command.trim() : ""
+        if (options.confine !== undefined) {
+            const why = confineUnsupported()
+            if (why !== undefined) throw execConfineUnavailable(why)
+        }
         if (command === "") throw execCommandEmpty()
 
         const remembered = options.sessions.lastCwd(context.sessionKey)
@@ -183,9 +196,8 @@ export function execHandler(options: ExecOptions): ToolHandler {
         const clamped =
             requested !== undefined && requested !== DEFAULT_TIMEOUT_MS && timeoutMs < requested
         const background = args.background === true
-        const dir = spillDir()
-        await mkdir(dir, { recursive: true })
-        const files = paths(context, hashCall(command, context.turnId))
+        const files = paths(context, hashCall(command, context.turnId), options.confine)
+        await mkdir(dirname(files.out), { recursive: true })
 
         const run = await runCommand({
             command,
@@ -197,6 +209,7 @@ export function execHandler(options: ExecOptions): ToolHandler {
             signal: context.signal,
             outPath: files.out,
             statusPath: files.status,
+            ...(options.confine === undefined ? {} : { confine: options.confine }),
         })
 
         // Remembered whether or not it moved: an explicit `workdir` on this call becomes the starting

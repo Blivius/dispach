@@ -31,6 +31,7 @@
  * mode worth caring about here. So they are deleted and pairing starts again from scratch.
  */
 
+import { randomBytes } from "node:crypto"
 import { chmodSync, mkdirSync, readdirSync, rmSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
@@ -72,6 +73,29 @@ const MAX_PAIRING_REJECTIONS = 3
 
 /** How many of our own sent message ids to remember, so a reply is never read back as input. */
 const SENT_ID_MEMORY = 512
+
+/**
+ * What every message id this transport sends begins with.
+ *
+ * `sentIds` knows only what *this* process sent since it started. Two agents paired to one account
+ * each see the other's reply in the chat with yourself as `fromMe`, in the owner's own chat, with
+ * an id neither recorded — exactly what the owner typing looks like — so each answered the other
+ * without end; and one agent restarted mid-conversation had forgotten its own last replies. An id
+ * that says "an agent sent this" needs no memory and no shared state. `3EB0` is how every web
+ * client's id starts, so the mark sits after it: eight hex digits a person's client produces by
+ * chance once in four billion messages.
+ */
+const AGENT_ID_MARK = "3EB0A6E7C0DE"
+
+/** A message id for an outgoing message: the mark, then 28 random hex digits (40 in all, as Baileys' own). */
+export function agentMessageId(): string {
+    return `${AGENT_ID_MARK}${randomBytes(14).toString("hex").toUpperCase()}`
+}
+
+/** Whether an agent's transport sent the message with this id — this one or any other. */
+export function isAgentMessageId(id: string): boolean {
+    return id.startsWith(AGENT_ID_MARK)
+}
 
 /**
  * How long a QR is offered before the next one replaces it.
@@ -170,6 +194,8 @@ export interface WhatsAppSocket {
             | { text: string }
             | { image: Uint8Array; mimetype: string; caption?: string }
             | { audio: Uint8Array; mimetype: string; ptt: boolean },
+        /** Baileys takes the id from here when given one, instead of generating its own. */
+        options?: { messageId?: string },
     ): Promise<{ key?: { id?: string } } | undefined>
     sendPresenceUpdate(presence: string, jid?: string): Promise<void>
     logout(): Promise<void>
@@ -475,6 +501,7 @@ export class WhatsAppTransport implements ChannelTransport {
                             mimetype: attachment.mimeType,
                             ...(message.text === "" ? {} : { caption: message.text }),
                         },
+                { messageId: agentMessageId() },
             )
             const id = sent?.key?.id
             if (id !== undefined && id !== null) {
@@ -857,14 +884,23 @@ export function toInbound(
      * paired agent showed as a linked device and answered nothing, because every message its owner
      * sent it was discarded here as its own echo.
      *
-     * So the two are told apart by what only the transport knows: a message it sent has an id it
-     * recorded, and a chat with the owner has the owner's own JID as its peer. `fromMe` on any
+     * So the two are told apart by what only the transport knows: a message an agent sent has an
+     * id it recorded or one carrying the agent mark (`AGENT_ID_MARK`), and a chat with the owner
+     * has the owner's own JID as its peer. `fromMe` on any
      * *other* chat is the owner talking to a third party from their phone, which is not the
      * agent's conversation and stays skipped. OpenClaw calls this `selfChatMode` and defaults it
      * on.
      */
     if (message.key?.fromMe === true) {
-        if (id !== null && id !== undefined && context.sentIds.includes(id)) return undefined
+        // Ours by memory, or any agent's by its mark — another agent on this account, or this one
+        // before a restart.
+        if (
+            id !== null &&
+            id !== undefined &&
+            (context.sentIds.includes(id) || isAgentMessageId(id))
+        ) {
+            return undefined
+        }
         const peer = bareJid(jid)
         const alt = message.key?.remoteJidAlt
         const peerAlt = alt === null || alt === undefined ? undefined : bareJid(alt)

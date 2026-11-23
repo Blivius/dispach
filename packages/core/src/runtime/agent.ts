@@ -39,6 +39,7 @@ import {
     modelNoVision,
     modelWindowFamily,
     modelWindowUnknown,
+    nothingToGain,
     phaseAllowUnmatched,
     privateMemoryRefused,
     scheduleToolUnknown,
@@ -127,7 +128,7 @@ import {
 } from "../store/store.ts"
 import { ASK_AGENT } from "../team/ask.ts"
 import { DELEGATE, delegateTool } from "../team/delegate.ts"
-import { routedTool, type SubagentRunner } from "../team/subagents.ts"
+import { handedClaim, routedTool, type SubagentRunner } from "../team/subagents.ts"
 import { HANDOFF } from "../team/supervisor.ts"
 import { type DialectId, passThroughFilter, type StreamFilter } from "../tools/dialect/dialect.ts"
 import { nativeDialect, nativeWireTokens } from "../tools/dialect/native.ts"
@@ -321,6 +322,8 @@ export interface AgentSendOptions {
      * `policy.allow`; see `ExecuteInput.defer`.
      */
     readonly deferMutations?: ExecuteInput["defer"]
+    /** A subagent's handed call, cleared on its parent. See `ExecuteInput.claimDelegated`. */
+    readonly claimDelegated?: ExecuteInput["claimDelegated"]
     /** Runtime-authored text before the input, outside its fence. See `TurnInput.runtimeNote`. */
     readonly runtimeNote?: string
     /** The embedder's note about this message. See `TurnInput.turnNote`. Kept on the turn row. */
@@ -1212,7 +1215,7 @@ export class Agent {
      * parent's taint, its stand-in deferral and its acting participant (`runHandoff` forwards that
      * one), on the child's tools only, under the routed call's own deadline.
      */
-    readonly #subagent: SubagentRunner = (child, context) => {
+    readonly #subagent: SubagentRunner = (child, context, handed) => {
         let tainted = false
         const defer = this.#defers.get(context.turnId)
         const asked = this.#inputs.get(context.turnId)
@@ -1233,6 +1236,7 @@ export class Agent {
                     ...(child.maxSteps === undefined ? {} : { maxSteps: child.maxSteps }),
                     ...(role === undefined ? {} : { role }),
                     ...(defer === undefined ? {} : { deferMutations: defer }),
+                    ...(handed === undefined ? {} : { claimDelegated: handedClaim(handed) }),
                     child: {
                         usageRole: "subagent",
                         parent: { turnId: context.turnId, sessionKey: context.sessionKey },
@@ -1879,6 +1883,9 @@ export class Agent {
             ...(options.deferMutations === undefined
                 ? {}
                 : { deferMutations: options.deferMutations }),
+            ...(options.claimDelegated === undefined
+                ? {}
+                : { claimDelegated: options.claimDelegated }),
             ...(runtimeNote === undefined ? {} : { runtimeNote }),
             ...(options.images === undefined || options.images.length === 0
                 ? {}
@@ -1996,7 +2003,11 @@ export class Agent {
             // One turn kept, not two: `reset` fired because the last two did not fit, and it kept only
             // this one. Keeping two would leave the next turn over `reset` again.
             await this.#checkpoint(sessionKey, { keepTurns: 1, turnId }).catch((error: unknown) => {
-                if (isHarnessError(error) && error.code === "session_too_short") return
+                if (
+                    isHarnessError(error) &&
+                    (error.code === "session_too_short" || error.code === "nothing_to_gain")
+                )
+                    return
                 this.#bus.emit(
                     "agent.warning",
                     {
@@ -2094,9 +2105,23 @@ export class Agent {
             text = mechanicalDigest(span.filter((message) => message.origin !== "digest"))
         }
 
-        const messages = checkpointMessages(span, text)
+        const { messages, displaced } = checkpointMessages(
+            span,
+            text,
+            this.tools.specs().some((spec) => spec.slug === ARTIFACT_READ),
+        )
         const before = historyTokens([...span, ...kept])
         const after = historyTokens([...messages, ...kept])
+        if (after >= before) throw nothingToGain(sessionKey, before, after)
+        // Before the checkpoint, so a pointer in it always resolves.
+        if (displaced.length > 0) {
+            await this.store.artifacts.put(
+                this.id,
+                sessionKey,
+                displaced.map(({ id, content, tokens }) => ({ id, content, tokens })),
+                new Date().toISOString(),
+            )
+        }
         await this.store.sessions.setCheckpoint(this.id, sessionKey, {
             throughId: last.id,
             messages,
@@ -3251,18 +3276,37 @@ export class Agent {
                               fitted.length === messages.length
                                   ? DIGEST_INSTRUCTION
                                   : `${DIGEST_INSTRUCTION}\n\nThe oldest ${messages.length - fitted.length} message(s) of this span did not fit and are not shown. Say so in your closing line.`
-                          const result = await runStep({
-                              role: compactor,
-                              provider: compactor.provider,
-                              messages: [{ role: "system", content: instruction }, ...fitted],
-                              params: requestParamsFor(compactor, window),
-                              promptTokens: 0,
-                              bus: this.#bus,
-                              context: { agentId: this.id, sessionKey },
-                              signal,
-                              meter,
-                          })
-                          return result.text
+                          try {
+                              const result = await runStep({
+                                  role: compactor,
+                                  provider: compactor.provider,
+                                  messages: [{ role: "system", content: instruction }, ...fitted],
+                                  params: requestParamsFor(compactor, window),
+                                  promptTokens: 0,
+                                  bus: this.#bus,
+                                  context: { agentId: this.id, sessionKey },
+                                  signal,
+                                  meter,
+                              })
+                              return result.text
+                          } catch (error) {
+                              // Every caller falls back to the mechanical digest, which is right for
+                              // the turn and wrong to keep quiet: a compactor that always fails looks
+                              // like one that works badly (0.2.6).
+                              if (!signal.aborted) {
+                                  this.#bus.emit(
+                                      "agent.warning",
+                                      {
+                                          code: "compactor_failed",
+                                          message: `The compactor model failed, so a plain digest was written instead: ${error instanceof Error ? error.message : String(error)}`,
+                                          hint: "Check model.compactor (its id, endpoint and credentials). Until it works, compaction keeps less detail.",
+                                          field: "model.compactor",
+                                      },
+                                      { agentId: this.id, sessionKey },
+                                  )
+                              }
+                              throw error
+                          }
                       },
                   }),
         }

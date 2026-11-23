@@ -3,6 +3,7 @@ import { createRelativeLink } from "fumadocs-ui/mdx"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { OpenAPIPage } from "@/components/api-page"
+import { ReferenceDocsHub, RuntimeDocsHub } from "@/components/docs-hub"
 import { getMDXComponents } from "@/components/mdx"
 import { brand } from "@/lib/shared"
 import { source } from "@/lib/source"
@@ -28,12 +29,17 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
         )
     }
 
+    const isRuntimeIndex = page.slugs.length === 1 && page.slugs[0] === "runtime"
+    const isReferenceIndex = page.slugs.length === 1 && page.slugs[0] === "reference"
+
     // The Markdown carries its own H1, so the page renders no separate title.
     const MDX = page.data.body
     const RelativeLink = createRelativeLink(source, page)
     return (
         <DocsPage toc={page.data.toc}>
             <DocsBody>
+                {isRuntimeIndex && <RuntimeDocsHub />}
+                {isReferenceIndex && <ReferenceDocsHub />}
                 <MDX
                     components={getMDXComponents({
                         a: ({ href, ...rest }) => <RelativeLink href={explicit(href)} {...rest} />,

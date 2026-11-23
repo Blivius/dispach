@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or idea
-    url: https://github.com/moeen-mahmud/dispach/discussions
+    url: https://github.com/blivius/dispach/discussions
     about: Ask in Discussions; an issue is for a bug or a concrete feature.
   - name: Security vulnerability
-    url: https://github.com/moeen-mahmud/dispach/security/advisories/new
+    url: https://github.com/blivius/dispach/security/advisories/new
     about: Report privately, never in an issue.
   - name: Documentation
     url: https://dispach.blivius.com/docs

@@ -499,24 +499,67 @@ function requestSpine(
 }
 
 /**
+ * How much of one request a checkpoint keeps (0.2.6). A person's message is never dropped, but a pasted
+ * document kept verbatim beside the digest is why "Compact now" left a conversation as large as it
+ * was: the replies shrank and the paste stayed. Past this, the opening is kept and the rest is one
+ * `artifact_read` away, like a displaced observation.
+ */
+const REQUEST_KEEP_TOKENS = 600
+
+/** The opening kept. Under the limit by more than the marker costs, so an excerpt is never cut again. */
+const REQUEST_HEAD_TOKENS = 500
+
+/** A request cut to its opening, and what it displaced; the message itself when it is short. */
+function excerptRequest(
+    message: ChatMessage,
+    canRead: boolean,
+): { readonly message: ChatMessage; readonly displaced?: Displaced } {
+    const tokens = estimateMessageTokens(message.content)
+    if (tokens <= REQUEST_KEEP_TOKENS) return { message }
+    const id = displacedId(message.content)
+    const at = Math.floor((message.content.length * REQUEST_HEAD_TOKENS) / tokens)
+    const space = message.content.lastIndexOf(" ", at)
+    const head = message.content.slice(0, space > at / 2 ? space : at).trimEnd()
+    const rest = canRead
+        ? `read the whole message with artifact_read("${id}")`
+        : "the whole message is in the stored conversation; ask the person for the part you need"
+    return {
+        message: {
+            ...message,
+            content: `${head}\n… the rest of this message (${tokens - estimateMessageTokens(head)} tokens) was cut by compaction — ${rest} …`,
+        },
+        displaced: { id, content: message.content, tokens },
+    }
+}
+
+/**
  * A session checkpoint's messages (decision 15.21): `reset`'s output made durable, a digest of `span`
- * and every request the person made in it. A digest already in the span is summarised with it, never
- * kept as a request: it is the runtime's text, not the person's.
+ * and every request the person made in it, a long one as its opening (`excerptRequest`). A digest
+ * already in the span is summarised with it, never kept as a request: it is the runtime's text, not
+ * the person's. `displaced` is what the caller stores before the checkpoint, so no pointer dangles.
  */
 export function checkpointMessages(
     span: readonly ChatMessage[],
     digest: string,
-): readonly ChatMessage[] {
-    const requests = span.filter((message) => isTurnStart(message) && message.origin !== "digest")
-    return [
-        digestMessage(digest),
-        ...(requests.length === 0
-            ? []
-            : [
-                  { role: "user", content: DIGEST_SPINE_HEADER, origin: "digest" } as const,
-                  ...requests,
-              ]),
-    ]
+    canRead = true,
+): { readonly messages: readonly ChatMessage[]; readonly displaced: readonly Displaced[] } {
+    const requests = span
+        .filter((message) => isTurnStart(message) && message.origin !== "digest")
+        .map((message) => excerptRequest(message, canRead))
+    return {
+        messages: [
+            digestMessage(digest),
+            ...(requests.length === 0
+                ? []
+                : [
+                      { role: "user", content: DIGEST_SPINE_HEADER, origin: "digest" } as const,
+                      ...requests.map((request) => request.message),
+                  ]),
+        ],
+        displaced: requests.flatMap((request) =>
+            request.displaced === undefined ? [] : [request.displaced],
+        ),
+    }
 }
 
 /**

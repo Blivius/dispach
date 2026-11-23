@@ -13,6 +13,7 @@ import { join } from "node:path"
 import { ConfigError } from "../src/errors.ts"
 import { EventBus } from "../src/events/bus.ts"
 import type { AnyEvent } from "../src/events/types.ts"
+import { handedClaim } from "../src/team/subagents.ts"
 import { coerceArgs } from "../src/tools/coerce.ts"
 import { nativeDialect } from "../src/tools/dialect/native.ts"
 import { nltDialect, parseNlt, renderNltEntry } from "../src/tools/dialect/nlt.ts"
@@ -615,6 +616,7 @@ async function runTools(
         untrustedSource?: string
         policy?: PolicyConfig
         approve?: (request: ApprovalRequest) => Promise<boolean>
+        claimDelegated?: (slug: string, args: Readonly<Record<string, unknown>>) => boolean
         /** The turn's signal, so the abandoned-approval path is reachable. */
         signal?: AbortSignal
         /**
@@ -651,6 +653,7 @@ async function runTools(
         // policy's own behaviour is exercised where it is the subject.
         policy: over.policy ?? { ...DEFAULT_POLICY, mode: "allow" },
         ...(over.approve === undefined ? {} : { approve: over.approve }),
+        ...(over.claimDelegated === undefined ? {} : { claimDelegated: over.claimDelegated }),
         ...(over.untrustedSource === undefined ? {} : { untrustedSource: over.untrustedSource }),
         observationMaxTokens: over.observationMaxTokens ?? 2000,
     })
@@ -1250,6 +1253,94 @@ describe("the write gate", () => {
         await runTools(registry, [intent("send_mail", {}, "c1")], { untrustedInTurn: true })
 
         expect(ran).toBe(0)
+    })
+})
+
+describe("a subagent's handed call (0.2.9)", () => {
+    async function mailRegistry(sent: string[]): Promise<ToolRegistry> {
+        return ToolRegistry.create({
+            pinned: ["send_mail"],
+            providers: [
+                provider("remote", [
+                    tool(
+                        {
+                            slug: "send_mail",
+                            mutating: true,
+                            parameters: {
+                                type: "object",
+                                properties: { to: { type: "string" }, body: { type: "string" } },
+                            },
+                        },
+                        (args) => {
+                            sent.push(String(args.to))
+                            return "sent"
+                        },
+                    ),
+                ]),
+            ],
+        })
+    }
+
+    test("the call the parent cleared runs in the child without asking the person again", async () => {
+        const sent: string[] = []
+        let asked = 0
+        const claim = handedClaim({
+            slug: "send_mail",
+            args: { to: "ada@example.com", body: "hi" },
+        })
+        const { outcome } = await runTools(
+            await mailRegistry(sent),
+            // Keys in another order: still the call it was handed.
+            [intent("send_mail", { body: "hi", to: "ada@example.com" }, "c1")],
+            {
+                untrustedInTurn: true,
+                onMutate: "confirm",
+                approve: () => {
+                    asked += 1
+                    return Promise.resolve(false)
+                },
+                claimDelegated: claim,
+            },
+        )
+        expect(asked).toBe(0)
+        expect(outcome.results[0]?.ok).toBe(true)
+        expect(sent).toEqual(["ada@example.com"])
+    })
+
+    test("a different call, or the same one twice, still asks", async () => {
+        const sent: string[] = []
+        const asked: string[] = []
+        const claim = handedClaim({ slug: "send_mail", args: { to: "ada@example.com" } })
+        const approve = (request: ApprovalRequest) => {
+            asked.push(request.callId)
+            return Promise.resolve(false)
+        }
+        const registry = await mailRegistry(sent)
+        const opts = {
+            untrustedInTurn: true,
+            onMutate: "confirm" as const,
+            approve,
+            claimDelegated: claim,
+        }
+        await runTools(registry, [intent("send_mail", { to: "eve@example.com" }, "other")], opts)
+        await runTools(registry, [intent("send_mail", { to: "ada@example.com" }, "first")], opts)
+        await runTools(registry, [intent("send_mail", { to: "ada@example.com" }, "again")], opts)
+        expect(asked).toEqual(["other", "again"])
+        expect(sent).toEqual(["ada@example.com"])
+    })
+
+    test("a rule's deny is never turned into an allow", async () => {
+        const sent: string[] = []
+        const { outcome } = await runTools(
+            await mailRegistry(sent),
+            [intent("send_mail", { to: "ada@example.com" }, "c1")],
+            {
+                policy: { ...DEFAULT_POLICY, mode: "allow", deny: ["send_mail"] },
+                claimDelegated: handedClaim({ slug: "send_mail", args: { to: "ada@example.com" } }),
+            },
+        )
+        expect(outcome.results[0]?.ok).toBe(false)
+        expect(sent).toEqual([])
     })
 })
 

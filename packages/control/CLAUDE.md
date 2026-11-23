@@ -14,5 +14,5 @@ The root `CLAUDE.md` applies in full; these are the additions for this package. 
 4. **Brand strings live in `src/brand.ts`**, this package's own copy, because it may not import
    core's. `scripts/rename-brand.ts` rewrites contents tree-wide, so a rename still reaches it.
 5. **Everything cloud-specific lives behind `Placer`.** No provider SDK anywhere else.
-6. **No dependencies.** Node's standard library, run as TypeScript by Node 24; SQLite through a
+6. **No dependencies.** Node's standard library, run as TypeScript by Node 26.13.0; SQLite through a
    four-call adapter over `bun:sqlite` (tests) and `node:sqlite` (shipped).

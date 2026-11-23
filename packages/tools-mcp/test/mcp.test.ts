@@ -168,7 +168,7 @@ describe("mapping", () => {
         expect(invoke?.trust).toBeUndefined()
     })
 
-    test("a nullable field is its type; a real union is still refused (QA pilot.3)", () => {
+    test("a nullable field is its type; an unresolvable $ref is refused (QA pilot.3)", () => {
         const spec = toSpec(
             "work",
             {
@@ -187,7 +187,8 @@ describe("mapping", () => {
         expect(spec.parameters.properties.title?.description).toBe("New title.")
         expect(spec.parameters.properties.due?.type).toBe("string")
         expect(spec.parameters.properties.due?.description).toBe("format date")
-        // A union of plain values maps since pilot.16; one with an object in it is still refused.
+        // A union of plain values maps since pilot.16; one with an object in it since 0.2.6. Only a
+        // reference this runtime cannot resolve is still refused.
         expect(
             toSpec(
                 "work",
@@ -200,13 +201,11 @@ describe("mapping", () => {
                 "work",
                 {
                     name: "u",
-                    inputSchema: {
-                        properties: { x: { anyOf: [{ type: "object" }, { type: "string" }] } },
-                    },
+                    inputSchema: { properties: { x: { $ref: "#/definitions/Nowhere" } } },
                 },
                 undefined,
             ),
-        ).toThrow(/anyOf/)
+        ).toThrow(/\$ref/)
     })
 
     test("a tool nobody pinned cannot refuse the agent by having a schema it cannot express", async () => {
@@ -215,7 +214,7 @@ describe("mapping", () => {
         const union: McpTool = {
             name: "search",
             description: "Search anything.",
-            inputSchema: { properties: { q: { anyOf: [{ type: "object" }, { type: "string" }] } } },
+            inputSchema: { properties: { q: { $ref: "https://example.com/elsewhere.json" } } },
         }
         const { mcp } = provider(server({ tools: [...HULY, union] }).fetch)
         await mcp.refresh([])

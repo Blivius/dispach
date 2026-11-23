@@ -25,6 +25,7 @@ import {
     agentOf,
     bundleSections,
     type ConversationRecord,
+    deliverScheduleResult,
     type ErrorDetail,
     EVENT_TYPES,
     editManifestChanges,
@@ -3739,7 +3740,10 @@ export function createHandler(options: HandlerOptions): ServerHandler {
                         }),
                     )
                 } catch (error) {
-                    if (isHarnessError(error) && error.code === "session_too_short")
+                    if (
+                        isHarnessError(error) &&
+                        (error.code === "session_too_short" || error.code === "nothing_to_gain")
+                    )
                         return fail(error.toDetail(), 409)
                     throw error
                 }
@@ -3977,6 +3981,11 @@ export function createHandler(options: HandlerOptions): ServerHandler {
                         source: `schedule:${row.id}:manual`,
                         ...scheduleSendOptions(row),
                     })
+                    // Delivered as the timed run delivers: a manual run that ran the turn and sent
+                    // nothing tested half of the schedule.
+                    .then((result) =>
+                        deliverScheduleResult(runtime.channels, row, sessionKey, result),
+                    )
                     .catch(() => {
                         // Reported on the bus by the turn itself; swallowed here so an unhandled
                         // rejection cannot take the server down.

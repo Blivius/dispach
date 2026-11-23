@@ -1,17 +1,17 @@
 {
     "name": "dispach",
-    "version": "0.2.4",
+    "version": "0.2.13",
     "description": "A lightweight, model-agnostic AI agent runtime — the CLI, the server, and a typed client.",
     "license": "Apache-2.0",
     "author": "Moeen Mahmud",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/moeen-mahmud/dispach.git",
+        "url": "git+https://github.com/blivius/dispach.git",
         "directory": "packages/cli"
     },
     "type": "module",
     "engines": {
-        "node": ">=24"
+        "node": ">=26.13.0"
     },
     "bin": {
         "dispach": "dist/index.js"
@@ -86,6 +86,6 @@
     ],
     "homepage": "https://dispach.blivius.com",
     "bugs": {
-        "url": "https://github.com/moeen-mahmud/dispach/issues"
+        "url": "https://github.com/blivius/dispach/issues"
     }
 }

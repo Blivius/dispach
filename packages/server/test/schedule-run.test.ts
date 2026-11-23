@@ -5,7 +5,18 @@
  */
 
 import { afterAll, expect, test } from "bun:test"
-import { cleanupWorkspaces, harness, PINNED_MANIFEST, replyFetch } from "./harness.ts"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { BRAND, type ChannelHost, type OutboundMessage, Runtime } from "@dispach/core"
+import { createHandler } from "../src/handler.ts"
+import {
+    cleanupWorkspaces,
+    contractChecked,
+    harness,
+    PINNED_MANIFEST,
+    replyFetch,
+} from "./harness.ts"
 
 afterAll(cleanupWorkspaces)
 
@@ -33,6 +44,75 @@ test("a manual run gets the schedule's tools.allow", async () => {
     expect(bodies[0]).toContain("now")
     expect(bodies[0]).not.toContain("memory_write")
     await runtime.stop()
+})
+
+test("a manual run delivers its reply where the schedule delivers", async () => {
+    /**
+     * Found by an embedder's owner pressing "run now" on a routine pinned to WhatsApp: the run
+     * finished and nothing arrived, because only the scheduler delivered. The timed run, half an
+     * hour later, did.
+     */
+    const dir = mkdtempSync(join(tmpdir(), "schedule-run-"))
+    writeFileSync(
+        join(dir, "agent.yaml"),
+        `apiVersion: ${BRAND.apiVersion}
+id: sender
+model:
+  main:
+    id: test-model
+    baseUrl: https://example.invalid/v1
+    apiKeyEnv: MODEL_API_KEY
+channels:
+  - type: stub
+    id: tg
+`,
+    )
+    const sent: OutboundMessage[] = []
+    const runtime = await Runtime.create({
+        agents: [join(dir, "agent.yaml")],
+        env: { MODEL_API_KEY: "test-key" },
+        store: ":memory:",
+        startChannels: true,
+        fetch: replyFetch("It is noon."),
+        channels: {
+            stub: (context) => ({
+                id: context.id,
+                type: "stub",
+                limits: { maxMessageChars: 4096, idempotentSend: false },
+                start: async (host: ChannelHost) => host.status("connected"),
+                stop: async () => {},
+                send: async (message: OutboundMessage) => {
+                    sent.push(message)
+                    return { ok: true as const, providerMessageId: String(sent.length) }
+                },
+            }),
+        },
+    })
+    const handler = contractChecked(createHandler({ runtime, allowUnauthenticated: true }))
+    const post = (path: string, body?: unknown) =>
+        handler(
+            new Request(`http://127.0.0.1:7420/v1/agents/sender/schedules${path}`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+            }),
+        )
+    const schedule = (id: string, deliver: unknown) =>
+        post("", { id, kind: "every", expr: "1h", task: "Say the time.", deliver })
+    expect((await schedule("brief", { channel: "tg", to: "42" })).status).toBe(201)
+    expect((await schedule("quiet", "none")).status).toBe(201)
+
+    expect((await post("/quiet/run")).status).toBe(202)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    expect(sent).toHaveLength(0)
+
+    expect((await post("/brief/run")).status).toBe(202)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    expect(sent.map((message) => [message.recipient, message.text])).toEqual([
+        ["42", "It is noon."],
+    ])
+    await runtime.stop()
+    rmSync(dir, { recursive: true, force: true })
 })
 
 test("a PATCH of one field keeps every other field the schedule was written with", async () => {
