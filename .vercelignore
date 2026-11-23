@@ -49,9 +49,3 @@ packages/core/src/*
 !packages/cli
 packages/cli/*
 !packages/cli/package.json
-!packages/cli/src
-packages/cli/src/*
-!packages/cli/src/lib
-packages/cli/src/lib/*
-!packages/cli/src/lib/wordmark.ts
-!packages/cli/src/lib/rows.ts

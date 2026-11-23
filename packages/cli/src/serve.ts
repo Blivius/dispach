@@ -871,9 +871,9 @@ export async function serveCommand(options: ServeOptions): Promise<number> {
             )
         } else {
             process.stdout.write(
-                `  ctrl-c to stop — this ends when the terminal does. \`${BRAND.slug} daemon install${
-                    agents[0]?.id === undefined ? "" : ` ${agents[0].id}`
-                }\` keeps it running.\n`,
+                // No agent id: the service hosts every agent, and `daemon install <agent>` is refused
+                // (`daemon_per_agent_retired`), so naming one here would print a dead end.
+                `  ctrl-c to stop — this ends when the terminal does. \`${BRAND.slug} daemon install\` keeps it running.\n`,
             )
         }
     }

@@ -87,12 +87,12 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                             &#125;
                         </div>
                         <div className="mt-1 text-red-400">
-                            ✖ floorRefusal: protected containment path cannot be widened by the
-                            agent
+                            ✖ refused: widening where you may write is not yours to do.
                         </div>
                         <div className="text-fd-muted-foreground">
-                            {"  "}hint: capabilities may be configured; writeRoots, policy.deny, and
-                            untrusted.onMutate stay operator-owned.
+                            {"  "}Asked to create a file, an agent granted itself the whole home
+                            directory and then wrote there — which is what this refusal exists to
+                            prevent.
                         </div>
                         <div className="mt-2 text-fd-foreground">
                             The runtime refused to change writeRoots to ~ because write boundaries
@@ -108,7 +108,8 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                     </pre>
                     <figcaption className="flex items-center justify-between gap-3 border-t border-fd-border px-4 py-2 text-xs text-fd-muted-foreground">
                         <span className="truncate">
-                            Enforced in core (<code>packages/tools-system/src/config.ts</code>)
+                            Enforced by <code>floorRefusal</code> in{" "}
+                            <code>packages/tools-system/src/config.ts</code>
                         </span>
                         <span className="shrink-0 font-medium text-term-accent">Floor active</span>
                     </figcaption>
@@ -127,19 +128,19 @@ const client = createClient({
   baseUrl: process.env.RUNTIME_URL,
   token: process.env.API_TOKEN,
 })
+const agent = client.agent("milo")
 
-// 1. Start a detached turn with an idempotency key
-const { turnId } = await client.sendMessage("milo", {
-  text: "Draft the weekly ops digest and open a review.",
+// 1. Start a detached turn; the key makes a retried send the same turn
+const turn = await agent.send("Draft the weekly ops digest and open a review.", {
   chunks: true,
   idempotencyKey: crypto.randomUUID(),
 })
 
-// 2. Stream token-by-token; safe to drop and reattach by turnId
-for await (const event of client.streamTurn("milo", turnId, { chunks: true })) {
-  if (event.type === "model.chunk") process.stdout.write(event.data.delta)
-  if (event.type === "turn.end") console.log("\\n✓", event.data.reason)
-}`}
+// 2. Stream it token by token
+for await (const token of turn.tokens()) process.stdout.write(token)
+
+// 3. Safe to drop: reattach from anywhere by the turn id
+const reply = await agent.turn(turn.turnId).text()`}
                     </pre>
                     <figcaption className="flex items-center justify-between gap-3 border-t border-fd-border px-4 py-2 text-xs text-fd-muted-foreground">
                         <span className="truncate">

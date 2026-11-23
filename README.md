@@ -36,7 +36,7 @@ Open source and self-hosted: one API for agents with memory, tools, schedules, c
 
 ---
 
-| **~65 ms** boot | **125 / 125** on 5 frontier models | **0 / 167** floor breaches | **<!-- fact:endpoints -->90<!-- /fact -->** OpenAPI 3.1 endpoints |
+| **~65 ms** boot | **125 / 125** on 5 of 11 models compared | **0 / 167** floor breaches | **<!-- fact:endpoints -->90<!-- /fact -->** OpenAPI 3.1 endpoints |
 | --- | --- | --- | --- |
 | Zero network I/O before `runtime.ready` ([`bench:boot`](#boot-budget)) | Head-to-head multi-turn tool benchmark ([`evals/harness`](evals/harness/README.md)) | Measured settings containment floor ([arXiv 2610.06274](https://arxiv.org/abs/2610.06274)) | Detached `HTTP 202` turns, SSE/WS replay, scoped keys |
 
@@ -74,7 +74,7 @@ Everything else described in this README is stable.
 ### Local CLI & TUI
 
 ```bash
-curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+curl -fsSL https://dispach.blivius.com/install.sh | sh
 #   or: npm i -g dispach (Node <!-- fact:node -->26.13.0<!-- /fact -->+) · brew install blivius/tap/dispach
 dispach init          # name the agent, pick a model, paste a key
 dispach run milo      # talk to it in the terminal
@@ -220,14 +220,15 @@ Or use the typed TypeScript client (`npm i dispach` — pulls in zero terminal U
 
 ```ts
 import { createClient } from "dispach/client"
-import type { AnyEvent } from "dispach/wire"
 
 const client = createClient({ baseUrl: "http://127.0.0.1:7420", token: process.env.DISPACH_API_TOKEN })
-const { turnId } = await client.send("milo", { text: "what can you do?", chunks: true })
-for await (const event of client.stream("milo", turnId, { chunks: true })) {
-    // detached SSE replay — reconnect from any client with the same turnId
-    if (event.type === "model.chunk") process.stdout.write(event.text)
-}
+const agent = client.agent("milo")
+
+const turn = await agent.send("what can you do?")
+for await (const token of turn.tokens()) process.stdout.write(token)
+
+// The turn is detached from this connection: any client can reattach by its id.
+const reply = await agent.turn(turn.turnId).text()
 ```
 
 The defaults are OpenAI's. For another endpoint, add `"model"` and `"baseUrl"` to the answers, as the
@@ -295,7 +296,7 @@ runs under Node. [`CHANGELOG.md`](CHANGELOG.md) has what landed in each release.
 | Method | Command | Notes |
 | --- | --- | --- |
 | **npm** | `npm i -g dispach` / `npm i dispach` | One package carrying both CLI and `dispach/client` (Node <!-- fact:node -->26.13.0<!-- /fact -->+) |
-| **Standalone (no Node)** | `curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh \| sh` | macOS & Linux (glibc), arm64 & x64; bundles checksummed Node <!-- fact:node -->26.13.0<!-- /fact --> |
+| **Standalone (no Node)** | `curl -fsSL https://dispach.blivius.com/install.sh \| sh` | macOS & Linux (glibc), arm64 & x64; bundles checksummed Node <!-- fact:node -->26.13.0<!-- /fact --> |
 | **Homebrew** | `brew install blivius/tap/dispach` | Installs the same npm tarball; supports `brew services start dispach` |
 | **Docker** | `docker pull ghcr.io/blivius/dispach:0.2.13` | `node:26.13.0-trixie-slim` with `git`, `python3`, `uv`, `jq`, and `ffmpeg` |
 | **From source** | `bun install && bun run build && (cd packages/cli && bun link)` | For contributing or hacking on Dispach itself |
@@ -331,7 +332,7 @@ business paying the ~170-210 ms that importing Ink and React costs.
 ### Without Node
 
 ```bash
-curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+curl -fsSL https://dispach.blivius.com/install.sh | sh
 ```
 
 macOS and Linux (glibc), arm64 and x64. Each release attaches one archive per platform: an official
@@ -354,7 +355,7 @@ version, and `dispach daemon install` moves it. To uninstall, delete `~/.dispach
 `~/.dispach/versions` and the `PATH` line; your agents beside them in `~/.dispach` are left alone.
 
 **Windows:** run it inside WSL (`wsl --install`), or use the container. A native build needs the
-shell tool and the service manager ported; that is [open for contributions (#76)](https://github.com/blivius/dispach/issues/76).
+shell tool and the service manager ported; that is [open for contributions (#37)](https://github.com/Blivius/dispach/issues/37).
 
 ### With Homebrew
 
@@ -496,7 +497,7 @@ knowing before they surprise you:
   `rank/bm25.ts` rather than by SQLite: FTS5's own `bm25()` takes its statistics over the whole
   table, so one agent saving a note would have moved another agent's scores.
 
-Removing an agent means a directory, rows in four tables, two log files and possibly a service, so
+Removing an agent means a directory, its rows across the store's tables, two log files and possibly a service, so
 there is a command for it rather than a `rm -rf` and a list of things to remember:
 
 ```bash
@@ -651,7 +652,7 @@ Stated plainly, because the alternative is someone assuming otherwise:
 > untrusted plugin code, run the whole agent in a container and treat that as the boundary.
 
 ```bash
-dispach plugins add <agent> moeen-mahmud/some-plugin --ref v1.0.0
+dispach plugins add <agent> someone/some-plugin --ref v1.0.0
 dispach plugins list <agent>
 dispach plugins remove <agent> some-plugin
 ```

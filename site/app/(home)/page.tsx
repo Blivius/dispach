@@ -9,8 +9,15 @@ import { RuntimeShowcase } from "@/components/runtime-showcase"
 import { SiteFooter } from "@/components/site-footer"
 import { benchmark, evidence } from "@/lib/evidence"
 import { capturedAt, capturedModel, replay } from "@/lib/replay"
-import { brand, dockerImage, docsRoute, paperUrl, parentCompany, repoUrl } from "@/lib/shared"
-import { pixels } from "@/lib/wordmark"
+import {
+    brand,
+    dockerImage,
+    docsRoute,
+    paperUrl,
+    parentCompany,
+    repoUrl,
+    siteUrl,
+} from "@/lib/shared"
 
 const QUICKSTART = "/docs/runtime/quickstart/install-and-serve"
 const BENCHMARK = "/docs/runtime/benchmarks"
@@ -26,7 +33,7 @@ const INSTALL_OPTIONS: readonly InstallOption[] = [
     {
         id: "curl",
         label: "curl",
-        command: `curl -fsSL ${repoUrl}/releases/latest/download/install.sh | sh`,
+        command: `curl -fsSL ${siteUrl}/install.sh | sh`,
         note: "no Node needed",
     },
     {
@@ -130,26 +137,7 @@ export default function HomePage() {
                                 </span>
                             </Link>
 
-                            <svg
-                                role="img"
-                                aria-label={brand.name}
-                                viewBox={`0 0 ${pixels.width} ${pixels.height}`}
-                                className="mt-6 mb-5 h-9 w-auto text-term-accent sm:h-11"
-                                shapeRendering="crispEdges"
-                            >
-                                {pixels.cells.map(({ x, y }) => (
-                                    <rect
-                                        key={`${x}:${y}`}
-                                        x={x}
-                                        y={y}
-                                        width={1}
-                                        height={1}
-                                        fill="currentColor"
-                                    />
-                                ))}
-                            </svg>
-
-                            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+                            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                                 The agent backend your product calls over HTTP.
                             </h1>
 

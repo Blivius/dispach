@@ -4,7 +4,7 @@ name: site
 # integration: that needs Vercel's GitHub App on the org, and the CLI needs only `VERCEL_TOKEN`.
 #
 # The build runs on Vercel, from what `.vercelignore` lets through: `site/`, `developer-docs/`, the
-# six eval results the site imports, `packages/cli`'s wordmark (and the `rows.ts` it imports) and `package.json`, and core's
+# six eval results the site imports, `packages/cli`'s `package.json`, and core's
 # `brand.ts`. The project's Root Directory is `site`, so nothing else in the tree is uploaded.
 #
 #   push to main         → production (dispach.blivius.com)
@@ -23,8 +23,6 @@ on:
       - "evals/harness/summary.json"
       - "packages/core/src/brand.ts"
       - "packages/cli/package.json"
-      - "packages/cli/src/lib/wordmark.ts"
-      - "packages/cli/src/lib/rows.ts"
       - ".vercelignore"
       - ".github/workflows/site.yml"
   pull_request:

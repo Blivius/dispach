@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install the standalone build from a GitHub release.
 #
-#   curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+#   curl -fsSL https://dispach.blivius.com/install.sh | sh
 #
 # Puts the release in ~/.dispach/versions/<version>, links ~/.dispach/bin/dispach at it, and adds
 # ~/.dispach/bin to PATH in your shell's rc file (it says which). Nothing needs root.

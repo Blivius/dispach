@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  Source for architecture-dark.png and architecture-light.png (2800x900, transparent 14px corners).
+  Render: serve this directory, open it at 2800x900 with #dark or #light, screenshot the viewport,
+  then mask the corners (radius 28 at 2x). The ladder rows are core's defaults: snip 0.6, micro 0.7,
+  collapse 0.8, reset 0.88, trim 0.95 (packages/core/src/manifest/schema.ts, STAGE_ORDER).
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #121215; --dot: rgba(255,255,255,0.06); --card: #1a1a1e; --border: rgba(255,255,255,0.12);
+    --text: #f4f4f6; --sub: #b3b3bb; --muted: #8e8e98; --accent: #d75fd7;
+    --p-bg: rgba(215,95,215,0.10); --p-bd: rgba(215,95,215,0.55); --p-tx: #e07ae0;
+    --b-bg: rgba(95,135,215,0.10); --b-bd: rgba(95,135,215,0.55); --b-tx: #7fa2ec;
+    --g-bg: rgba(95,215,95,0.08); --g-bd: rgba(95,215,95,0.50); --g-tx: #6fdc6f;
+    --t-bg: rgba(215,175,95,0.10); --t-bd: rgba(215,175,95,0.55); --t-tx: #e0b866;
+  }
+  .light {
+    --bg: #f7f6f4; --dot: rgba(0,0,0,0.07); --card: #ffffff; --border: rgba(0,0,0,0.10);
+    --text: #151518; --sub: #4a4a52; --muted: #6e6e76; --accent: #a63ba6;
+    --p-bg: rgba(166,59,166,0.07); --p-bd: rgba(166,59,166,0.45); --p-tx: #a63ba6;
+    --b-bg: rgba(63,103,190,0.08); --b-bd: rgba(63,103,190,0.45); --b-tx: #3a62b8;
+    --g-bg: rgba(46,150,60,0.08); --g-bd: rgba(46,150,60,0.45); --g-tx: #2c8a3a;
+    --t-bg: rgba(176,128,40,0.09); --t-bd: rgba(176,128,40,0.50); --t-tx: #9a6b12;
+  }
+  html, body { margin: 0; background: transparent; }
+  body { width: 1400px; height: 450px; zoom: 2; font-family: "Inter", -apple-system, "Helvetica Neue", sans-serif; }
+  .frame {
+    box-sizing: border-box; width: 1400px; height: 450px; border-radius: 14px; overflow: hidden;
+    background-color: var(--bg); border: 1px solid var(--border); padding: 30px 43px 0;
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px); background-size: 18px 18px;
+  }
+  .mono { font-family: "JetBrains Mono", "SF Mono", Menlo, monospace; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; }
+  .label { font-size: 11.5px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .note { font-size: 11.5px; color: var(--accent); }
+  .row { display: flex; align-items: stretch; gap: 0; margin-top: 14px; }
+  .box { box-sizing: border-box; border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 16px 19px; }
+  .row .box { height: 138px; }
+  .arrow { width: 29px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; flex: none; }
+  .tag { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .title { font-size: 15.5px; font-weight: 650; color: var(--text); margin: 7px 0 8px; letter-spacing: -0.01em; }
+  .lines { font-size: 11.8px; line-height: 1.6; color: var(--sub); }
+  .p { background: var(--p-bg); border-color: var(--p-bd); } .p .tag { color: var(--p-tx); }
+  .b { background: var(--b-bg); border-color: var(--b-bd); } .b .tag { color: var(--b-tx); }
+  .g { background: var(--g-bg); border-color: var(--g-bd); } .g .tag { color: var(--g-tx); }
+  .t { background: var(--t-bg); border-color: var(--t-bd); } .t .tag { color: var(--t-tx); }
+  .cache { margin-left: 250px; width: 255px; white-space: nowrap; border-top: 1px dashed var(--p-bd); margin-top: 9px; padding-top: 8px; text-align: center; font-size: 11px; color: var(--accent); }
+  .divider { height: 1px; background: var(--border); margin: 56px 0 24px; }
+  .ladder { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 14px; }
+  .ladder .box { height: 79px; padding: 14px 17px; }
+  .ladder .title { margin: 6px 0 4px; font-size: 14.5px; }
+  .ladder .lines { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .ladder .tag { text-transform: none; letter-spacing: 0.04em; font-size: 11px; }
+  .w1 { flex: 221 } .w2 { flex: 255 } .w3 { flex: 244 } .w4 { flex: 255 } .w5 { flex: 221 }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="head"><span class="label mono">Turn execution &amp; context assembly pipeline</span><span class="note mono">Zero network I/O before runtime.ready</span></div>
+  <div class="row">
+    <div class="box w1"><div class="tag mono">01 · Inbound</div><div class="title">Surfaces &amp; Triggers</div><div class="lines mono">HTTP / SSE / WS<br>Telegram · WhatsApp<br>DST Schedules · CLI</div></div>
+    <div class="arrow">→</div>
+    <div class="box p w2"><div class="tag mono">02 · Slots 0–1 pinned</div><div class="title">Cache-Stable Prefix</div><div class="lines mono">SOUL.md (gated)<br>AGENTS.md · Phases<br>Pinned Tool Specs</div></div>
+    <div class="arrow">→</div>
+    <div class="box b w3"><div class="tag mono">03 · Tier 2–3 budget</div><div class="title">Dynamic Context</div><div class="lines mono">SQLite FTS5 + BM25<br>Keyword Knowledge<br>Session History</div></div>
+    <div class="arrow">→</div>
+    <div class="box g w4"><div class="tag mono">04 · Step loop</div><div class="title">Execute &amp; Enforce</div><div class="lines mono">Native / NLT Parse<br>Policy + Floor Gate<br>Signed Thinking Replay</div></div>
+    <div class="arrow">→</div>
+    <div class="box w5"><div class="tag mono">05 · Persist</div><div class="title">Detached Delivery</div><div class="lines mono">HTTP 202 Reattach<br>Idempotent Outbox<br>Shared SQLite Store</div></div>
+  </div>
+  <div class="cache mono">↑ Cache breakpoint · survives every stage</div>
+  <div class="divider"></div>
+  <div class="head"><span class="label mono">Five-stage progressive compaction ladder (from 60% context pressure)</span><span class="note mono">Harness-driven · model-backed stages highlighted</span></div>
+  <div class="ladder">
+    <div class="box"><div class="tag mono">snip · 60%</div><div class="title">Cut oversized results</div><div class="lines mono">Head + tail; the rest saved</div></div>
+    <div class="box"><div class="tag mono">micro · 70%</div><div class="title">Swap results for pointers</div><div class="lines mono">artifact_read finds the rest</div></div>
+    <div class="box t"><div class="tag mono">collapse · 80%</div><div class="title">Digest older turns</div><div class="lines mono">Compactor model call</div></div>
+    <div class="box t"><div class="tag mono">reset · 88%</div><div class="title">Digest + checkpoint</div><div class="lines mono">Next turn starts from it</div></div>
+    <div class="box"><div class="tag mono">trim · 95%</div><div class="title">Drop working detail</div><div class="lines mono">Your requests survive</div></div>
+  </div>
+</div>
+<script>if (location.hash === "#light") document.documentElement.classList.add("light")</script>
+</body>
+</html>

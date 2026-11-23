@@ -1660,5 +1660,5 @@ async function supervision(runtime: RuntimeClass, agentId: string): Promise<stri
             ? `running as a background service · pid ${lease.pid} · \`${BRAND.slug} daemon status ${agentId}\``
             : `served by another session · pid ${lease.pid} (${lease.mode})`
     }
-    return `not supervised — \`${BRAND.slug} daemon install ${agentId}\` keeps it running without a terminal`
+    return `not supervised — \`${BRAND.slug} daemon install\` keeps it running without a terminal`
 }

@@ -3,18 +3,15 @@ name: ci
 # Only a pull request into `development` (the default branch) runs this, and not while it is a draft:
 # a direct push runs nothing, and a release PR into `main` is gated again by `release.yml` when its
 # tag publishes, so running it here too would test the same tree twice. `workflow_dispatch` runs it
-# on any branch by hand. `site/**` is deliberately not ignored: `docs:check` validates the site's
-# `/docs/…` links. A change made only of the paths below cannot fail any job here.
+# on any branch by hand.
+#
+# No `paths-ignore`: `bun`, `docker` and `bundle` are required checks on `development`, and a pull
+# request a path filter skips never reports them, so it could never merge. Standard runners are free
+# on a public repository; the filter would save nothing.
 on:
   pull_request:
     branches: [development]
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore:
-      - ".github/assets/**"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/pull_request_template.md"
-      - ".github/workflows/site.yml"
-      - ".vercelignore"
   workflow_dispatch:
 
 permissions:
