@@ -191,7 +191,7 @@ export function FaqSection() {
         <section
             id="faq"
             aria-labelledby="faq-heading"
-            className="border-t border-fd-border px-5 py-16 sm:px-8"
+            className="border-t border-fd-border px-5 py-20 sm:px-8 lg:py-28"
         >
             <script
                 type="application/ld+json"
@@ -203,13 +203,12 @@ export function FaqSection() {
                 <div className="lg:sticky lg:top-24">
                     <h2
                         id="faq-heading"
-                        className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                        className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
                     >
                         Frequently asked questions
                     </h2>
                     <p className="mt-3 max-w-sm text-sm leading-relaxed text-fd-muted-foreground">
-                        Technical answers for teams self-hosting today or exploring managed agent
-                        infrastructure. Still have a question?{" "}
+                        Something not covered?{" "}
                         <Link
                             href={docsRoute}
                             className="text-fd-foreground underline underline-offset-4 hover:text-term-accent"

@@ -16,10 +16,10 @@ interface HeroConsoleProps {
 export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsoleProps) {
     const [tab, setTab] = useState<TabId>("detached")
 
-    const tabs: { id: TabId; code: string; label: string }[] = [
-        { id: "detached", code: "01", label: "Detached Turn (202/SSE)" },
-        { id: "floor", code: "02", label: "Containment Floor" },
-        { id: "sdk", code: "03", label: "TypeScript SDK" },
+    const tabs: { id: TabId; label: string }[] = [
+        { id: "detached", label: "Detached Turn (202/SSE)" },
+        { id: "floor", label: "Containment Floor" },
+        { id: "sdk", label: "TypeScript SDK" },
     ]
 
     return (
@@ -44,15 +44,6 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                                     : "border-fd-border bg-fd-card/50 text-fd-muted-foreground hover:text-fd-foreground"
                             }`}
                         >
-                            <span
-                                className={
-                                    active
-                                        ? "font-mono text-term-accent"
-                                        : "font-mono text-fd-muted-foreground/70"
-                                }
-                            >
-                                {t.code}
-                            </span>
                             <span>{t.label}</span>
                         </button>
                     )
@@ -88,11 +79,6 @@ export function HeroConsole({ brandName, brandSlug, lines, caption }: HeroConsol
                         </div>
                         <div className="mt-1 text-red-400">
                             ✖ refused: widening where you may write is not yours to do.
-                        </div>
-                        <div className="text-fd-muted-foreground">
-                            {"  "}Asked to create a file, an agent granted itself the whole home
-                            directory and then wrote there — which is what this refusal exists to
-                            prevent.
                         </div>
                         <div className="mt-2 text-fd-foreground">
                             The runtime refused to change writeRoots to ~ because write boundaries

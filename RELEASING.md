@@ -6,7 +6,8 @@ One package, one number, one tag. Semver. Short bullets in `CHANGELOG.md`; the r
 1. **Draft the notes**: `bun run changelog:draft` writes the `feat`, `fix` and `perf` commits since
    the last release under `## Unreleased` in `CHANGELOG.md` (git-cliff, `cliff.toml`). Edit them into
    short bullets for someone installing the release: what changed, one line each, **Breaking**
-   marked. No reasons — those go in `docs/00-DECISIONS.md`.
+   marked. No reasons: those go in `docs/00-DECISIONS.md`. Add the release's section to
+   `developer-docs/runtime/whats-new-since-0-2-0.md` too; `docs:check` fails a release without one.
 2. **Cut it** from a clean, up-to-date `development` (the default branch):
 
    ```bash

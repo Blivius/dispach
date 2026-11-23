@@ -155,6 +155,24 @@ for (const route of routes) {
         )
 }
 
+// "What's new since 0.2.0" claims to cover every 0.2.x release, and the landing page's version chip
+// links to it. It stopped at 0.2.3 for ten releases, including 0.2.12's breaking Node floor, because
+// nothing compared it with the changelog. Every stable 0.2.x after 0.2.0 needs a `## <version>` there.
+{
+    const whatsNew = readFileSync(join(DOCS, "runtime", "whats-new-since-0-2-0.md"), "utf8")
+    const released = [
+        ...readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").matchAll(/^## (0\.2\.\d+) /gm),
+    ]
+        .map((m) => m[1] as string)
+        .filter((v) => v !== "0.2.0")
+    for (const version of released) {
+        if (!new RegExp(`^## ${version.replaceAll(".", "\\.")}$`, "m").test(whatsNew))
+            failures.push(
+                `developer-docs/runtime/whats-new-since-0-2-0.md has no "## ${version}" section, and CHANGELOG.md released it`,
+            )
+    }
+}
+
 // The landing page's primary button must lead to the page that installs what the hero shows.
 const landing = readFileSync(join(ROOT, "site/app/(home)/page.tsx"), "utf8")
 const quickstart = /const QUICKSTART = "([^"]+)"/.exec(landing)?.[1]

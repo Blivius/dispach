@@ -56,41 +56,6 @@ const INSTALL_OPTIONS: readonly InstallOption[] = [
     },
 ]
 
-const PROOFS = [
-    {
-        figure: `${benchmark.perfect} of ${benchmark.rows.length}`,
-        title: `Models at ${benchmark.runs}/${benchmark.runs}, head-to-head`,
-        body: `On ${benchmark.tasks} multi-turn tool tasks run ${benchmark.repeats} times each, ${brand.name} matches or beats ${hermes.name} on ${benchmark.atLeastHermes} of ${benchmark.rows.length} models and costs the least of three harnesses on ${benchmark.cheapest}.`,
-        caveat: `One benchmark of our own design, each harness on its own defaults. ${hermes.name} leads on ${new Intl.ListFormat("en").format(benchmark.hermesAhead)}.`,
-        href: BENCHMARK,
-        link: "Benchmarks",
-    },
-    {
-        figure: "202",
-        title: "Turns outlive the client",
-        body: "A turn is detached from the request that started it. Drop the connection, reattach from any client, and its events replay from the start, token by token when the send asked for chunks.",
-        caveat: "The recording above is that, unedited apart from shortened request bodies.",
-        href: "/docs/runtime/concepts/turn-lifecycle",
-        link: "Turn lifecycle",
-    },
-    {
-        figure: `${evidence.bootMs} ms`,
-        title: "Process start to ready",
-        body: "No network I/O before readiness, by rule. Channels and remote catalogues connect afterwards and report status as events.",
-        caveat: `Median of ${evidence.bootRuns} boots under ${evidence.bootRuntime}, ${evidence.bootMachine}. Boot, not response latency. CI fails above ${evidence.bootCiFailMs.toLocaleString("en-US")} ms.`,
-        href: "/evals",
-        link: "Evidence",
-    },
-    {
-        figure: `${evidence.idleMiB} MiB`,
-        title: `${evidence.agents} agents, one process`,
-        body: "One runtime hosts many agents, and scoped keys fence each off. Adopt and remove agents live, with no restart.",
-        caveat: "Idle resident memory, linux/arm64 image, one machine.",
-        href: "/evals",
-        link: "Evidence",
-    },
-] as const
-
 export default function HomePage() {
     const sonnet = benchmark.sonnet
     const headlineStats = [
@@ -99,20 +64,24 @@ export default function HomePage() {
                 ? `${sonnet.runtime.pass}/${sonnet.runtime.n}`
                 : `${benchmark.perfect}/${benchmark.rows.length}`,
             label: sonnet
-                ? `$${sonnet.runtime.cost.toFixed(2)} on ${sonnet.name} vs. ${openclaw.name} $${sonnet.openclaw.cost.toFixed(2)}`
+                ? `${sonnet.name} for $${sonnet.runtime.cost.toFixed(2)}; ${openclaw.name} cost $${sonnet.openclaw.cost.toFixed(2)}`
                 : "Perfect multi-turn harness runs",
+            href: BENCHMARK,
         },
         {
             figure: `${evidence.bootMs} ms`,
-            label: "Boot to runtime.ready, zero network I/O",
+            label: "Process start to ready, before any network I/O",
+            href: "/evals",
         },
         {
             figure: `${evidence.idleMiB} MiB`,
-            label: `${evidence.agents} isolated agents in one idle process`,
+            label: `${evidence.agents} idle agents in one process`,
+            href: "/evals",
         },
         {
             figure: "0 / 167",
-            label: "Protected writes saved under containment floor",
+            label: "Protected writes saved under the settings floor",
+            href: paperUrl,
         },
     ] as const
 
@@ -127,7 +96,6 @@ export default function HomePage() {
                                 href={`${docsRoute}/runtime/whats-new-since-0-2-0`}
                                 className="inline-flex flex-wrap items-center gap-2 rounded-full border border-fd-border bg-fd-card/80 px-3 py-1 text-xs text-fd-muted-foreground transition-colors hover:border-term-accent/60 hover:text-fd-foreground"
                             >
-                                <span className="size-1.5 rounded-full bg-term-success" />
                                 <span className="font-mono text-fd-foreground">
                                     v{evidence.version}
                                 </span>
@@ -137,18 +105,13 @@ export default function HomePage() {
                                 </span>
                             </Link>
 
-                            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+                            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance [overflow-wrap:break-word] sm:text-5xl lg:text-[3.5rem] lg:leading-[1.05]">
                                 The agent backend your product calls over HTTP.
                             </h1>
 
-                            <p className="mt-4 max-w-xl text-base leading-relaxed text-fd-muted-foreground sm:text-lg">
-                                <span className="font-serif text-[1.12em] italic text-fd-foreground">
-                                    The harness is not just scaffolding.
-                                </span>{" "}
-                                It decides whether agents finish tasks, what inference costs, and
-                                what your application controls. Persistent memory, policy-gated
-                                tools, schedules, and detached streams on any OpenAI-compatible
-                                model or AWS Bedrock.
+                            <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-fd-muted-foreground sm:text-lg">
+                                Memory, policy-gated tools, schedules and detached streams, on any
+                                OpenAI-compatible model or AWS Bedrock.
                             </p>
 
                             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -184,28 +147,40 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* Headline proof rail */}
-                <section
-                    aria-label="Key measured metrics"
-                    className="grid divide-y divide-fd-border border-t border-fd-border bg-fd-card/35 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4"
-                >
-                    {headlineStats.map((stat, index) => (
-                        <div
-                            key={stat.label}
-                            className={`px-5 py-6 sm:px-6 ${
-                                index > 0 ? "lg:border-l lg:border-fd-border" : ""
-                            } ${index % 2 === 1 ? "sm:border-l sm:border-fd-border" : ""} ${
-                                index >= 2 ? "sm:border-t sm:border-fd-border lg:border-t-0" : ""
-                            }`}
+                {/* Proof rail: each figure links to the file or paper it comes from */}
+                <section aria-label="Measured figures" className="border-t border-fd-border">
+                    <div className="grid divide-y divide-fd-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4">
+                        {headlineStats.map((stat, index) => (
+                            <a
+                                key={stat.label}
+                                href={stat.href}
+                                className={`group block px-5 py-7 transition-colors hover:bg-fd-card/60 sm:px-6 ${
+                                    index > 0 ? "lg:border-l lg:border-fd-border" : ""
+                                } ${index % 2 === 1 ? "sm:border-l sm:border-fd-border" : ""} ${
+                                    index >= 2
+                                        ? "sm:border-t sm:border-fd-border lg:border-t-0"
+                                        : ""
+                                }`}
+                            >
+                                <p className="font-mono text-3xl font-semibold tracking-tight text-term-accent">
+                                    {stat.figure}
+                                </p>
+                                <p className="mt-2 text-sm leading-snug text-fd-muted-foreground group-hover:text-fd-foreground">
+                                    {stat.label}
+                                </p>
+                            </a>
+                        ))}
+                    </div>
+                    <p className="border-t border-fd-border px-5 py-3 text-sm text-fd-muted-foreground sm:px-6">
+                        Every public claim has a row in the{" "}
+                        <Link
+                            href="/evals"
+                            className="underline underline-offset-4 hover:text-fd-foreground"
                         >
-                            <p className="font-mono text-2xl font-semibold tracking-tight text-term-accent">
-                                {stat.figure}
-                            </p>
-                            <p className="mt-1.5 text-xs leading-relaxed text-fd-muted-foreground">
-                                {stat.label}
-                            </p>
-                        </div>
-                    ))}
+                            claim register
+                        </Link>
+                        , negative results included.
+                    </p>
                 </section>
 
                 {/* Tesser-inspired Flexible by Design */}
@@ -226,7 +201,6 @@ export default function HomePage() {
                     openclawName={openclaw.name}
                     openclawVersion={openclaw.version}
                     rows={benchmark.rows}
-                    sonnet={benchmark.sonnet}
                     benchmarkHref={BENCHMARK}
                 />
 
@@ -236,52 +210,10 @@ export default function HomePage() {
                 {/* Real recorded terminal demos */}
                 <RuntimeShowcase />
 
-                {/* Proof cards with transparent caveats */}
-                <section className="border-t border-fd-border px-5 py-16 sm:px-8">
-                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                        Every number traced to a committed file
-                    </h2>
-                    <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                        {PROOFS.map((p) => (
-                            <article
-                                key={p.title}
-                                className="flex flex-col rounded-2xl border border-fd-border bg-fd-card/40 p-6 transition-colors hover:border-term-accent/55"
-                            >
-                                <p className="font-mono text-3xl font-semibold">{p.figure}</p>
-                                <h3 className="mt-2 font-medium">{p.title}</h3>
-                                <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">
-                                    {p.body}
-                                </p>
-                                <p className="mt-3 text-xs text-fd-muted-foreground/80">
-                                    {p.caveat}
-                                </p>
-                                <Link
-                                    href={p.href}
-                                    className="mt-auto pt-4 text-sm font-medium text-term-accent underline-offset-4 hover:underline"
-                                >
-                                    {p.link}
-                                </Link>
-                            </article>
-                        ))}
-                    </div>
-                    <p className="mt-6 text-sm text-fd-muted-foreground">
-                        Research:{" "}
-                        <a href={paperUrl} className="underline underline-offset-4">
-                            What May an Agent Change About Itself?
-                        </a>{" "}
-                        (Hossain &amp; Mahmud, 2026, arXiv 2610.06274, preprint). Every public claim
-                        has a row in the{" "}
-                        <Link href="/evals" className="underline underline-offset-4">
-                            claim register
-                        </Link>
-                        , negative results included.
-                    </p>
-                </section>
-
                 {/* Honest Open-Core & Deployment Comparison */}
-                <section className="border-t border-fd-border bg-fd-card/30 px-5 py-16 sm:px-8">
+                <section className="border-t border-fd-border bg-fd-card/30 px-5 py-20 sm:px-8 lg:py-28">
                     <div className="max-w-2xl">
-                        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                        <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                             Run it yourself today. Partner with us for managed scale.
                         </h2>
                         <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground">
@@ -307,20 +239,17 @@ export default function HomePage() {
                                 One process hosts many agents on your own servers, containers, or
                                 Kubernetes cluster, with zero telemetry and no gateway requirement.
                             </p>
-                            <ul className="mt-5 space-y-2 text-sm text-fd-muted-foreground">
+                            <ul className="mt-5 list-disc space-y-2 pl-5 text-sm text-fd-muted-foreground marker:text-fd-border">
                                 <li>
-                                    <span className="mr-2 font-mono text-term-success">✓</span>
-                                    Full HTTP/SSE/WS API ({evidence.endpoints} OpenAPI 3.1 routes) +
-                                    typed client
+                                    Full HTTP, SSE and WebSocket API ({evidence.endpoints} OpenAPI
+                                    3.1 routes) and a typed client
                                 </li>
                                 <li>
-                                    <span className="mr-2 font-mono text-term-success">✓</span>
-                                    SQLite FTS5 memory, 5-stage compaction, policy &amp; settings
-                                    floor
+                                    SQLite FTS5 memory, five-stage compaction, the policy and
+                                    settings floor
                                 </li>
                                 <li>
-                                    <span className="mr-2 font-mono text-term-success">✓</span>
-                                    Built-in browser console, interactive TUI, Docker &amp; K8s
+                                    Built-in browser console, interactive TUI, Docker and Kubernetes
                                     manifests
                                 </li>
                             </ul>
@@ -329,7 +258,7 @@ export default function HomePage() {
                                     href={QUICKSTART}
                                     className="whitespace-nowrap rounded-lg bg-term-accent px-4 py-2 text-sm font-medium text-neutral-950 hover:brightness-110"
                                 >
-                                    Install &amp; serve
+                                    Install and serve
                                 </Link>
                                 <a
                                     href={repoUrl}
@@ -340,7 +269,7 @@ export default function HomePage() {
                             </div>
                         </article>
 
-                        <article className="flex flex-col rounded-2xl border border-dashed border-term-accent/50 bg-fd-background/80 p-6">
+                        <article className="flex flex-col rounded-2xl border border-fd-border bg-fd-background/80 p-6">
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-xs font-medium text-term-warning">
                                     Seeking design partners
@@ -350,26 +279,23 @@ export default function HomePage() {
                                 </span>
                             </div>
                             <h3 className="mt-3 text-xl font-semibold tracking-tight">
-                                Control plane &amp; managed infrastructure
+                                Control plane and managed infrastructure
                             </h3>
                             <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">
                                 For teams operating isolated agent silos per user or team. There is
                                 no hosted cloud GA yet. We are partnering directly with engineering
                                 teams building production agent products.
                             </p>
-                            <ul className="mt-5 space-y-2 text-sm text-fd-muted-foreground">
+                            <ul className="mt-5 list-disc space-y-2 pl-5 text-sm text-fd-muted-foreground marker:text-fd-border">
                                 <li>
-                                    <span className="mr-2 font-mono text-term-accent">›</span>
-                                    Per-user &amp; per-team silo placement, suspend/wake, and
-                                    backups (<code>packages/control</code>)
+                                    Per-user and per-team silo placement, suspend and wake, backups
+                                    (<code>packages/control</code>)
                                 </li>
                                 <li>
-                                    <span className="mr-2 font-mono text-term-accent">›</span>
                                     Experimental in {evidence.line}: multiplayer rooms, stand-ins,
                                     and shared team memory
                                 </li>
                                 <li>
-                                    <span className="mr-2 font-mono text-term-accent">›</span>
                                     Upcoming: managed hosting, observability, audit logs, and
                                     private deployments
                                 </li>

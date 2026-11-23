@@ -2,7 +2,12 @@
 
 Maintainers cut releases. Contributors should add user-visible changes to the `Unreleased` section of `CHANGELOG.md` when requested during review.
 
-The release preparation script refuses a dirty tree, a version that is not newer than the current one, and an empty `Unreleased` section. It then updates the versioned files, dates the changelog section, regenerates the HTTP API reference (`developer-docs/reference/openapi.json` carries the version), runs the release gate (`build`, `test`, `typecheck`, `lint`, `docs:check`, `verify:package`), and prints the commit and tag commands:
+The release preparation script refuses a dirty tree, a version that is not newer than the current one, and an empty `Unreleased` section. Otherwise it:
+
+1. updates the versioned files and dates the changelog section;
+2. regenerates the HTTP API reference (`developer-docs/reference/openapi.json` carries the version);
+3. runs the release gate: `build`, `test`, `typecheck`, `lint`, `docs:check`, `verify:package`;
+4. prints the commit and tag commands.
 
 ```bash
 bun run release <version>

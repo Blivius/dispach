@@ -35,6 +35,11 @@ The runtime policy controls which tool calls may execute. It does not replace co
 
 ## Upgrades
 
-Read `CHANGELOG.md`, back up state, deploy one version of the runtime and client contract together, then check readiness and a representative detached turn. OpenAPI and event types are compatibility surfaces; event names are append-only within wire version 1.
+1. Read `CHANGELOG.md`.
+2. Back up state.
+3. Deploy one version of the runtime and client contract together.
+4. Check readiness and a representative detached turn.
+
+OpenAPI and event types are compatibility surfaces; event names are append-only within wire version 1.
 
 For separate per-user containers, use the [control plane](../../control-plane/README.md) rather than building lifecycle management into the runtime process.

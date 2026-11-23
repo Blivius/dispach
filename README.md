@@ -4,14 +4,14 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/banner-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/banner-light.png">
-    <img src="https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/banner-light.png" alt="Dispach — The agent backend your product calls over HTTP" width="100%">
+    <img src="https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/banner-light.png" alt="Dispach: the agent backend your product calls over HTTP" width="100%">
   </picture>
 </a>
 
 <br>
 
 **The agent backend your product calls over HTTP.**
-Open source and self-hosted: one API for agents with memory, tools, schedules, channels, and approvals — on any OpenAI-compatible model or AWS Bedrock.
+Open source and self-hosted: one API for agents with memory, tools, schedules, channels, and approvals, on any OpenAI-compatible model or AWS Bedrock.
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-a63ba6?style=flat-square" alt="License: Apache-2.0"></a>
@@ -40,25 +40,30 @@ Open source and self-hosted: one API for agents with memory, tools, schedules, c
 | --- | --- | --- | --- |
 | Zero network I/O before `runtime.ready` ([`bench:boot`](#boot-budget)) | Head-to-head multi-turn tool benchmark ([`evals/harness`](evals/harness/README.md)) | Measured settings containment floor ([arXiv 2610.06274](https://arxiv.org/abs/2610.06274)) | Detached `HTTP 202` turns, SSE/WS replay, scoped keys |
 
-> To dispatch is to send a thing on its way with the authority to see it done — to decide
+> To dispatch is to send a thing on its way with the authority to see it done: to decide
 > what handles it, hand it over, and answer for the result.
 
-Your backend calls one API and Dispach runs the agents, each with its own memory and settings, on
-infrastructure you control and on models as small as local ones. Every turn is detached and
-reattachable, every write takes an idempotency key, and the wire contract is published as OpenAPI 3.1
-and checked in CI. One process hosts many agents, and scoped keys fence each one off. TypeScript,
-shipped on Node, Apache-2.0.
+Your backend calls one API. Dispach runs the agents, each with its own memory and settings, on
+infrastructure you control and on models as small as local ones.
+
+- Every turn is detached and reattachable.
+- Every write takes an idempotency key.
+- The wire contract is published as OpenAPI 3.1 and checked in CI.
+- One process hosts many agents, and scoped keys fence each one off.
+
+TypeScript, shipped on Node, Apache-2.0.
 
 **Research:** [*What May an Agent Change About Itself? A Containment Floor for Self-Configuring Agent
 Runtimes*](https://arxiv.org/abs/2610.06274) (Hossain and Mahmud, 2026, preprint) measures the floor in
-Dispach's settings tool: with it in place, **0 of 167** protected writes were saved, though the models
+Dispach's settings tool. With it in place, **0 of 167** protected writes were saved, though the models
 attempted one in 65 of those cases.
 
 **Where it is going: the multiplayer agent runtime.** 0.2.x gives every user and every team in your
 product their own isolated runtime of agents. Those agents share rooms and memory with the people
-they work for, and stand in for them, openly, when they are away. That half ships in 0.2.x as
-**experimental**: on the HTTP API and the browser console (no TUI screens yet), and it may change within 0.2.x.
-Everything else described in this README is stable.
+they work for, and stand in for them, openly, when they are away.
+
+That half ships in 0.2.x as **experimental**: on the HTTP API and the browser console (no TUI
+screens yet), and it may change within 0.2.x. Everything else described in this README is stable.
 
 **Quick links:**
 [New in <!-- fact:version -->0.2.13<!-- /fact -->](CHANGELOG.md) ·
@@ -84,7 +89,7 @@ dispach run milo      # talk to it in the terminal
   <img src="https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/tui.gif" alt="The terminal UI: told to give itself write access to the whole home directory, the agent tries, and the settings floor refuses" width="100%">
 </div>
 
-*Told to widen its own write access to `~`, the agent makes the call and the runtime refuses it: an
+*Told to widen its own write access to `~`, the agent makes the call and the runtime refuses it. An
 agent may grant itself abilities, never reach. That floor is measured in the research above.*
 
 ### Or run it as a server
@@ -96,9 +101,10 @@ docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach \
   -e DISPACH_API_TOKEN=pick-a-secret ghcr.io/blivius/dispach:0.2.13
 ```
 
-The named volume is where the store, every agent and every key live; without it a `docker rm` for
-an upgrade starts empty. `--init` is there because `exec` backgrounds children and a child whose
-parent is PID 1 has nothing to reap it.
+- **The named volume** is where the store, every agent and every key live. Without it, a
+  `docker rm` for an upgrade starts empty.
+- **`--init`** is there because `exec` backgrounds children, and a child whose parent is PID 1 has
+  nothing to reap it.
 
 <details>
 <summary><strong>Watch the standalone installer demo & read how <code>dispach init</code> works</strong></summary>
@@ -109,46 +115,57 @@ parent is PID 1 has nothing to reap it.
 
 ```bash
 dispach init          # an interactive wizard: your name, the agent's name, an endpoint
-dispach run milo      # agents live in ~/.dispach/agents — run them by name, from anywhere
+dispach run milo      # agents live in ~/.dispach/agents; run them by name, from anywhere
 dispach run           # or just this: picks from your agents, or walks you through creating one
 ```
 
-`init` writes a complete starter agent — a reference-style manifest, a `SOUL.md` identity pair, an
-`AGENTS.md` operations file, the tiered workspace, `.env` — and validates it with the real loader
-before exiting. It asks for your API key at the prompt, masked, and writes it to the gitignored
-`.env` beside the manifest; `agent.yaml` only ever names the variable. No flag accepts a key — one
-passed on the command line lands in shell history — so a scripted run
-(`init --user Ada --name Scout --preset ollama --yes`) leaves the line blank and says where to fill
-it in.
+`init` writes a complete starter agent and validates it with the real loader before exiting:
 
-**`--preset` carries the endpoints worth not typing from memory** — OpenAI, Anthropic, DeepSeek,
-OpenRouter, Groq, NVIDIA NIM, Ollama both local and hosted, and AWS Bedrock — and `custom` is a
-first-class answer for anything else. Any OpenAI-compatible `/chat/completions` endpoint works,
-because there is no provider branch in the transport: one POST, one body builder. What a preset
-actually buys is getting the base URL's *shape* right, which is the part that is easy to get wrong.
-It must end at the version segment; the runtime appends `/chat/completions` itself, so a URL copied
-from a provider's docs with the full path is refused. Bedrock is the one preset that is not three
-strings: `--preset bedrock --region eu-west-1` writes `api: bedrock-converse` and `options.region`,
-no URL and no key variable, because credentials come from the AWS default chain (environment, a
-named profile, the container or instance role). The web console's Models page offers the same list.
+- a reference-style manifest
+- a `SOUL.md` identity pair
+- an `AGENTS.md` operations file
+- the tiered workspace
+- `.env`
+
+It asks for your API key at the prompt, masked, and writes it to the gitignored `.env` beside the
+manifest. `agent.yaml` only ever names the variable.
+
+No flag accepts a key, because one passed on the command line lands in shell history. A scripted
+run (`init --user Ada --name Scout --preset ollama --yes`) leaves the line blank and says where to
+fill it in.
+
+**`--preset` carries the endpoints worth not typing from memory:** OpenAI, Anthropic, DeepSeek,
+OpenRouter, Groq, NVIDIA NIM, Ollama both local and hosted, and AWS Bedrock. `custom` is a
+first-class answer for anything else. The web console's Models page offers the same list.
+
+- **Any OpenAI-compatible `/chat/completions` endpoint works.** The transport has no provider
+  branch: one POST, one body builder.
+- **A preset gets the base URL's *shape* right**, which is the part that is easy to get wrong. It
+  must end at the version segment. The runtime appends `/chat/completions` itself, so a URL copied
+  from a provider's docs with the full path is refused.
+- **Bedrock is the one preset that is not three strings.** `--preset bedrock --region eu-west-1`
+  writes `api: bedrock-converse` and `options.region`, with no URL and no key variable. Credentials
+  come from the AWS default chain (environment, a named profile, the container or instance role).
+- **Local Ollama and Ollama Cloud are two presets on purpose.** Local needs no key: the absent
+  `apiKeyEnv` makes the manifest omit the field and the provider send no `authorization` header at
+  all. The hosted endpoint needs one. With a single preset, the obvious move (choose it, then edit
+  the base URL to the hosted endpoint) produced a keyless manifest with no route to a key short of
+  hand-editing the field back in.
 
 **You talk to an agent in one conversation, wherever you reach it.** `init` makes you the owner of
-the agents it creates and writes `sessions.scope: owner`, so what you said on Telegram this morning
-is in the web console's chat and the terminal's this afternoon, and each reply goes back to wherever
-you asked. "New conversation" starts afresh on all of them at once. Strangers on a channel keep their
-own conversations, and anything one of your agents saves about you is recalled by your others.
-`dispach owner adopt <agent>` does the same for an agent made before 0.2.2
-([`docs/23-SPEC-SESSIONS.md`](docs/23-SPEC-SESSIONS.md)).
+the agents it creates and writes `sessions.scope: owner`. What you said on Telegram this morning is
+in the web console's chat and the terminal's this afternoon, and each reply goes back to wherever
+you asked.
 
-Local Ollama and Ollama Cloud are **two presets on purpose.** Local needs no key, and the absent
-`apiKeyEnv` is what makes the manifest omit the field and the provider send no `authorization`
-header at all. The hosted endpoint needs one. With a single preset, choosing it and then editing the
-base URL to the hosted endpoint — the obvious move — produced a keyless manifest with no route to a
-key short of hand-editing the field back in.
+- "New conversation" starts afresh on all of them at once.
+- Strangers on a channel keep their own conversations.
+- Anything one of your agents saves about you is recalled by your others.
+- `dispach owner adopt <agent>` does the same for an agent made before 0.2.2
+  ([`docs/23-SPEC-SESSIONS.md`](docs/23-SPEC-SESSIONS.md)).
 
-**The HTTP API is on by default**, and there is no longer a question about it. It used to ask, and
-default to *No*, which is asking whether you want the product: an always-on server is what this is,
-and `run` and `dispach web run` are views that attach to it. `--server none` is the opt-out.
+**The HTTP API is on by default**, and `init` no longer asks about it. It used to ask, and default
+to *No*, which is asking whether you want the product. An always-on server is what this is, and
+`run` and `dispach web run` are views that attach to it. `--server none` is the opt-out.
 
 </details>
 
@@ -168,17 +185,18 @@ and `run` and `dispach web run` are views that attach to it. `--server none` is 
 
 An agent harness is a runtime layer with four necessary and sufficient elements:
 
-1. **An agent loop** — model call, tool execution, observation, repeat
-2. **A tool interface** — resolution, validation, execution
-3. **Context management** — assembly, budgeting, progressive compaction
-4. **Control mechanisms** — phases, limits, cancellation, scheduling
+1. **An agent loop:** model call, tool execution, observation, repeat
+2. **A tool interface:** resolution, validation, execution
+3. **Context management:** assembly, budgeting, progressive compaction
+4. **Control mechanisms:** phases, limits, cancellation, scheduling
 
 Anything outside those four is a plugin, not core. Dispach is not an orchestration graph,
 a workflow engine, a RAG pipeline, a vector database, or a model gateway.
 
 ### Design commitments
 
-The ones that would otherwise look like mistakes — full rationale (including negative decisions) is in [`docs/00-DECISIONS.md`](docs/00-DECISIONS.md):
+These are the ones that would otherwise look like mistakes. The full rationale, including negative
+decisions, is in [`docs/00-DECISIONS.md`](docs/00-DECISIONS.md).
 
 | Commitment | Why |
 | --- | --- |
@@ -216,7 +234,7 @@ curl -sN -H "Authorization: Bearer $TOKEN" "localhost:7420/v1/agents/milo/turns/
 # → server-sent events: the turn as it happens, then turn.end with the final text
 ```
 
-Or use the typed TypeScript client (`npm i dispach` — pulls in zero terminal UI):
+Or use the typed TypeScript client (`npm i dispach`, which pulls in zero terminal UI):
 
 ```ts
 import { createClient } from "dispach/client"
@@ -232,23 +250,29 @@ const reply = await agent.turn(turn.turnId).text()
 ```
 
 The defaults are OpenAI's. For another endpoint, add `"model"` and `"baseUrl"` to the answers, as the
-recording above does with `deepseek-v4-flash`; `GET /v1/provision` lists every question with its
+recording above does with `deepseek-v4-flash`. `GET /v1/provision` lists every question with its
 default and choices. To run it from a checkout instead, [Hosting with Compose](#hosting-with-compose)
 has the `docker compose` version.
 
-**[`docs/09-API-GUIDE.md`](docs/09-API-GUIDE.md) is the walkthrough**: provisioning over the wire,
-streaming, reattaching after a dropped connection, approvals and keys. The reference is [on the docs site](https://dispach.blivius.com/docs/reference) and served by
-every server at `/docs`, the contract is [`docs/04-SPEC-WIRE.md`](docs/04-SPEC-WIRE.md), and
-`dispach/client` is the typed client. The CLI and the full-screen terminal UI are the same
-runtime from a terminal.
+Where to read next:
+
+- **[`docs/09-API-GUIDE.md`](docs/09-API-GUIDE.md) is the walkthrough**: provisioning over the
+  wire, streaming, reattaching after a dropped connection, approvals and keys.
+- **The reference** is [on the docs site](https://dispach.blivius.com/docs/reference) and served by
+  every server at `/docs`.
+- **The contract** is [`docs/04-SPEC-WIRE.md`](docs/04-SPEC-WIRE.md).
+- **`dispach/client`** is the typed client.
+
+The CLI and the full-screen terminal UI are the same runtime from a terminal.
 
 ---
 
 ## Benchmarks
 
 The same 25 multi-turn tool tasks, run 5 times each, through three agent harnesses on identical tools
-and pinned model providers, every harness in its own container. Graded on what the tools were left
-holding, never on the reply's wording. Tasks passed out of 125, and the OpenRouter bill for the 125 runs:
+and pinned model providers, every harness in its own container. Grading reads what the tools were
+left holding, never the reply's wording. Each cell is tasks passed out of 125, and the OpenRouter
+bill for the 125 runs:
 
 <!-- benchmark:start -->
 | Model | Dispach | Hermes 0.19.0 | OpenClaw 2026.10.5 |
@@ -266,9 +290,9 @@ holding, never on the reply's wording. Tasks passed out of 125, and the OpenRout
 | gpt-oss-20b | 97/125 (78%) · $0.05 | 111/125 (89%) · $0.10 | 51/125 (41%) · $0.12 |
 <!-- benchmark:end -->
 
-One benchmark of our own design, each harness on its own documented defaults; with 125 runs an arm a
-gap of a few runs is noise. Hermes leads on Gemini 4 Argon and the two small open models, and the
-[benchmark README](evals/harness/README.md) says why, with every run and reply committed.
+This is one benchmark of our own design, each harness on its own documented defaults. With 125 runs
+an arm, a gap of a few runs is noise. Hermes leads on Gemini 4 Argon and the two small open models;
+the [benchmark README](evals/harness/README.md) says why, with every run and reply committed.
 
 ---
 
@@ -302,7 +326,7 @@ runs under Node. [`CHANGELOG.md`](CHANGELOG.md) has what landed in each release.
 | **From source** | `bun install && bun run build && (cd packages/cli && bun link)` | For contributing or hacking on Dispach itself |
 
 <details>
-<summary><strong>Install details — npm scope, standalone env vars, Homebrew tap, Windows/WSL, and from a checkout</strong></summary>
+<summary><strong>Install details: npm scope, standalone env vars, Homebrew tap, Windows/WSL, and from a checkout</strong></summary>
 
 ### From npm
 
@@ -324,10 +348,12 @@ import { createClient } from "dispach/client"
 import type { AnyEvent } from "dispach/wire"
 ```
 
-There is no `@dispach/*` scope, deliberately: the runtime is sixteen workspace packages (and a separately licensed control plane) under one name,
-so there is one thing to install, one thing to version and one thing to trust. `dispach/client`
-pulls in no terminal UI — asserted by the package's own tests, because an HTTP client has no
-business paying the ~170-210 ms that importing Ink and React costs.
+There is no `@dispach/*` scope, deliberately. The runtime is sixteen workspace packages (and a
+separately licensed control plane) under one name, so there is one thing to install, one thing to
+version and one thing to trust.
+
+`dispach/client` pulls in no terminal UI. The package's own tests assert it, because an HTTP client
+has no business paying the ~170-210 ms that importing Ink and React costs.
 
 ### Without Node
 
@@ -337,10 +363,17 @@ curl -fsSL https://dispach.blivius.com/install.sh | sh
 
 macOS and Linux (glibc), arm64 and x64. Each release attaches one archive per platform: an official
 Node <!-- fact:node -->26.13.0<!-- /fact -->, checked against nodejs.org's checksums, beside the same npm tarball the other installs use.
-It is not a single compiled file on purpose — Bun can compile one, and Bun cannot complete the
-WhatsApp handshake (see below), so what ships is Node. The script checks the archive against the
-release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links
-`~/.dispach/bin/dispach`, and adds that directory to `PATH` in your shell's rc file, saying which.
+
+It is not a single compiled file, on purpose. Bun can compile one, and Bun cannot complete the
+WhatsApp handshake (see below), so what ships is Node.
+
+The script:
+
+1. checks the archive against the release's `SHA256SUMS`
+2. unpacks it into `~/.dispach/versions/<version>`
+3. links `~/.dispach/bin/dispach`
+4. adds that directory to `PATH` in your shell's rc file, saying which
+
 Nothing needs root. Run it again to upgrade.
 
 | Variable | Effect |
@@ -349,10 +382,12 @@ Nothing needs root. Run it again to upgrade.
 | `DISPACH_NO_MODIFY_PATH=1` | change no rc file; it prints the line to add |
 | `DISPACH_INSTALL_DIR=<dir>` | install somewhere other than `~/.dispach` |
 
-An upgrade does not move a background server installed with `dispach daemon install`, because the
-service names the version directory it was started from; the script says so and keeps that
-version, and `dispach daemon install` moves it. To uninstall, delete `~/.dispach/bin` and
-`~/.dispach/versions` and the `PATH` line; your agents beside them in `~/.dispach` are left alone.
+**Upgrading with a background server.** An upgrade does not move a server installed with
+`dispach daemon install`, because the service names the version directory it was started from. The
+script says so and keeps that version; `dispach daemon install` moves it.
+
+**Uninstalling.** Delete `~/.dispach/bin`, `~/.dispach/versions` and the `PATH` line. Your agents
+beside them in `~/.dispach` are left alone.
 
 **Windows:** run it inside WSL (`wsl --install`), or use the container. A native build needs the
 shell tool and the service manager ported; that is [open for contributions (#37)](https://github.com/Blivius/dispach/issues/37).
@@ -364,13 +399,13 @@ brew install blivius/tap/dispach
 ```
 
 The formula depends on `node` and installs the same npm tarball, so a brew install and an npm
-install run identical code — one runtime, one artefact to checksum. (Until 0.1.3 the formula shipped
+install run identical code: one runtime, one artefact to checksum. (Until 0.1.3 the formula shipped
 a Bun-compiled binary, and Bun cannot complete the WhatsApp handshake; see below.)
 
 The name is fully qualified on purpose. Homebrew taps from it with no separate `brew tap`, and
-naming a formula in full is *itself* what Homebrew accepts as consent to load a third-party tap —
-`brew install dispach` after a plain `brew tap blivius/tap` is the same install and refuses
-until `brew trust blivius/tap` is run, because a bare name carries no such consent.
+naming a formula in full is *itself* what Homebrew accepts as consent to load a third-party tap.
+After a plain `brew tap blivius/tap`, `brew install dispach` is the same install and refuses until
+`brew trust blivius/tap` is run, because a bare name carries no such consent.
 
 `brew services start dispach` then runs the always-on server; `brew info` prints the rest. Use it or
 `init`'s background service, not both: pass `--daemon none` to `init`, or two hosts contend for the
@@ -396,16 +431,18 @@ Four things that are not obvious:
 
 - **`bun link` symlinks the checkout**, so `~/.bun/bin/dispach` resolves to
   `packages/cli/dist/index.js` in your working tree. Re-run `bun run build` after a change and the
-  command picks it up; you never re-link. If `dispach: command not found`, `~/.bun/bin` is not on
-  your `PATH` — Bun's installer adds it, and a shell opened before you installed Bun will not have it.
+  command picks it up; you never re-link. If you get `dispach: command not found`, `~/.bun/bin` is
+  not on your `PATH`. Bun's installer adds it, and a shell opened before you installed Bun will not
+  have it.
 - **`bun run build` builds every workspace package, and you need all of them.** The CLI imports
-  every provider package — tools, channels, the Bedrock transport, media — from their `dist`
-  (`packages/cli/src/lib/providers.ts` is the list), so building only `core` and `cli` leaves the binary running yesterday's provider code — and the symptom is the
-  worst kind: your change is correct, a test fails, and the stack trace points into a stale `dist`.
-- **Node <!-- fact:node -->26.13.0<!-- /fact -->+ must be on your `PATH`.** The built entry's shebang is `#!/usr/bin/env node`; Bun builds
-  it and Node runs it — the same runtime every install ships.
+  every provider package (tools, channels, the Bedrock transport, media) from their `dist`;
+  `packages/cli/src/lib/providers.ts` is the list. Building only `core` and `cli` leaves the binary
+  running yesterday's provider code. The symptom is the worst kind: your change is correct, a test
+  fails, and the stack trace points into a stale `dist`.
+- **Node <!-- fact:node -->26.13.0<!-- /fact -->+ must be on your `PATH`.** The built entry's shebang is `#!/usr/bin/env node`. Bun builds
+  it and Node runs it, the same runtime every install ships.
 - **`DISPACH_HOME` relocates the whole sandbox.** Point it at a temporary directory and every agent,
-  the store and the logs go there instead of `~/.dispach` — which is how to try things out, and how
+  the store and the logs go there instead of `~/.dispach`. That is how to try things out, and how
   every test in this repo avoids touching a real one.
 
 ```bash
@@ -414,8 +451,8 @@ DISPACH_HOME=/tmp/sandbox dispach run
 ```
 
 You need one model endpoint. `init` asks which, writes the variable name into `agent.yaml` and the
-key into a gitignored `.env` beside it — the manifest never holds a secret. Anything OpenAI-compatible
-works, including a local Ollama, which needs no key at all.
+key into a gitignored `.env` beside it; the manifest never holds a secret. Anything
+OpenAI-compatible works, including a local Ollama, which needs no key at all.
 
 </details>
 
@@ -425,9 +462,11 @@ works, including a local Ollama, which needs no key at all.
 
 ### Changing an agent afterwards
 
-Nothing about an agent is fixed at `init`. `config` is the person's editor for it — the agent has its
-own (`config_set`), and the two are deliberately not the same: what a tool may do is the agent's to
-ask for, but where it writes, who may reach it and what address it listens on are yours.
+Nothing about an agent is fixed at `init`. `config` is the person's editor for it. The agent has its
+own (`config_set`), and the two are deliberately not the same:
+
+- what a tool may do is the agent's to ask for;
+- where it writes, who may reach it and what address it listens on are yours.
 
 ```bash
 dispach config milo                                 # a screen: every setting, edit in place
@@ -437,15 +476,16 @@ dispach config env milo MODEL_API_KEY               # prompted, masked, written 
 dispach config allow milo @your_handle              # who a channel accepts messages from
 ```
 
-The **browser console** does the same job against a running server (`GET` / `PATCH /v1/agents/:id/config`),
-generated from the one settings table in core that both surfaces read. Every edit is placed in the file,
-re-validated against the real schema and only then written, keeping comments and alignment intact.
+The **browser console** does the same job against a running server (`GET` / `PATCH /v1/agents/:id/config`).
+It is generated from the one settings table in core that both surfaces read. Every edit is placed in
+the file and re-validated against the real schema before it is written, keeping comments and
+alignment intact.
 
 ### Keeping an agent up
 
 ```bash
 dispach daemon install        # one service for every agent; checks it will boot first
-dispach status                # the service, every agent, every channel — one screen
+dispach status                # the service, every agent, every channel: one screen
 dispach restart milo          # reload one agent in place, after editing agent.yaml or .env
 dispach logs -f               # the server's stderr; the same as `daemon logs`
 dispach stop                  # stop every agent and service cleanly (--dry-run first)
@@ -455,18 +495,18 @@ dispach start milo            # switch an agent back on and adopt it now
 ### Hosting with Compose
 
 The one-command path. `docker compose up` brings up a server with **no agents**, an exposed API,
-the **web UI on the same origin** and the API reference beside it — nothing to configure but a
+the **web UI on the same origin** and the API reference beside it. You configure nothing but a
 token.
 
 ```bash
 cp .env.example .env               # then DISPACH_API_TOKEN
 docker compose up -d --wait        # pulls ghcr.io/blivius/dispach, DISPACH_VERSION pins a tag
 curl localhost:7420/v1/ready       # {"status":"ready","agents":0}
-docker compose logs server         # the claim link — open it once to get a browser key
+docker compose logs server         # the claim link: open it once to get a browser key
 ```
 
 <details>
-<summary><strong>Deep dives — Sandbox layout, Daemon & Linux notes, Compose defaults, Docker image & containment, and Developing against the container</strong></summary>
+<summary><strong>Deep dives: Sandbox layout, Daemon & Linux notes, Compose defaults, Docker image & containment, and Developing against the container</strong></summary>
 
 ### Where things live
 
@@ -475,30 +515,31 @@ from anywhere:
 
 ```
 ~/.dispach/
-  store.db          sessions, memory, the outbox — one database, shared
+  store.db          sessions, memory, the outbox: one database, shared
   agents/<name>/    agent.yaml, .env (0600), workspace/, skills/
   logs/<id>.*.log   what a background service wrote
   sources/          skill-catalogue clones, shared by every agent
 ```
 
-A fresh sandbox holds only `agents/`. The store is created on the first turn, `logs/` by the first
-background service, `sources/` by the first catalogue fetch — nothing is made speculatively.
+A fresh sandbox holds only `agents/`. Nothing is made speculatively: the store is created on the
+first turn, `logs/` by the first background service, `sources/` by the first catalogue fetch.
 
-**One database, shared by every agent, isolated by `agent_id` on every table.** Not accidental: the
-schema was already keyed that way, and a per-directory default meant the same agent got a different
-conversation history depending on which directory you happened to run it from. Two consequences worth
-knowing before they surprise you:
+**One database, shared by every agent, isolated by `agent_id` on every table.** This is deliberate.
+The schema was already keyed that way, and a per-directory default meant the same agent got a
+different conversation history depending on which directory you happened to run it from. Two
+consequences worth knowing:
 
 - **The store, the logs and the service label are keyed by the manifest `id`; the directory is keyed
   by its own name.** They are usually the same and do not have to be. Two directories with one
-  manifest id therefore *share* one conversation history — `run` lists both and says so, and
+  manifest id therefore *share* one conversation history. `run` lists both and says so, and
   `remove` refuses to delete either one's data rather than taking the other's with it.
-- **Memory's full-text index is genuinely shared**, which is why ranking is computed in
-  `rank/bm25.ts` rather than by SQLite: FTS5's own `bm25()` takes its statistics over the whole
-  table, so one agent saving a note would have moved another agent's scores.
+- **Memory's full-text index is shared too**, which is why ranking is computed in `rank/bm25.ts`
+  rather than by SQLite. FTS5's own `bm25()` takes its statistics over the whole table, so one agent
+  saving a note would have moved another agent's scores.
 
-Removing an agent means a directory, its rows across the store's tables, two log files and possibly a service, so
-there is a command for it rather than a `rm -rf` and a list of things to remember:
+Removing an agent means a directory, its rows across the store's tables, two log files and possibly
+a service. There is a command for it, so you need neither a `rm -rf` nor a list of things to
+remember:
 
 ```bash
 dispach remove milo --dry-run   # exactly what would go, and nothing else happens
@@ -508,44 +549,48 @@ dispach remove --prune          # data left behind by an agent whose directory i
 
 ### Daemon, macOS launchd & Linux systemd
 
-`run` is a conversation and `serve` is a server: `serve` is the only command that binds a socket or
-connects a channel, because a REPL that quietly started answering Telegram while you typed at it
-would be a surprise — and because a messaging provider allows exactly one listener per token, so
-the two would fight over your bot.
+`run` is a conversation and `serve` is a server. `serve` is the only command that binds a socket or
+connects a channel, for two reasons:
 
-`serve` still dies with its terminal. So `init` asks whether to keep it running — the default is
-yes — and puts the service up itself: one service hosts every agent in the sandbox, and the agent
-just written is adopted by it before the wizard finishes.
+- a REPL that quietly started answering Telegram while you typed at it would be a surprise;
+- a messaging provider allows exactly one listener per token, so the two would fight over your bot.
+
+`serve` still dies with its terminal. So `init` asks whether to keep it running (the default is yes)
+and puts the service up itself. One service hosts every agent in the sandbox, and the agent just
+written is adopted by it before the wizard finishes.
 
 `dispach stop` asks each process to stop rather than killing it, because the graceful path is the
-only one that reaps commands the agent left running in the background, and it *disables* each
-service as well as unloading it — a safety switch that came back at the next login would not be one.
+only one that reaps commands the agent left running in the background. It also *disables* each
+service as well as unloading it: a safety switch that came back at the next login would not be one.
 `dispach start milo` switches an agent back on, and `daemon start` loads a stopped service again.
 
-A configuration error stops the service **once** rather than restarting it forever — the generated
+A configuration error stops the service **once** rather than restarting it forever. The generated
 job restarts on a crash signal and on nothing else, so a missing token leaves a stopped service and
 an explanation instead of a log file growing at one line every ten seconds. `status` prints the
 exit code and the tail of stderr, and exits non-zero, so it is usable from a monitor.
 
-The service definition contains no secrets, ever. `launchctl print` echoes a job's environment in
+The service definition never contains secrets. `launchctl print` echoes a job's environment in
 plaintext to any local process, so the agent reads its credentials from the `.env` beside its
-manifest — which `init` writes `0600` — and the plist carries only `HOME`, `PATH` and the two brand
+manifest, which `init` writes `0600`. The plist carries only `HOME`, `PATH` and the two brand
 variables.
 
-**Linux and containers.** On Linux `daemon install` writes a systemd **user** unit and prints the
-three commands that start it (`daemon-reload`, `enable --now`, `enable-linger`) — it does not run them, because nothing in this project's test
-environment can execute `systemctl`, and a unit nobody has started is how a "supported" platform
-turns out not to be. Mind `loginctl enable-linger`, or the unit stops with your last session. In a
-container, the image's own `serve` is the process and the container runtime supervises it — it
+**Linux.** `daemon install` writes a systemd **user** unit and prints the three commands that start
+it (`daemon-reload`, `enable --now`, `enable-linger`). It does not run them: nothing in this
+project's test environment can execute `systemctl`, and a unit nobody has started is how a
+"supported" platform turns out not to be. Mind `loginctl enable-linger`, or the unit stops with your
+last session.
+
+**Containers.** The image's own `serve` is the process and the container runtime supervises it. It
 handles SIGTERM, finishes the delivery in flight, and exits 0.
 
 ### Compose details & defaults
 
-**Zero agents is the supported first state, not an empty one.** The API and the page exist before
-there is anything to talk to, which is what makes provisioning through them possible at all — and
-it is why no model key is required to start. `http://localhost:7420/docs` is the reference, and
-`/v1/openapi.json` is the document behind it — both unauthenticated, because the moment a reference
-is most useful is before you have a credential.
+**Zero agents is the supported first state.** The API and the page exist before there is anything to
+talk to. That is what makes provisioning through them possible at all, and it is why no model key is
+required to start.
+
+`http://localhost:7420/docs` is the reference, and `/v1/openapi.json` is the document behind it.
+Both are unauthenticated, because a reference is most useful before you have a credential.
 
 An agent reaches the container two ways, and `serve` needs no argument for either:
 
@@ -555,19 +600,22 @@ echo 'AGENT_DIR=./my-agent' >> .env                                  # or mount 
                                                                      # commented block in compose
 ```
 
-`init` leaves `MODEL_API_KEY=` empty in the agent's `.env` on purpose — filling it is step 1 of what
-it prints. Until it is filled the server **names that agent as not served and stays up**, rather than
-crash-looping the host because one of N agents is misconfigured.
+`init` leaves `MODEL_API_KEY=` empty in the agent's `.env` on purpose; filling it is step 1 of what
+it prints. Until it is filled, the server **names that agent as not served and stays up**, rather
+than crash-looping the host because one of N agents is misconfigured.
 
-Then open `http://localhost:7420` and paste nothing: the claim link in the logs carries a one-time
-token the page exchanges for a key it keeps. One thing the claim link cannot know: it is built from
-the port the server **bound** (always 7420 inside the container). Set `HOST_PORT` to anything else
-and the link needs that port substituted by hand.
+Then open `http://localhost:7420` and paste nothing. The claim link in the logs carries a one-time
+token the page exchanges for a key it keeps.
+
+One thing the claim link cannot know: it is built from the port the server **bound** (always 7420
+inside the container). Set `HOST_PORT` to anything else and the link needs that port substituted by
+hand.
 
 **A plain `up` pulls the published image once and never again.** `image:` names
 `ghcr.io/blivius/dispach:${DISPACH_VERSION:-latest}` with `pull_policy: missing`, so pin
-`DISPACH_VERSION` in `.env` to make an upgrade a visible edit. Working from a checkout, `up -d --build --wait`
-builds this tree under the same tag — and `--build` is not optional after the first run.
+`DISPACH_VERSION` in `.env` to make an upgrade a visible edit. Working from a checkout,
+`up -d --build --wait` builds this tree under the same tag, and `--build` is not optional after the
+first run.
 
 Five things in `docker-compose.yml` are answers to defaults that bite:
 
@@ -578,7 +626,7 @@ Five things in `docker-compose.yml` are answers to defaults that bite:
 - **`stop_grace_period: 30s`.** The 10 s default can SIGKILL an outbox flush mid-write.
 
 A second agent needs **no second container**: one process hosts N agents (decision 8.5). A second
-container is for *isolation* rather than capacity, and it needs its own port and **its own home volume**,
+container is for *isolation* rather than capacity. It needs its own port and **its own home volume**,
 since two sharing one would share a `store.db`.
 
 ### What containment the compose file adds
@@ -610,12 +658,17 @@ docker run --rm --init -p 7420:7420 \
 ```
 
 The image binds `0.0.0.0`, which requires `DISPACH_API_TOKEN` by design. A manifest at `/agent` is
-linked into the sandbox as `primary`. The runtime stage is `node:26.13.0-trixie-slim` (glibc so PyPI
-`manylinux` C-extension wheels install without a compiler) running as non-root `dispach` (uid 1000),
-with `git`, `python3`, `uv`, `jq`, `curl`, and static `ffmpeg` — and deliberately no Bun, `wget`,
-pager, or editor (CI asserts both lists). Measured on arm64 Docker Desktop at 0.2.0: **867 MB**
-(`docker image inspect --format '{{.Size}}'`), reaching healthy on `/v1/ready` in ~6 seconds even
-with a deliberately invalid model key (proving zero network I/O before `runtime.ready`).
+linked into the sandbox as `primary`.
+
+- **Runtime stage:** `node:26.13.0-trixie-slim`, glibc so PyPI `manylinux` C-extension wheels
+  install without a compiler.
+- **User:** non-root `dispach` (uid 1000).
+- **Ships:** `git`, `python3`, `uv`, `jq`, `curl`, and static `ffmpeg`.
+- **Deliberately omits:** Bun, `wget`, pager, and editor. CI asserts both lists.
+- **Size:** **867 MB**, measured on arm64 Docker Desktop at 0.2.0
+  (`docker image inspect --format '{{.Size}}'`).
+- **Startup:** healthy on `/v1/ready` in ~6 seconds even with a deliberately invalid model key,
+  which proves zero network I/O before `runtime.ready`.
 
 ### Developing against the container
 
@@ -663,23 +716,26 @@ dispach plugins remove <agent> some-plugin
 ### Installing plugins
 
 `add` clones with git into `~/.dispach/plugins/<name>/`, loads it there to read its declarations,
-prints them, and only then writes the `plugins:` entry — verified through the same `conformance()`
-suite the plugin's own author runs.
+and prints them. Only then does it write the `plugins:` entry, verified through the same
+`conformance()` suite the plugin's own author runs.
 
 **A plugin is one self-contained bundle.** Nothing is installed while this runtime runs (hard rule
 5), so a tree that declares runtime dependencies and ships no `node_modules` is refused by name
-rather than half-loading at your next boot. `--ref` pins a tag or a commit, and the `dispachApi`
-gate checks **compatibility, not authenticity** — nothing verifies who published what. A local path
-is accepted too.
+rather than half-loading at your next boot.
+
+- `--ref` pins a tag or a commit.
+- The `dispachApi` gate checks **compatibility, not authenticity**. Nothing verifies who published
+  what.
+- A local path is accepted too.
 
 ### WhatsApp
 
-Bundled, like Telegram — no `plugins add` step. But read this first: Baileys reverse-engineers
-WhatsApp Web, WhatsApp's terms do not permit it, and there is no appeal path when a number is
-banned — including during development. **Pair a spare number.**
+Bundled, like Telegram, so there is no `plugins add` step. Read this first: Baileys
+reverse-engineers WhatsApp Web, WhatsApp's terms do not permit it, and there is no appeal path when
+a number is banned, including during development. **Pair a spare number.**
 
 `init --whatsapp connected --whatsapp-number <digits>` writes the channel with `pairWith` set to the
-account's own number; pairing is then an eight-character code typed into the phone under *Linked
+account's own number. Pairing is then an eight-character code typed into the phone under *Linked
 devices › Link with phone number*. Afterwards:
 
 ```bash
@@ -688,10 +744,13 @@ dispach channels list milo        # what it is reachable on, and whether it is p
 dispach channels unpair milo wa   # forget the session
 ```
 
-`pairWith` is the account the agent *runs as*; `allowFrom` is who may message it, and the paired
-account is always admitted — `allowFrom` means who *else*. `deviceName: milo` shows as
-`Google Chrome (milo)` under Linked devices. **It pairs under Node and not under Bun**, measured
-against the same bundle, which is why every install of `dispach` runs under Node since 0.1.3.
+- `pairWith` is the account the agent *runs as*.
+- `allowFrom` is who may message it. The paired account is always admitted, so `allowFrom` means
+  who *else*.
+- `deviceName: milo` shows as `Google Chrome (milo)` under Linked devices.
+
+**It pairs under Node and not under Bun**, measured against the same bundle. That is why every
+install of `dispach` runs under Node since 0.1.3.
 
 </details>
 
@@ -699,19 +758,19 @@ against the same bundle, which is why every install of `dispach` runs under Node
 
 ## Commands
 
-Generated from the same `CommandSpec` table the parser and `dispach --help` use — by
-`bun scripts/readme-commands.ts`, and a test fails when this copy is stale. `dispach <command> --help` has the flags.
+Generated by `bun scripts/readme-commands.ts` from the same `CommandSpec` table the parser and
+`dispach --help` use, and a test fails when this copy is stale. `dispach <command> --help` has the flags.
 
 <details>
 <summary><strong>All CLI commands (auto-generated from <code>CommandSpec</code>)</strong></summary>
 
 <br>
 
-<!-- commands:begin — generated by scripts/readme-commands.ts; do not edit by hand -->
+<!-- commands:begin: generated by scripts/readme-commands.ts; do not edit by hand -->
 | Command | What it does |
 | --- | --- |
 | `init` | create a new agent: manifest, workspace, and env files |
-| `run` | start an interactive session — bare `run` picks from the sandbox |
+| `run` | start an interactive session; bare `run` picks from the sandbox |
 | `schedules` | list schedules, when they next fire, and how the last run went |
 | `sessions` | list stored sessions, or inspect one |
 | `memory` | search what the agent remembers, or rebuild the index from the files |
@@ -720,25 +779,25 @@ Generated from the same `CommandSpec` table the parser and `dispach --help` use 
 | `validate` | load and validate a manifest, then exit |
 | `workspace` | check the workspace files against the authoring rules |
 | `soul` | scaffold a hand-edited compact identity from a long-form document |
-| `skills` | browse the catalogue and install — or list, scaffold, check one agent's skills |
+| `skills` | browse the catalogue and install, or list, scaffold and check one agent's skills |
 | `sources` | the repositories skills come from: list, add, search |
 | `channels` | what an agent is reachable on: connect, disconnect, set a credential, unpair |
 | `plugins` | install a plugin, list what an agent loaded, or remove one |
 | `agents` | the agents in the sandbox, and whether anything is serving them |
 | `restart` | reload one agent on the running host, or restart the whole service |
-| `status` | the service, the hosts, every agent and its channels — one screen |
-| `logs` | the server's stderr tail — the same as `daemon logs` |
+| `status` | the service, the hosts, every agent and its channels, on one screen |
+| `logs` | the server's stderr tail, the same as `daemon logs` |
 | `tools` | show the resolved tool catalogue, or fetch a remote provider's schemas into the cache |
 | `serve` | run the HTTP API and connect the agents' channels |
 | `credential` | mint, list and revoke operator credentials, optionally scoped |
 | `keys` | press a chord and see the bytes, Ink's reading of them, and the intent |
 | `terminal-setup` | teach this terminal to send shift+enter as a new line |
 | `remove` | delete a sandbox agent: its directory, sessions, memory, logs and service |
-| `stop` | stop one agent for good, or everything — named, it stays stopped across restarts |
+| `stop` | stop one agent for good, or everything; a named agent stays stopped across restarts |
 | `start` | switch an agent back on, and have a running host adopt it now |
-| `model` | ask the endpoint what it can actually do — window, output cap, prompt caching |
+| `model` | ask the endpoint what it can do: window, output cap, prompt caching |
 | `web` | open the browser view of a running agent |
-| `daemon` | keep an agent serving in the background — starts at login, restarts on crash |
+| `daemon` | keep agents serving in the background; starts at login, restarts on crash |
 <!-- commands:end -->
 
 </details>
@@ -751,22 +810,24 @@ Generated from the same `CommandSpec` table the parser and `dispach --help` use 
 bun install
 bun run build           # bun build + tsc --emitDeclarationOnly
 bun test
-bun run test:node       # core only, under Node's runner — proves the sqlite adapter
+bun run test:node       # core only, under Node's runner; proves the sqlite adapter
 bun run lint            # biome, not eslint or prettier
 bun run typecheck
 bun run check:deps      # core imports nothing from a sibling package
 bun run bench:boot      # must stay under 1000 ms (CI fails at 1200 ms)
-bun run bench:schedule  # 100 schedules on one timer — reports drift, does not assert it
+bun run bench:schedule  # 100 schedules on one timer; reports drift, does not assert it
 ```
 
 Bun is the development toolchain: install, build and test. Everything shipped runs under Node <!-- fact:node -->26.13.0<!-- /fact -->+.
 
 ### Boot budget
 
-Process start → `runtime.ready` in under **1000 ms**, enforced in CI at 1200 ms. Every performance
-number in this README has a row in [`evals/CLAIMS.md`](evals/CLAIMS.md) naming the file it comes from.
-Measured at **~65 ms** at 0.2.0 — 45 ms of interpreter and imports, 21 ms inside `Runtime.create`
-(7-run median on an Apple M4 Pro at load average ~3.3). Nothing touches the network before readiness.
+Process start → `runtime.ready` in under **1000 ms**, enforced in CI at 1200 ms. Measured at
+**~65 ms** at 0.2.0: 45 ms of interpreter and imports, 21 ms inside `Runtime.create` (7-run median
+on an Apple M4 Pro at load average ~3.3). Nothing touches the network before readiness.
+
+Every performance number in this README has a row in [`evals/CLAIMS.md`](evals/CLAIMS.md) naming the
+file it comes from.
 
 <details>
 <summary><strong>House rules & single-commit rebranding</strong></summary>
@@ -774,16 +835,16 @@ Measured at **~65 ms** at 0.2.0 — 45 ms of interpreter and imports, 21 ms insi
 ### House rules (enforced by tests rather than review)
 
 - **The product name appears in exactly one source file.** No directory, type or variable contains it,
-  so a rename stays one commit — use `scripts/rename-brand.ts`, never a hand edit.
+  so a rename stays one commit. Use `scripts/rename-brand.ts`, never a hand edit.
 - **`packages/core` imports nothing from a sibling package.** `check:deps` fails the build.
 - **No `any`.** Prefer `Record<string, unknown>`, and a real interface over both.
-- **Every error carries a `hint`.** A new error type without one fails review — the expensive part of a
-  failure is almost never the failure, it is that the failure did not say what was wrong.
+- **Every error carries a `hint`.** A new error type without one fails review. The expensive part of
+  a failure is almost never the failure; it is that the failure did not say what was wrong.
 - **Nothing fails silently and exits 0.**
 - **Tests are required for `packages/core`.** A harness is a state machine, a scheduler and a tool
   executor; those break in ways manual exercise does not reach.
 
-`CLAUDE.md` is the standing brief — written for coding agents and the fastest way to learn
+`CLAUDE.md` is the standing brief. It is written for coding agents and is the fastest way to learn
 the hazards this codebase has already paid for. `docs/00-DECISIONS.md` has the rationale for every
 locked decision. Public pull requests are welcome; [`CONTRIBUTING.md`](CONTRIBUTING.md) is the
 contributor entry point.
@@ -807,7 +868,7 @@ bun scripts/rename-brand.ts acme --dry
 | --- | --- |
 | [`docs/00-DECISIONS.md`](docs/00-DECISIONS.md) | Every locked decision, with rationale |
 | [`docs/01-ARCHITECTURE.md`](docs/01-ARCHITECTURE.md) | Module map, loop, context assembly, compaction, boot budget |
-| [`docs/02-SPEC-MANIFEST.md`](docs/02-SPEC-MANIFEST.md) | `agent.yaml` — the configuration contract |
+| [`docs/02-SPEC-MANIFEST.md`](docs/02-SPEC-MANIFEST.md) | `agent.yaml`, the configuration contract |
 | [`docs/03-SPEC-PLUGIN-API.md`](docs/03-SPEC-PLUGIN-API.md) | Plugin and middleware contracts |
 | [`docs/04-SPEC-WIRE.md`](docs/04-SPEC-WIRE.md) | HTTP/SSE surface and lifecycle event schema |
 | [`docs/05-PLAN.md`](docs/05-PLAN.md) | Every phase with acceptance criteria, and what is ticked |
@@ -815,7 +876,7 @@ bun scripts/rename-brand.ts acme --dry
 | [`docs/08-MEMORY.md`](docs/08-MEMORY.md) | How memory is stored, retrieved and injected, with measured numbers |
 | [`docs/09-API-GUIDE.md`](docs/09-API-GUIDE.md) | The agent server, walked through from `compose up` to a streamed reply |
 | [`docs/12-OPENCLAW-CUTOVER.md`](docs/12-OPENCLAW-CUTOVER.md) | Moving off the runtime this one replaces |
-| [`packages/client/README.md`](packages/client/README.md) | The typed client — turns, streams, reattach, typed errors |
+| [`packages/client/README.md`](packages/client/README.md) | The typed client: turns, streams, reattach, typed errors |
 | [`developer-docs/`](developer-docs/) | Source of the public docs at [dispach.blivius.com/docs](https://dispach.blivius.com/docs) |
 | [`site/`](site/) | The landing page and docs site, built with Next.js and Fumadocs |
 | [`evals/`](evals/) | Every performance claim, with the number and a script to reproduce it |
@@ -828,12 +889,15 @@ bun scripts/rename-brand.ts acme --dry
 
 ## License
 
-The runtime — every package this README describes, and everything published to npm, Homebrew and
-the container registry — is **Apache-2.0**, and stays Apache-2.0. Copyright 2026 Moeen Mahmud.
+The runtime is **Apache-2.0**, and stays Apache-2.0. That covers every package this README
+describes, and everything published to npm, Homebrew and the container registry. Copyright 2026
+Moeen Mahmud.
 
 **One directory is licensed differently: `packages/control`**, the control plane that places and
-suspends one runtime per user, is **FSL-1.1-ALv2** (its own `LICENSE.md`). Anyone may use it,
-commercially too, except to offer a competing hosted service, and each release becomes Apache-2.0
-two years after it ships. It is never published with the runtime. It imports nothing from the
-runtime and nothing in the runtime imports it — `bun run check:deps` enforces both directions, and
-`verify:package` checks the npm tarball.
+suspends one runtime per user. It is **FSL-1.1-ALv2** (its own `LICENSE.md`):
+
+- Anyone may use it, commercially too, except to offer a competing hosted service.
+- Each release becomes Apache-2.0 two years after it ships.
+- It is never published with the runtime.
+- It imports nothing from the runtime and nothing in the runtime imports it. `bun run check:deps`
+  enforces both directions, and `verify:package` checks the npm tarball.

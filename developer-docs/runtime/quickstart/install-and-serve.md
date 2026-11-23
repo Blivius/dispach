@@ -17,7 +17,11 @@ Without Node, one line installs a standalone build that carries its own Node (ma
 curl -fsSL https://dispach.blivius.com/install.sh | sh
 ```
 
-It checks the archive against the release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links `~/.dispach/bin/dispach`, and adds that directory to `PATH` in your shell's rc file, saying which. Open a new shell, or run the line it prints, before `dispach --version`. Run it again to upgrade; `DISPACH_VERSION=<version>` pins a release. The address redirects to the script attached to the [latest GitHub release](https://github.com/blivius/dispach/releases/latest), so reading it first is `curl -fsSL https://dispach.blivius.com/install.sh | less`. It also works on slim Linux images (`debian:*-slim`) once `libatomic1` is installed, which the script names if it is missing.
+It checks the archive against the release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links `~/.dispach/bin/dispach`, and adds that directory to `PATH` in your shell's rc file, saying which. Open a new shell, or run the line it prints, before `dispach --version`.
+
+- Run it again to upgrade; `DISPACH_VERSION=<version>` pins a release.
+- The address redirects to the script attached to the [latest GitHub release](https://github.com/blivius/dispach/releases/latest). To read it first: `curl -fsSL https://dispach.blivius.com/install.sh | less`.
+- It also works on slim Linux images (`debian:*-slim`) once `libatomic1` is installed. The script names it if it is missing.
 
 Homebrew (`brew install blivius/tap/dispach`) installs the same command. The [README](https://github.com/blivius/dispach#getting-set-up) lists every route.
 

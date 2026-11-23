@@ -37,7 +37,8 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
     const RelativeLink = createRelativeLink(source, page)
     return (
         <DocsPage toc={page.data.toc}>
-            <DocsBody>
+            {/* A measure for reading: about 72 characters, where the full column ran near 95. */}
+            <DocsBody className="max-w-[72ch] [&_p]:leading-[1.7] [&_li]:leading-[1.65]">
                 {isRuntimeIndex && <RuntimeDocsHub />}
                 {isReferenceIndex && <ReferenceDocsHub />}
                 <MDX

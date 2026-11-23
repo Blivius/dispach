@@ -1,3 +1,8 @@
+/* Hallmark · redesign: full · genre: modern-minimal · theme: brand (the TUI's xterm tokens, magenta on near-black, Schibsted Grotesk with Newsreader) · job: try it, "Run it in five minutes" · hero: Stage, head left and the live console right · signature: the recorded detached turn replaying in the hero console · nav: fumadocs top bar shared with the docs · footer: brand block over three link columns */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V3 · weakest: V, still hero then proof rail then sections; kept because the benchmark table and the recordings are the material, and the two card grids, the drawn schematics and the repeated proof section are gone */
+/* Hallmark · waive 42 · fumadocs HomeLayout renders the nav · one nav is shared with every docs page */
+/* Hallmark · reworded hero lede (35 words) to one sentence; dropped "The harness is not just scaffolding. It decides whether agents finish tasks, what inference costs, and what your application controls." · 58 and 19 name it */
+/* Hallmark · dropped {p.href}, the "Every number traced to a committed file" cards · 69 names the echo; benchmarks and /evals are linked from the proof rail, turn lifecycle from the capability list */
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
