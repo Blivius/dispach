@@ -13,7 +13,7 @@ docker run -d --init --name dispach -p 7420:7420 \
   ghcr.io/blivius/dispach:<version>
 ```
 
-Use the version from the [releases page](https://github.com/blivius/dispach/releases); pin it rather than using `latest`. The image binds every interface inside the container, so it refuses to start without `DISPACH_API_TOKEN`. `--init` reaps the processes the shell tool starts, and the `dispach-home` volume keeps agents, conversations, and keys when the container is removed.
+Use the version from the [releases page](https://github.com/blivius/dispach/releases); pin it rather than using `latest`. The same image, with the same tags, is mirrored at `docker.io/moeenmahmud007/dispach`. The image binds every interface inside the container, so it refuses to start without `DISPACH_API_TOKEN`. `--init` reaps the processes the shell tool starts, and the `dispach-home` volume keeps agents, conversations, and keys when the container is removed.
 
 The server is ready when this request succeeds:
 

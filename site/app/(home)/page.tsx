@@ -30,6 +30,12 @@ const INSTALL_OPTIONS: readonly InstallOption[] = [
         note: "no Node needed",
     },
     {
+        id: "brew",
+        label: "Homebrew",
+        command: `brew install blivius/tap/${brand.slug}`,
+        note: "macOS and Linux",
+    },
+    {
         id: "docker",
         label: "Docker",
         command: `docker run -d --init -p 7420:7420 -v ${brand.slug}-home:/home/${brand.slug} -e ${brand.envPrefix}API_TOKEN=secret ${dockerImage}:${evidence.version}`,

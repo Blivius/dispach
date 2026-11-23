@@ -20,8 +20,8 @@ One package, one number, one tag. Semver. Short bullets in `CHANGELOG.md`; the r
 4. **Watch the workflow.** `release.yml` publishes to npm, creates the GitHub Release with the
    changelog section as its body, commits the formula to `blivius/homebrew-tap`, builds the
    four standalone archives from the published tarball, installs them on Linux and macOS, attaches
-   them with `SHA256SUMS` and `install.sh` to the release, and pushes the image to GHCR. It needs two secrets: `NPM_TOKEN` and `TAP_TOKEN` (a fine-grained PAT with
-   contents:write on the tap). Either missing **fails the job by name** rather than skipping.
+   them with `SHA256SUMS` and `install.sh` to the release, and pushes the image to GHCR and to Docker Hub (`docker.io/moeenmahmud007/dispach`). It needs three secrets:
+   `NPM_TOKEN`, `TAP_TOKEN` (a fine-grained PAT with contents:write on the tap) and `DOCKERHUB_TOKEN`. Any one missing **fails the job by name** rather than skipping.
 5. **Check the four installs**:
 
    ```bash

@@ -5,7 +5,7 @@ you deploy a server or silo.
 
 | Release line | Intended use | Distribution |
 | --- | --- | --- |
-| `v0.2.x` stable | The current runtime | npm `latest`, GitHub Release, versioned and `latest` container tags, Homebrew |
+| `v0.2.x` stable | The current runtime | npm `latest`, GitHub Release, versioned and `latest` container tags (GHCR and Docker Hub), Homebrew |
 | `v0.x.y-pilot.N` | Evaluating work ahead of the next release | npm `next`, GitHub pre-release, exact-version container tag |
 
 Check [GitHub Releases](https://github.com/blivius/dispach/releases) for the latest version

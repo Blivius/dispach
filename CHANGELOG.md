@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.13 — 2026-11-23
+
 ### Changed
 
 - The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again; the GitLab project is archived.

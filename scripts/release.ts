@@ -177,6 +177,6 @@ process.stdout.write(`
           ? "A pre-release tag publishes npm under the `next` dist-tag, a GitHub pre-release and the image at this version only — never `latest`, and never the Homebrew tap."
           : "The tag publishes: npm, the GitHub Release (notes from CHANGELOG.md), the Homebrew tap, the image."
 }
-  Watch it at https://github.com/blivius/dispach/actions — it needs NPM_TOKEN and TAP_TOKEN set.
+  Watch it at https://github.com/blivius/dispach/actions — it needs NPM_TOKEN, TAP_TOKEN and DOCKERHUB_TOKEN set.
 
 `)
