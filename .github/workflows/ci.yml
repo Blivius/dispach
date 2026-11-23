@@ -5,9 +5,8 @@ name: ci
 # tag publishes, so running it here too would test the same tree twice. `workflow_dispatch` runs it
 # on any branch by hand.
 #
-# No `paths-ignore`: `bun`, `docker` and `bundle` are required checks on `development`, and a pull
-# request a path filter skips never reports them, so it could never merge. Standard runners are free
-# on a public repository; the filter would save nothing.
+# No `paths-ignore`: standard runners are free on a public repository, so a filter would save nothing
+# and would let a docs-only pull request skip the checks a code change slipped into it needs.
 on:
   pull_request:
     branches: [development]

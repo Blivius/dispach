@@ -166,13 +166,12 @@ if (!argv.includes("--no-gate")) {
 }
 
 process.stdout.write(`
-  Review the diff, then (\`development\` takes changes only through a pull request with CI green):
+  Review the diff, then:
 
-    git switch -c release/${version} && git add -A && git commit -m "chore(release): ${version}"
-    git push -u origin release/${version}
-    gh pr create -B development -t "chore(release): ${version}" -b "${version}"    # merge once CI is green
-    gh pr create -B main -H development -t "Release ${version}" -b "${version}"     # merge it
-    git switch main && git pull && git tag -a v${version} -m "v${version}" && git push origin v${version}
+    git add -A && git commit -m "chore(release): ${version}" && git push
+    git switch main && git pull && git merge --no-edit development && git push
+    git tag -a v${version} -m "v${version}" && git push origin v${version}
+    git switch development
 
   ${
       prerelease

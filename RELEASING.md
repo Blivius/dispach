@@ -17,10 +17,8 @@ One package, one number, one tag. Semver. Short bullets in `CHANGELOG.md`; the r
    Writes the version into `packages/cli/package.json`, `packages/core/src/version.ts`, the
    lockfile and the generated API reference, dates the changelog section, runs the gate (`build`,
    `test`, `typecheck`, `lint`, `docs:check`, `verify:package`), and prints the git commands. It commits nothing.
-3. **Review the diff, then land it.** `development` takes changes only through a pull request
-   with the `bun`, `docker` and `bundle` checks green, so the bump goes on a `release/<version>`
-   branch, merges into `development`, and `development` merges into `main`. The tag goes on `main`
-   after that merge, and the tag is what publishes.
+3. **Review the diff, commit, push.** Then merge `development` into `main` and tag `main`; the tag
+   is what publishes.
 4. **Watch the workflow.** `release.yml` publishes to npm, creates the GitHub Release with the
    changelog section as its body, commits the formula to `blivius/homebrew-tap`, builds the
    four standalone archives from the published tarball, installs them on Linux and macOS, attaches
