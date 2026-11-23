@@ -34,7 +34,9 @@ const cli = JSON.parse(read("packages/cli/package.json")) as {
     engines: { node: string }
     repository: { url: string }
 }
-const owner = /github\.com\/([^/]+)\//.exec(cli.repository.url)?.[1]
+// `repository.url` carries the org's canonical case (`Blivius`), because npm's provenance check compares
+// it case-sensitively with the repository GitHub reports. An image name must be lowercase.
+const owner = /github\.com\/([^/]+)\//.exec(cli.repository.url)?.[1]?.toLowerCase()
 if (owner === undefined)
     throw new Error("packages/cli/package.json repository.url names no GitHub owner")
 const openapi = JSON.parse(read("developer-docs/reference/openapi.json")) as {
