@@ -17,23 +17,23 @@ One package, one number, one tag. Semver. Short bullets in `CHANGELOG.md`; the r
    lockfile and the generated API reference, dates the changelog section, runs the gate (`build`,
    `test`, `typecheck`, `lint`, `docs:check`, `verify:package`), and prints the two git commands. It commits nothing.
 3. **Review the diff, commit, tag, push the tag.** The tag is what publishes.
-4. **Watch the pipeline.** While the GitHub account is suspended, `.gitlab-ci.yml` does what
-   `release.yml` did: publishes to npm (with provenance), builds the four standalone archives from
-   the published tarball and installs one on Linux, uploads them with `SHA256SUMS` and `install.sh`
-   to the package registry, creates the GitLab release (stable tags only — GitLab has no pre-release
-   flag, and the installer's `latest` must never hand out a pilot), and pushes the image to Docker
-   Hub. It needs two CI/CD variables, `NPM_TOKEN` and `DOCKERHUB_TOKEN`; either missing **fails the
-   job by name**. The Homebrew tap is paused, and there is no macOS install check (a paid runner).
-5. **Check the three installs**:
+4. **Watch the workflow.** `release.yml` publishes to npm, creates the GitHub Release with the
+   changelog section as its body, commits the formula to `blivius/homebrew-tap`, builds the
+   four standalone archives from the published tarball, installs them on Linux and macOS, attaches
+   them with `SHA256SUMS` and `install.sh` to the release, and pushes the image to GHCR. It needs two secrets: `NPM_TOKEN` and `TAP_TOKEN` (a fine-grained PAT with
+   contents:write on the tap). Either missing **fails the job by name** rather than skipping.
+5. **Check the four installs**:
 
    ```bash
    npm view dispach version
-   docker pull docker.io/moeenmahmud007/dispach:0.2.0
-   curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh
+   brew update && brew info blivius/tap/dispach
+   docker pull ghcr.io/blivius/dispach:0.2.0
+   curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
    ```
 
    `bun scripts/build-standalone.ts --targets darwin-arm64` builds one archive locally (packing the
-   tree) and runs it; the archives themselves are only built by a tag pipeline.
+   tree) and runs it; a manual run of `release.yml` builds all four and tests both installs without
+   publishing anything.
 
 A release that failed part-way: fix, cut the *next* patch number. npm versions are immutable, and
 the workflow refuses a tag whose version the registry already serves.

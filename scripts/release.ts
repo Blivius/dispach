@@ -9,7 +9,7 @@
  * changelog nobody read beside the hand-written one everybody did; `changeset publish` was never
  * invoked by anything, because the `v*` tag already published everything. For a one-package repo
  * with a sole author that was ceremony without a job. This script does the bump; the tag does the
- * rest (`.gitlab-ci.yml` while the GitHub account is suspended; `.github/workflows/release.yml` after).
+ * rest (`.github/workflows/release.yml`).
  *
  * ## What it refuses
  *
@@ -174,9 +174,9 @@ process.stdout.write(`
 
   ${
       prerelease
-          ? "A pre-release tag publishes npm under the `next` dist-tag, a GitLab release (GitLab has no pre-release flag; the `-` in the tag says it) and the image at this version only — never `latest`."
-          : "The tag publishes: npm, the GitLab Release (notes from CHANGELOG.md, standalone archives attached), the image. The Homebrew tap is paused."
+          ? "A pre-release tag publishes npm under the `next` dist-tag, a GitHub pre-release and the image at this version only — never `latest`, and never the Homebrew tap."
+          : "The tag publishes: npm, the GitHub Release (notes from CHANGELOG.md), the Homebrew tap, the image."
 }
-  Watch it at https://gitlab.com/moeen-mahmud/dispach/-/pipelines — DOCKERHUB_TOKEN pushes the image; without NPM_TOKEN, npm, the archives and the GitLab release are skipped.
+  Watch it at https://github.com/blivius/dispach/actions — it needs NPM_TOKEN and TAP_TOKEN set.
 
 `)

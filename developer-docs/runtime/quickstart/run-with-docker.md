@@ -10,10 +10,10 @@ export DISPACH_API_TOKEN="$(openssl rand -hex 32)"
 docker run -d --init --name dispach -p 7420:7420 \
   -v dispach-home:/home/dispach \
   -e DISPACH_API_TOKEN \
-  docker.io/moeenmahmud007/dispach:<version>
+  ghcr.io/blivius/dispach:<version>
 ```
 
-Use the version from the [releases page](https://gitlab.com/moeen-mahmud/dispach/-/releases); pin it rather than using `latest`. The image binds every interface inside the container, so it refuses to start without `DISPACH_API_TOKEN`. `--init` reaps the processes the shell tool starts, and the `dispach-home` volume keeps agents, conversations, and keys when the container is removed.
+Use the version from the [releases page](https://github.com/blivius/dispach/releases); pin it rather than using `latest`. The image binds every interface inside the container, so it refuses to start without `DISPACH_API_TOKEN`. `--init` reaps the processes the shell tool starts, and the `dispach-home` volume keeps agents, conversations, and keys when the container is removed.
 
 The server is ready when this request succeeds:
 
@@ -46,7 +46,7 @@ docker logs dispach
 The repository's `docker-compose.yml` runs the same image with the containment settings described in the README:
 
 ```bash
-git clone https://gitlab.com/moeen-mahmud/dispach.git
+git clone https://github.com/blivius/dispach.git
 cd dispach
 cp .env.example .env        # set DISPACH_API_TOKEN to a long random value
 docker compose up -d --wait

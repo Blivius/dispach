@@ -6,7 +6,7 @@
     "author": "Moeen Mahmud",
     "repository": {
         "type": "git",
-        "url": "git+https://gitlab.com/moeen-mahmud/dispach.git",
+        "url": "git+https://github.com/blivius/dispach.git",
         "directory": "packages/model-bedrock"
     },
     "type": "module",

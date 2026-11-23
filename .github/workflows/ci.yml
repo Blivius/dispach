@@ -275,7 +275,7 @@ jobs:
           # The image is already built by the first step; tagging it under the compose file's
           # `image:` (the GHCR name, default `latest`) is what makes `pull_policy: missing` use it
           # rather than reach for the registry.
-          docker tag dispach:ci ghcr.io/moeen-mahmud/dispach:latest
+          docker tag dispach:ci ghcr.io/blivius/dispach:latest
           docker compose up -d --wait || { docker compose logs; exit 1; }
           curl -sf localhost:7420/v1/ready || { docker compose logs; exit 1; }
           # The token is required, so an unauthenticated write must be refused — the property the

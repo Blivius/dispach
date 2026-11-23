@@ -26,7 +26,7 @@ const INSTALL_OPTIONS: readonly InstallOption[] = [
     {
         id: "curl",
         label: "curl",
-        command: `curl -fsSL ${repoUrl}/-/releases/permalink/latest/downloads/install.sh | sh`,
+        command: `curl -fsSL ${repoUrl}/releases/latest/download/install.sh | sh`,
         note: "no Node needed",
     },
     {

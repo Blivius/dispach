@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Changed
+
+- The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again; the GitLab project is archived.
+- The image is published to `ghcr.io/blivius/dispach` and, unchanged, to `docker.io/moeenmahmud007/dispach`.
+- npm publishing and the Homebrew tap (`brew install blivius/tap/dispach`) resume.
 
 ## 0.2.12 — 2026-11-20
 

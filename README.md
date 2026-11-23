@@ -1,7 +1,7 @@
 # Dispach
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![CI](https://gitlab.com/moeen-mahmud/dispach/badges/main/pipeline.svg)](https://gitlab.com/moeen-mahmud/dispach/-/pipelines)
+[![CI](https://github.com/blivius/dispach/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/blivius/dispach/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dispach)](https://www.npmjs.com/package/dispach)
 [![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/moeen-mahmud/badge.svg)](https://hub.xerj.org/contributors/moeen-mahmud)
 
@@ -9,15 +9,15 @@
 with memory, tools, schedules, channels and approvals, on any OpenAI-compatible model.
 
 ```bash
-curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh
-#   or: npm i -g dispach (Node 26.13.0+)
+curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+#   or: npm i -g dispach (Node 26.13.0+) · brew install blivius/tap/dispach
 dispach init          # name the agent, pick a model, paste a key
 dispach run milo      # talk to it in the terminal
 ```
 
-![A fresh Linux machine with no Node: the curl installer, init, serve, /v1/ready, then a first message in the terminal UI](https://gitlab.com/moeen-mahmud/dispach/-/raw/HEAD/.github/assets/install.gif)
+![A fresh Linux machine with no Node: the curl installer, init, serve, /v1/ready, then a first message in the terminal UI](https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/install.gif)
 
-![The terminal UI: told to give itself write access to the whole home directory, the agent tries, and the settings floor refuses](https://gitlab.com/moeen-mahmud/dispach/-/raw/HEAD/.github/assets/tui.gif)
+![The terminal UI: told to give itself write access to the whole home directory, the agent tries, and the settings floor refuses](https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/tui.gif)
 
 Told to widen its own write access to `~`, the agent makes the call and the runtime refuses it: an
 agent may grant itself abilities, never reach. That floor is measured in the research below.
@@ -27,7 +27,7 @@ agent and streams its reply in three requests.
 
 ```bash
 docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach \
-  -e DISPACH_API_TOKEN=pick-a-secret docker.io/moeenmahmud007/dispach:0.2.12
+  -e DISPACH_API_TOKEN=pick-a-secret ghcr.io/blivius/dispach:0.2.12
 ```
 
 The named volume is where the store, every agent and every key live; without it a `docker rm` for
@@ -56,8 +56,8 @@ Everything else described in this README is stable.
 **New since 0.2.0:** [what each release added](developer-docs/runtime/whats-new-since-0-2-0.md) ·
 **Limits:** [what is measured, and what it does not do](developer-docs/runtime/limits-and-evidence.md)
 
-**Contributing:** start with a [good first issue](https://gitlab.com/moeen-mahmud/dispach/-/issues/?label_name%5B%5D=good%20first%20issue)
-or the [larger pieces that need an owner](https://gitlab.com/moeen-mahmud/dispach/-/issues/?label_name%5B%5D=help%20wanted), and
+**Contributing:** start with a [good first issue](https://github.com/blivius/dispach/labels/good%20first%20issue)
+or the [larger pieces that need an owner](https://github.com/blivius/dispach/labels/help%20wanted), and
 [making a change](developer-docs/contributing/making-a-change.md) for how a change gets in.
 
 > To dispatch is to send a thing on its way with the authority to see it done — to decide
@@ -65,12 +65,12 @@ or the [larger pieces that need an owner](https://gitlab.com/moeen-mahmud/dispac
 
 ## Call it over HTTP
 
-![Starting the server, creating an agent over HTTP, and streaming its reply](https://gitlab.com/moeen-mahmud/dispach/-/raw/HEAD/.github/assets/quickstart.gif)
+![Starting the server, creating an agent over HTTP, and streaming its reply](https://raw.githubusercontent.com/blivius/dispach/HEAD/.github/assets/quickstart.gif)
 
 ```bash
 export TOKEN=pick-a-secret
 docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach -e DISPACH_API_TOKEN=$TOKEN \
-  docker.io/moeenmahmud007/dispach:0.2.12
+  ghcr.io/blivius/dispach:0.2.12
 
 curl -s -H "Authorization: Bearer $TOKEN" localhost:7420/v1/agents \
   -d '{"answers":{"user":"you","name":"milo","apiKey":"sk-…"}}'
@@ -224,7 +224,7 @@ business paying the ~170-210 ms that importing Ink and React costs.
 ### Or without Node
 
 ```bash
-curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh
+curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
 ```
 
 macOS and Linux (glibc), arm64 and x64. Each release attaches one archive per platform: an official
@@ -247,15 +247,12 @@ version, and `dispach daemon install` moves it. To uninstall, delete `~/.dispach
 `~/.dispach/versions` and the `PATH` line; your agents beside them in `~/.dispach` are left alone.
 
 **Windows:** run it inside WSL (`wsl --install`), or use the container. A native build needs the
-shell tool and the service manager ported; that is [open for contributions (#76)](https://gitlab.com/moeen-mahmud/dispach/-/issues/76).
+shell tool and the service manager ported; that is [open for contributions (#76)](https://github.com/blivius/dispach/issues/76).
 
 ### Or with Homebrew
 
-> **Paused.** The tap lived under a GitHub account that is suspended, so `brew install` cannot
-> resolve it until that is restored. Use the installer above or `npm i -g dispach` meanwhile.
-
 ```bash
-brew install moeen-mahmud/tap/dispach
+brew install blivius/tap/dispach
 ```
 
 The formula depends on `node` and installs the same npm tarball, so a brew install and an npm
@@ -264,8 +261,8 @@ a Bun-compiled binary, and Bun cannot complete the WhatsApp handshake; see below
 
 The name is fully qualified on purpose. Homebrew taps from it with no separate `brew tap`, and
 naming a formula in full is *itself* what Homebrew accepts as consent to load a third-party tap —
-`brew install dispach` after a plain `brew tap moeen-mahmud/tap` is the same install and refuses
-until `brew trust moeen-mahmud/tap` is run, because a bare name carries no such consent.
+`brew install dispach` after a plain `brew tap blivius/tap` is the same install and refuses
+until `brew trust blivius/tap` is run, because a bare name carries no such consent.
 
 `brew services start dispach` then runs the always-on server; `brew info` prints the rest. Use it or
 `init`'s background service, not both: pass `--daemon none` to `init`, or two hosts contend for the
@@ -274,7 +271,7 @@ same agents.
 ### Or the container
 
 ```bash
-docker pull docker.io/moeenmahmud007/dispach:0.2.12
+docker pull ghcr.io/blivius/dispach:0.2.12
 ```
 
 The [Docker](#docker) and [Compose](#hosting-with-compose) sections below have the run lines and
@@ -287,7 +284,7 @@ For working on Dispach itself. The order matters: `bin` points at `dist/`, so a 
 the build points at nothing.
 
 ```bash
-git clone https://gitlab.com/moeen-mahmud/dispach && cd dispach
+git clone https://github.com/blivius/dispach && cd dispach
 bun install
 bun run build                       # builds every package the binary imports
 cd packages/cli && bun link         # puts `dispach` on your PATH
@@ -500,7 +497,7 @@ token.
 
 ```bash
 cp .env.example .env               # then DISPACH_API_TOKEN
-docker compose up -d --wait        # pulls docker.io/moeenmahmud007/dispach, DISPACH_VERSION pins a tag
+docker compose up -d --wait        # pulls ghcr.io/blivius/dispach, DISPACH_VERSION pins a tag
 curl localhost:7420/v1/ready       # {"status":"ready","agents":0}
 docker compose logs server         # the claim link — open it once to get a browser key
 ```
@@ -535,7 +532,7 @@ webhooks, backups and scoped keys. Reading the container's own output is what co
 first ownership, which grants nothing new to anyone who could already run `docker compose logs`.
 
 **A plain `up` pulls the published image once and never again.** `image:` names
-`docker.io/moeenmahmud007/dispach:${DISPACH_VERSION:-latest}` with `pull_policy: missing`, so a machine
+`ghcr.io/blivius/dispach:${DISPACH_VERSION:-latest}` with `pull_policy: missing`, so a machine
 that pulled `latest` last month keeps serving it until `docker compose pull`; pin `DISPACH_VERSION`
 in `.env` to make an upgrade a visible edit. Working from a checkout, `up -d --build --wait` builds
 this tree under the same tag — and then **`--build` is not optional after the first run**, because
@@ -656,14 +653,14 @@ consequence: run it on a laptop and the policy is the only boundary there is.
 ## Docker
 
 ```bash
-docker pull docker.io/moeenmahmud007/dispach:0.2.12          # or build it: docker build -f docker/Dockerfile -t dispach .
+docker pull ghcr.io/blivius/dispach:0.2.12          # or build it: docker build -f docker/Dockerfile -t dispach .
 cp examples/minimal/.env.example examples/minimal/.env  # then MODEL_API_KEY; only the example is tracked
 docker run --rm --init -p 7420:7420 \
   --env-file examples/minimal/.env \
   -e DISPACH_API_TOKEN=pick-something \
   -v "$PWD/examples/minimal:/agent" \
   -v dispach-home:/home/dispach \
-  docker.io/moeenmahmud007/dispach:0.2.12
+  ghcr.io/blivius/dispach:0.2.12
 ```
 
 The token is not optional and is not boilerplate. The image binds `0.0.0.0`, because a process

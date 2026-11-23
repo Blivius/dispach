@@ -1,7 +1,7 @@
 # Dispach as a hosted agent server.
 #
 #   cp .env.example .env               # then a token and a model key
-#   docker compose up -d --wait        # pulls docker.io/moeenmahmud007/dispach
+#   docker compose up -d --wait        # pulls ghcr.io/blivius/dispach
 #   curl localhost:7420/v1/ready
 #   docker compose logs server         # the claim link, for the web UI at localhost:7420
 #
@@ -32,7 +32,7 @@ services:
         #
         # Pin the version in `.env` (`DISPACH_VERSION=0.2.12`) for a deployment. The default is
         # `latest` only because a compose file people copy has to work before they read it.
-        image: docker.io/moeenmahmud007/dispach:${DISPACH_VERSION:-latest}
+        image: ghcr.io/blivius/dispach:${DISPACH_VERSION:-latest}
         pull_policy: missing
         build:
             context: .
@@ -191,7 +191,7 @@ services:
     # would delete the other's schedules and report success.
     #
     # server-two:
-    #     image: docker.io/moeenmahmud007/dispach:${DISPACH_VERSION:-latest}
+    #     image: ghcr.io/blivius/dispach:${DISPACH_VERSION:-latest}
     #     ports:
     #         - "7421:7420"
     #     environment:

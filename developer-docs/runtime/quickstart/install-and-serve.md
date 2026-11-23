@@ -14,12 +14,12 @@ dispach --version
 Without Node, one line installs a standalone build that carries its own Node (macOS and Linux, arm64 and x64, no root):
 
 ```bash
-curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh
+curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
 ```
 
 It checks the archive against the release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links `~/.dispach/bin/dispach`, and adds that directory to `PATH` in your shell's rc file, saying which. Open a new shell, or run the line it prints, before `dispach --version`. Run it again to upgrade; `DISPACH_VERSION=<version>` pins a release.
 
-Homebrew (`brew install moeen-mahmud/tap/dispach`) installs the same command once its tap is back; it is paused while the GitHub account that hosted it is suspended. The [README](https://gitlab.com/moeen-mahmud/dispach#install) lists every route.
+Homebrew (`brew install blivius/tap/dispach`) installs the same command. The [README](https://github.com/blivius/dispach#install) lists every route.
 
 ## Create an agent
 

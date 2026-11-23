@@ -34,12 +34,9 @@ const cli = JSON.parse(read("packages/cli/package.json")) as {
     engines: { node: string }
     repository: { url: string }
 }
-/**
- * Where the image is published. GHCR followed the repository owner; while that GitHub account is
- * suspended the image is on Docker Hub under a different namespace, so it is named here rather than
- * derived. Back to `ghcr.io/<owner>` is this one line.
- */
-const IMAGE_REGISTRY = "docker.io/moeenmahmud007"
+const owner = /github\.com\/([^/]+)\//.exec(cli.repository.url)?.[1]
+if (owner === undefined)
+    throw new Error("packages/cli/package.json repository.url names no GitHub owner")
 const openapi = JSON.parse(read("developer-docs/reference/openapi.json")) as {
     paths: Record<string, Record<string, unknown>>
 }
@@ -51,7 +48,7 @@ const labels = (panels: readonly { label: string }[]) =>
 export const FACTS: Readonly<Record<string, string>> = {
     version: cli.version,
     node: cli.engines.node.replace(/^>=\s*/, ""),
-    image: `${IMAGE_REGISTRY}/${BRAND.slug}`,
+    image: `ghcr.io/${owner}/${BRAND.slug}`,
     endpoints: String(
         Object.values(openapi.paths).reduce((n, ops) => n + Object.keys(ops).length, 0),
     ),

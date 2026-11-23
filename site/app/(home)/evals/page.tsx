@@ -72,7 +72,7 @@ function Evidence({ text }: { text: string }) {
                     return /\.(json|ts|yml|md)$/.test(file) ? (
                         <a
                             key={key}
-                            href={`${repoUrl}/-/blob/main/${file}`}
+                            href={`${repoUrl}/blob/main/${file}`}
                             className="font-mono text-xs underline underline-offset-4 hover:text-term-accent"
                         >
                             {code[1]}
@@ -191,7 +191,7 @@ export default function EvalsPage() {
                                 className="flex flex-wrap items-baseline justify-between gap-2 py-3"
                             >
                                 <a
-                                    href={`${repoUrl}/-/tree/main/evals/${e.name}`}
+                                    href={`${repoUrl}/tree/main/evals/${e.name}`}
                                     className="font-mono underline underline-offset-4 hover:text-term-accent"
                                 >
                                     {e.name}

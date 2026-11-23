@@ -45,7 +45,7 @@ spec:
       # volume, so this is a no-op on every start after the first.
       initContainers:
         - name: layout
-          image: docker.io/moeenmahmud007/dispach:<version>
+          image: ghcr.io/blivius/dispach:<version>
           command: [mkdir, -p, /home/dispach/.dispach/agents]
           securityContext:
             readOnlyRootFilesystem: true
@@ -55,7 +55,7 @@ spec:
             - { name: home, mountPath: /home/dispach }
       containers:
         - name: silo
-          image: docker.io/moeenmahmud007/dispach:<version>
+          image: ghcr.io/blivius/dispach:<version>
           ports:
             - { name: http, containerPort: 7420 }
           env:

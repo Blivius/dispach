@@ -3,7 +3,7 @@
 What a pod needs from the stock image to run well rather than merely run, for one silo per pod.
 Nothing here is specific to EKS except where it says so. `examples/kubernetes/silo.yaml` is a working starting point.
 
-The image is the same one Docker Compose runs (`docker.io/moeenmahmud007/dispach`). It runs `serve
+The image is the same one Docker Compose runs (`ghcr.io/blivius/dispach`). It runs `serve
 --host 0.0.0.0` as uid 1000, from `/home/dispach`.
 
 ---

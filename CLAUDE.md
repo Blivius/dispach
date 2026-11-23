@@ -7,7 +7,7 @@ Standing brief for coding agents working in this repository. Read this first, ev
 ## What this is
 
 **Dispach** is a lightweight, model-agnostic AI agent runtime. Apache-2.0.
-`gitlab.com/moeen-mahmud/dispach`.
+`github.com/blivius/dispach`.
 
 It turns a stateless OpenAI-compatible `/chat/completions` endpoint into an agent that lives
 in messaging channels, uses tools, remembers, runs on a schedule, and delegates to other

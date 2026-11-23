@@ -3,9 +3,8 @@ import { DEFAULT_BRAND } from "../../packages/core/src/brand"
 /** Every brand-shaped string on the site comes from here (hard rule 3). */
 export const brand = DEFAULT_BRAND
 export const docsRoute = "/docs"
-// GitLab while the GitHub account is suspended; GitLab paths take a `/-/` segment (`/-/blob/…`).
-export const repoUrl = `https://gitlab.com/moeen-mahmud/${brand.slug}`
-export const dockerImage = `docker.io/moeenmahmud007/${brand.slug}`
+export const repoUrl = `https://github.com/blivius/${brand.slug}`
+export const dockerImage = `ghcr.io/blivius/${brand.slug}`
 /** The preprint that measures the settings floor. A preprint, not peer-reviewed: say so wherever it is cited. */
 export const paperUrl = "https://arxiv.org/abs/2610.06274"
 

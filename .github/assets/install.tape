@@ -31,7 +31,7 @@ Type "clear" Enter
 Wait
 Show
 
-Type "curl -fsSL https://gitlab.com/moeen-mahmud/dispach/-/releases/permalink/latest/downloads/install.sh | sh" Enter
+Type "curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh" Enter
 Wait
 Type `export PATH="$HOME/.dispach/bin:$PATH"; dispach --version` Enter
 Wait

@@ -54,15 +54,13 @@ function header(name: string, size: number, mtime: number, type: "0" | "x"): Uin
 function headers(name: string, size: number, mtime: number): Uint8Array[] {
     if (new TextEncoder().encode(name).length <= 100) return [header(name, size, mtime, "0")]
     const body = (length: number) => `${length} path=${name}\n`
-    const byteLength = (text: string) => new TextEncoder().encode(text).length
-    // The record's length counts its own digits, so settle it - in BYTES on both sides. Comparing a
-    // byte length with `string.length` (UTF-16 units) never settles for a non-ASCII path over 100
-    // bytes: the loop spun forever inside a backup and starved the event loop. Each step can only
-    // add digits, so this stops within a few iterations.
-    let length = byteLength(body(0))
-    for (let next = byteLength(body(length)); next !== length; next = byteLength(body(length)))
-        length = next
-    const bytes = new TextEncoder().encode(body(length))
+    let record = body(0)
+    // The record's length counts its own digits, so settle it.
+    for (let length = record.length; ; length = record.length) {
+        record = body(new TextEncoder().encode(body(length)).length)
+        if (new TextEncoder().encode(record).length === length) break
+    }
+    const bytes = new TextEncoder().encode(record)
     return [
         header("PaxHeader", bytes.length, mtime, "x"),
         ...padded(bytes),

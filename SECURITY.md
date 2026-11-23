@@ -3,7 +3,7 @@
 ## Supported versions
 
 Security fixes go into the **latest release on npm** (`npm view dispach version`) and the matching
-container image (`docker.io/moeenmahmud007/dispach:latest`). Older releases are not patched: upgrade.
+container image (`ghcr.io/blivius/dispach:latest`). Older releases are not patched: upgrade.
 
 Pre-releases (`0.2.0-pilot.N`, npm `next`) are not patched in place. A fix ships in the next
 pre-release.
@@ -12,9 +12,8 @@ pre-release.
 
 **Please do not open a public issue, discussion or pull request for a vulnerability.**
 
-Report it privately as a
-[**confidential GitLab issue**](https://gitlab.com/moeen-mahmud/dispach/-/issues/new?issue[confidential]=true)
-(only project members can read one).
+Report it privately through GitHub:
+[**Security → Report a vulnerability**](https://github.com/blivius/dispach/security/advisories/new).
 
 Include what you can of:
 
@@ -32,7 +31,7 @@ Include what you can of:
 | Initial assessment: confirmed or not, and severity | 7 days |
 | A fix, or a plan with a date, for a critical or high issue | 30 days |
 
-A confirmed issue is fixed in a private fork, released, and then disclosed in a security
+A confirmed issue is fixed in a private fork, released, and then disclosed in a GitHub security
 advisory, with a CVE where one applies. Disclosure is coordinated with you, within 90 days of the
 report at most. Reporters are credited in the advisory unless they would rather not be.
 

@@ -6,7 +6,7 @@
     "author": "Moeen Mahmud",
     "repository": {
         "type": "git",
-        "url": "git+https://gitlab.com/moeen-mahmud/dispach.git",
+        "url": "git+https://github.com/blivius/dispach.git",
         "directory": "packages/cli"
     },
     "type": "module",
@@ -86,6 +86,6 @@
     ],
     "homepage": "https://dispach.blivius.com",
     "bugs": {
-        "url": "https://gitlab.com/moeen-mahmud/dispach/-/issues"
+        "url": "https://github.com/blivius/dispach/issues"
     }
 }

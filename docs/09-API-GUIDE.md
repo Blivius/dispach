@@ -26,7 +26,7 @@ two disagree, the spec is right and this file is stale.
 ## 1. Bring it up
 
 ```bash
-git clone https://gitlab.com/moeen-mahmud/dispach && cd dispach
+git clone https://github.com/blivius/dispach && cd dispach
 cp .env.example .env          # then DISPACH_API_TOKEN. A model key is NOT required to start
 docker compose up -d --wait
 ```

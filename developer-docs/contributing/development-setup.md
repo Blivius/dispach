@@ -12,7 +12,7 @@ Dispach runs under Node 26.13.0 in production and uses Bun for dependency manage
 ## Build a checkout
 
 ```bash
-git clone https://gitlab.com/moeen-mahmud/dispach.git
+git clone https://github.com/blivius/dispach.git
 cd dispach
 bun install
 bun run build

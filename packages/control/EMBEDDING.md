@@ -14,7 +14,7 @@ silo         ──signed POST────▶ your backend           webhooks: t
 
 ## 0. Once, when you deploy
 
-- **Pin the runtime image**: `DISPACH_IMAGE=docker.io/moeenmahmud007/dispach:<version>`.
+- **Pin the runtime image**: `DISPACH_IMAGE=ghcr.io/blivius/dispach:<version>`.
 - **Write your agent template**, the agent every user gets, in a host directory, and set
   `DISPACH_TEMPLATES` to it. The format is in `docs/09-API-GUIDE.md` §1b. Put your limits in the
   template's manifest, so one user cannot take the whole host:

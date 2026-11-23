@@ -150,7 +150,7 @@ export function SiteFooter() {
                             </li>
                             <li>
                                 <a href={repoUrl} className="hover:text-fd-foreground">
-                                    GitLab repository
+                                    GitHub repository
                                 </a>
                             </li>
                             <li>
