@@ -44,9 +44,9 @@ committed file behind it. A number with no row is not used anywhere.
 - **Experimental in 0.2.x**, never run against a real tenant or account: rooms, stand-ins and team
   memory (on the HTTP API and the web console), the Slack, Microsoft Teams and A2A channels, and media. These may change
   within 0.2.x.
-- **Endpoints re-verified for 0.2.0:** DeepSeek's API and an open-weight model through OpenRouter. The
-  benchmark reaches Claude, GPT and Gemini models through OpenRouter as well; OpenAI's and Anthropic's
-  own endpoints were not re-run for this release.
+- **Endpoints re-verified for 0.2.2:** OpenAI's API, Anthropic's API, and an open-weight model through OpenRouter. The
+  benchmark reaches Claude, GPT and Gemini models through OpenRouter as well; all three independent
+  implementations were successfully tested on 2026-11-01.
 - **Platforms:** macOS (launchd services) and Linux, including the container image. On Linux,
   `daemon install` writes a systemd user unit and prints the commands to start it. Windows has never
   been tested.
