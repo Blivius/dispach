@@ -10,7 +10,7 @@
 
 ### Changed
 
-- The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again; the GitLab project is archived.
+- The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again. The GitLab project is no longer updated.
 - The image is published to `ghcr.io/blivius/dispach` and, unchanged, to `docker.io/moeenmahmud007/dispach`.
 - npm publishing and the Homebrew tap (`brew install blivius/tap/dispach`) resume.
 
