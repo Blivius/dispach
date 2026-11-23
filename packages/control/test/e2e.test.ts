@@ -316,7 +316,7 @@ describe.skipIf(!ENABLED)("e2e against the real runtime (CONTROL_E2E=1)", () => 
             `${BRAND.siloPrefix}${A}`,
         ]).toString()
         expect(after).not.toBe(before)
-        // A new container on the same port: the address everything holds stays right (#74).
+        // A new container on the same port: the address everything holds stays right (#36).
         expect(store.get(A)?.baseUrl).toBe(address)
         const agents = await call(`/silos/${A}/v1/agents`, { token: keys[A] ?? "" })
         expect(agents.status).toBe(200)
@@ -326,7 +326,7 @@ describe.skipIf(!ENABLED)("e2e against the real runtime (CONTROL_E2E=1)", () => 
 
     test("a restart behind the control plane's back keeps the silo's port", async () => {
         // `docker restart`, a crash under the restart policy and a daemon restart all start the
-        // container again; a port Docker chose would be chosen again (#74).
+        // container again; a port Docker chose would be chosen again (#36).
         const address = store.get(A)?.baseUrl
         execFileSync("docker", ["restart", `${BRAND.siloPrefix}${A}`])
         expect(

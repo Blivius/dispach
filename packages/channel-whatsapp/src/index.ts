@@ -42,7 +42,7 @@ import { isAbsolute, resolve } from "node:path"
 // decision 11.238's `instanceof` failure waiting to happen and 1.6 MB of duplicate code
 // measured. The exception is `ConfigError`: a config refusal must arrive as itself (code, hint,
 // field), not wrapped in `channel_factory_failed`, and Telegram already imports it the same way
-// (issue #28).
+// (issue #11).
 import { type ChannelFactory, ConfigError, type Plugin } from "@dispach/core"
 import { type BaileysApi, numberOf, WhatsAppTransport } from "./transport.ts"
 
