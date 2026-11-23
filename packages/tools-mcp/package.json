@@ -6,7 +6,7 @@
     "author": "Moeen Mahmud",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/blivius/dispach.git",
+        "url": "git+https://github.com/Blivius/dispach.git",
         "directory": "packages/tools-mcp"
     },
     "type": "module",
