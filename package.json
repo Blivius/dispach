@@ -48,9 +48,11 @@
         "changelog:draft": "bun scripts/changelog-draft.ts",
         "docs:generate": "bun scripts/export-docs-openapi.ts",
         "docs:check": "bun scripts/export-docs-openapi.ts --check && bun scripts/facts.ts --check && bun scripts/check-docs.ts && bun scripts/eval-index.ts --check && bun scripts/bench/summary.ts --check",
-        "evals:index": "bun scripts/bench/summary.ts && bun scripts/eval-index.ts"
+        "evals:index": "bun scripts/bench/summary.ts && bun scripts/eval-index.ts",
+        "test:e2e": "cd packages/web && bun test:e2e"
     },
     "devDependencies": {
+        "@playwright/test": "^1.40.0",
         "@biomejs/biome": "2.5.9",
         "@commitlint/cli": "^20.5.0",
         "@commitlint/config-conventional": "^20.5.0",
