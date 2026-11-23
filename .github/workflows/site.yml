@@ -8,7 +8,7 @@ name: site
 # `brand.ts`. The project's Root Directory is `site`, so nothing else in the tree is uploaded.
 #
 #   push to main         → production (dispach.blivius.com)
-#   pull request         → a preview, its URL in the job summary (same-repo branches only: a fork's
+#   pull request         → a preview (into `development`), its URL in the job summary (same-repo branches only: a fork's
 #                          pull request is given no secrets, so it could not deploy anyway)
 #   workflow_dispatch    → production, for a redeploy with no change (a new env var, a failed build)
 
@@ -28,6 +28,7 @@ on:
       - ".vercelignore"
       - ".github/workflows/site.yml"
   pull_request:
+    branches: [development]
     paths: *site
   workflow_dispatch:
 

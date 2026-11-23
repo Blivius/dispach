@@ -15,7 +15,7 @@ Open source and self-hosted: one API for agents with memory, tools, schedules, c
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-a63ba6?style=flat-square" alt="License: Apache-2.0"></a>
-  <a href="https://github.com/blivius/dispach/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/blivius/dispach/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="https://github.com/blivius/dispach/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/blivius/dispach/ci.yml?event=pull_request&style=flat-square&label=CI" alt="CI"></a>
   <a href="https://www.npmjs.com/package/dispach"><img src="https://img.shields.io/npm/v/dispach?style=flat-square&color=181825" alt="npm"></a>
   <a href="https://arxiv.org/abs/2610.06274"><img src="https://img.shields.io/badge/arXiv-2610.06274-b31b1b?style=flat-square" alt="arXiv: 2610.06274"></a>
   <a href="https://hub.xerj.org/contributors/moeen-mahmud"><img src="https://hub.xerj.org/contributors/moeen-mahmud/badge.svg" alt="XERJ Corpus Hub contributor"></a>
