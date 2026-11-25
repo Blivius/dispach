@@ -347,6 +347,7 @@ function fromFlags(options: InitOptions): Partial<Record<InitStep, string>> {
         ["whatsappNumber", options.whatsappNumber],
         ["server", options.server],
         ["schedules", options.schedules],
+        ["traces", options.traces],
         // `--skills` takes a choice name *or* the words to search for, and the sugar is here rather than
         // in `validateAnswer` so the per-step validation stays strict — a flag that quietly accepted
         // anything is a flag that mistypes `startr` into a search query for "startr".

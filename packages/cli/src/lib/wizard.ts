@@ -290,6 +290,7 @@ export function answeredRows(
         whatsapp: "WhatsApp",
         whatsappNumber: "WhatsApp number",
         schedules: "none",
+        traces: "Traces",
         server: "HTTP API",
         // Was literally `"starter"` — a value pasted into the label column, so the confirm screen
         // showed "starter  starter" for the default answer and "starter  none" for the other one.

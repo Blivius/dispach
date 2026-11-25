@@ -807,6 +807,49 @@ describe("a failure a person must act on reaches the log", () => {
         expect(body).toContain("data.message")
         expect(body).toContain("data.hint")
     })
+
+    test("a plugin that fails to load at boot is in the log, not only on agent.warnings", async () => {
+        // The banner does not print `agent.warnings`, so under `serve` a trace exporter with no
+        // endpoint was written nowhere: the agent served, untraced, with no line saying why.
+        const dir = mkdtempSync(join(tmpdir(), "serve-plugin-"))
+        writeFileSync(join(dir, "IDENTITY.md"), "You are a test fixture.\n", "utf8")
+        writeFileSync(
+            join(dir, "agent.yaml"),
+            `apiVersion: ${BRAND.apiVersion}
+id: traced
+model:
+  main:
+    id: gpt-4o-mini
+    baseUrl: https://api.example.com/v1
+    apiKeyEnv: MODEL_API_KEY
+context:
+  window: 8192
+  files:
+    - IDENTITY.md
+plugins:
+  - spec: "${BRAND.packageScope}/trace-otlp"
+    config: {}
+server:
+  enabled: true
+`,
+            "utf8",
+        )
+        const { out, exited } = await serveAll([join(dir, "agent.yaml")])
+        expect(exited).toBe(false)
+        expect(out).toContain("traced: plugin_setup_failed")
+        expect(out).toContain("endpoint is required")
+        rmSync(dir, { recursive: true, force: true })
+    }, 30_000)
+
+    test("a plugin's warning after boot reaches the log too, with the same trio", () => {
+        // An exporter refused by its collector warned on the bus and nowhere a container shows.
+        const handler = SOURCE.slice(SOURCE.indexOf('bus.on("agent.warning"'))
+        const body = handler.slice(0, handler.indexOf("\n        })"))
+        expect(body).toContain('data.field !== "plugins"')
+        expect(body).toContain("process.stderr.write")
+        expect(body).toContain("data.code")
+        expect(body).toContain("data.hint")
+    })
 })
 
 describe("a taken port moves the server rather than stopping it", () => {

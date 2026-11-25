@@ -79,11 +79,21 @@ interface PluginContext {
   readonly config: unknown          // validated against configSchema
   readonly agentId: string
   readonly paths: { workspace: string; state: string; manifest: string }
-  readonly env: EnvSource            // the manifest's .env over the ambient one, as core resolved it
-  readonly logger: Logger
+  readonly env: EnvSource            // the agent's .env under the real environment (the real one wins)
+  readonly logger: Logger            // warn and error become agent.warning (16.5); debug and info go nowhere
   readonly events: Pick<EventBus, "on">   // subscribe only; emit is core's
 }
 ```
+
+**`logger` is how a plugin reports a failure that happens after `setup`.** `warn` and `error` are
+emitted as `agent.warning` on the plugin's agent, with the message prefixed by the plugin's name;
+`fields.code` and `fields.hint`, when they are strings, become the warning's `code` and `hint`, so a
+plugin's failure has the shape a core one has. `debug` and `info` are discarded. Earlier releases
+handed every plugin a logger that discarded everything, because no host passed one.
+
+**Prefer `use({ onEvent })` to `events.on` for watching.** The runtime filters an `onEvent` watcher to
+its own agent's events and drops it when the agent is disposed or replaced; nothing unsubscribes an
+`events.on` handler, so after a reload the old one keeps observing.
 
 Two departures from the shape this document first described, both deliberate.
 
@@ -283,7 +293,7 @@ type ChannelFactory = (context: ChannelFactoryContext) => ChannelTransport
 interface ChannelFactoryContext {
   readonly agentId: string
   readonly dir: string                              // the agent's directory
-  readonly env: EnvSource                           // the manifest's .env over the ambient one
+  readonly env: EnvSource                           // the agent's .env under the real one (real wins)
   readonly config: Readonly<Record<string, unknown>> // the entry minus id/type/enabled/allowFrom
   readonly id: string                               // the entry's id — report it back verbatim
 }
@@ -714,7 +724,8 @@ objects hold references a deep freeze would break.
 ### Shipped examples
 
 `retryMiddleware` and `approvalMiddleware` are exported from `@dispach/core` rather than printed
-here, because an example nobody runs is an example that rots. Both are constructed by a caller — an
+here, because an example nobody runs is an example that rots. For a plugin built only on `onEvent`
+and `logger`, read `packages/trace-otlp` (`docs/26-SPEC-TRACES.md`). Both are constructed by a caller — an
 embedder, or a plugin that wants them — never switched on by a manifest: middleware that appeared
 without anybody naming it would be the opposite of what the plugin list is for.
 

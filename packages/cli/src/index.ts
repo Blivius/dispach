@@ -166,6 +166,7 @@ async function dispatch(argv: readonly string[]): Promise<number> {
             const whatsappNumber = flags.str("whatsapp-number")
             const server = flags.str("server")
             const schedules = flags.str("schedules")
+            const traces = flags.str("traces")
             const skills = flags.str("skills")
             const daemon = flags.str("daemon")
             return await initCommand({
@@ -184,6 +185,7 @@ async function dispatch(argv: readonly string[]): Promise<number> {
                 ...(composio === undefined ? {} : { composio }),
                 ...(telegram === undefined ? {} : { telegram }),
                 ...(schedules === undefined ? {} : { schedules }),
+                ...(traces === undefined ? {} : { traces }),
                 ...(telegramAllow === undefined ? {} : { telegramAllow }),
                 ...(whatsapp === undefined ? {} : { whatsapp }),
                 ...(whatsappNumber === undefined ? {} : { whatsappNumber }),

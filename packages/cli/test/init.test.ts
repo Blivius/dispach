@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -20,7 +20,7 @@ import {
 } from "@dispach/core"
 import { initCommand } from "#init"
 import { EXIT_OK } from "#lib/const"
-import { TOOL_PROVIDERS } from "#lib/providers"
+import { BUILT_IN_PLUGINS, TOOL_PROVIDERS } from "#lib/providers"
 
 function scratch(): string {
     return join(mkdtempSync(join(tmpdir(), "init-test-")), "agent")
@@ -98,6 +98,81 @@ describe("initCommand runs the whole funnel", () => {
             env: STUB_ENV,
         })
         expect(loaded.manifest.schedules).toEqual([])
+    })
+
+    test("--traces reaches the written agent.yaml as a live plugin entry the runtime loads", async () => {
+        // Same far-end shape as `--schedules`, and further: the entry has to *load*, through the
+        // binary's own built-in registry, or a flag that writes a correct-looking block is a flag
+        // that produces an agent with a plugin warning at every boot.
+        const dir = scratch()
+        expect(await initCommand({ ...FLAGS, dir, traces: "http://localhost:6006" })).toBe(EXIT_OK)
+        const yaml = readFileSync(join(dir, "agent.yaml"), "utf8")
+        expect(yaml).toMatch(/\nplugins:\n {2}- spec: "@[a-z]+\/trace-otlp"/)
+        // A bare origin is written as the URL the plugin will use, not as typed.
+        expect(yaml).toContain("endpoint: http://localhost:6006/v1/traces")
+
+        const runtime = await Runtime.create({
+            agents: [join(dir, "agent.yaml")],
+            env: STUB_ENV,
+            builtInPlugins: BUILT_IN_PLUGINS,
+            fetch: async () => new Response("{}"),
+        })
+        const agent = runtime.agent("milo")
+        await runtime.stop()
+        expect(agent.warnings.filter((w) => w.field === "plugins")).toEqual([])
+    })
+
+    test("--traces refuses what is not an OTLP/HTTP URL, with the plugin's own sentence", async () => {
+        const dir = scratch()
+        const refused = await initCommand({ ...FLAGS, dir, traces: "grpc://localhost:4317" }).then(
+            () => undefined,
+            (error: unknown) => error as HarnessError,
+        )
+        expect(refused?.code).toBe("cli_init_flag_invalid")
+        expect(refused?.message).toContain("is not an OTLP/HTTP traces URL")
+        expect(refused?.message).toContain("gRPC (port 4317) is not supported")
+        expect(existsSync(join(dir, "agent.yaml"))).toBe(false)
+    })
+
+    test("no --traces writes the trace entry commented, and loads no plugin", async () => {
+        const dir = scratch()
+        expect(await initCommand({ ...FLAGS, dir })).toBe(EXIT_OK)
+        const yaml = readFileSync(join(dir, "agent.yaml"), "utf8")
+        expect(yaml).toMatch(/#\s+- spec: "@[a-z]+\/trace-otlp"/)
+        expect(loadManifest(join(dir, "agent.yaml"), { env: STUB_ENV }).manifest.plugins).toEqual(
+            [],
+        )
+    })
+
+    test("the commented entry uncomments into one that loads: deleting `# ` is the whole edit", async () => {
+        // The generated manifest's premise is that uncommenting works. The entry was written with a
+        // bare `#` and came out one column short of valid YAML, and the test above, matching
+        // `#\s+- spec`, could not see it. `headersEnv` stays commented: its variable is not set.
+        const dir = scratch()
+        expect(await initCommand({ ...FLAGS, dir })).toBe(EXIT_OK)
+        const path = join(dir, "agent.yaml")
+        const lines = readFileSync(path, "utf8").split("\n")
+        const from = lines.indexOf("# plugins:")
+        const to = lines.indexOf("", from)
+        for (let i = from; i < to; i++) {
+            const line = lines[i] ?? ""
+            if (!line.includes("headersEnv")) lines[i] = line.replace(/^# /, "")
+        }
+        writeFileSync(path, lines.join("\n"))
+
+        const specs = loadManifest(path, { env: STUB_ENV }).manifest.plugins.map((ref) =>
+            typeof ref === "string" ? ref : ref.spec,
+        )
+        expect(specs.some((spec) => spec.endsWith("/trace-otlp"))).toBe(true)
+        const runtime = await Runtime.create({
+            agents: [path],
+            env: STUB_ENV,
+            builtInPlugins: BUILT_IN_PLUGINS,
+            fetch: async () => new Response("{}"),
+        })
+        const warnings = runtime.agent("milo").warnings.filter((w) => w.field === "plugins")
+        await runtime.stop()
+        expect(warnings).toEqual([])
     })
 })
 

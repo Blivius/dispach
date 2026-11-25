@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-09-27T17:39:17.853Z",
+  "measuredAt": "2026-11-25T11:04:50.948Z",
   "suite": "evals/scenarios/example",
   "agentModel": "deepseek-v4-pro",
   "judgeModel": "deepseek-v4-flash",
@@ -9,10 +9,25 @@
   "results": [
     {
       "name": "calendar-today",
-      "passed": 2,
+      "passed": 0,
       "runs": 2,
-      "rate": 1,
-      "failures": []
+      "rate": 0,
+      "failures": [
+        {
+          "run": 1,
+          "step": 1,
+          "kind": "calls",
+          "detail": "made 2 tool call(s); the step allows 1",
+          "reply": "Today (Tuesday, 25 November 2026) you have two events:\n\n- **10:00–10:15** — Standup\n- **15:30–16:30** — Dentist"
+        },
+        {
+          "run": 2,
+          "step": 1,
+          "kind": "calls",
+          "detail": "made 2 tool call(s); the step allows 1",
+          "reply": "Here's what's on your calendar today (Wednesday, November 25, 2026):\n\n- **10:00 – 10:15** — Standup\n- **15:30 – 16:30** — Dentist\n\nThat's everything for today."
+        }
+      ]
     },
     {
       "name": "email-send",
@@ -30,6 +45,13 @@
     },
     {
       "name": "follow-up",
+      "passed": 2,
+      "runs": 2,
+      "rate": 1,
+      "failures": []
+    },
+    {
+      "name": "retention",
       "passed": 2,
       "runs": 2,
       "rate": 1,
