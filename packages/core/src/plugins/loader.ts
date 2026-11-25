@@ -290,11 +290,36 @@ function validateConfig(plugin: Plugin, config: Readonly<Record<string, unknown>
     throw pluginConfigInvalid(plugin.name, problems.length === 0 ? ["invalid"] : problems)
 }
 
-const SILENT_LOGGER: Logger = {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
+/**
+ * A plugin's `warn` and `error`, as `agent.warning` on its agent.
+ *
+ * Every plugin used to be handed a logger that discarded everything, because no host passed one —
+ * so a plugin whose only failure path is after `setup` (an exporter whose endpoint went away) had
+ * nowhere to say so, and hard rule 8 was unreachable from the plugin API. The bus is the one place
+ * every surface already reads. `debug` and `info` stay silent: a warning stream that carries
+ * progress is one nobody reads.
+ *
+ * `fields.code` and `fields.hint` are honoured when they are strings, so a plugin can give its
+ * failure the same shape a core one has; otherwise the code is `plugin_warning` and the hint names
+ * the plugin, which is the least a reader needs to know where to look.
+ */
+function busLogger(bus: EventBus, plugin: string, agentId: string): Logger {
+    const report = (message: string, fields?: Readonly<Record<string, unknown>>): void => {
+        bus.emit(
+            "agent.warning",
+            {
+                code: typeof fields?.code === "string" ? fields.code : "plugin_warning",
+                message: `${plugin}: ${message}`,
+                hint:
+                    typeof fields?.hint === "string"
+                        ? fields.hint
+                        : `Reported by the plugin "${plugin}". Its documentation says what the message means.`,
+                field: "plugins",
+            },
+            { agentId },
+        )
+    }
+    return { debug: () => {}, info: () => {}, warn: report, error: report }
 }
 
 /**
@@ -387,7 +412,7 @@ export async function loadPlugins(options: LoadPluginsOptions): Promise<LoadedPl
                 agentId: options.agentId,
                 paths: options.paths,
                 env: options.env,
-                logger: options.logger ?? SILENT_LOGGER,
+                logger: options.logger ?? busLogger(options.bus, plugin.name, options.agentId),
                 events: options.bus,
             }
 

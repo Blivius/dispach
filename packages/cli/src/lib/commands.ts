@@ -189,6 +189,14 @@ export const COMMANDS: readonly CommandSpec[] = [
                 defaultHelp: "none",
             },
             {
+                name: "traces",
+                kind: "string",
+                placeholder: "url",
+                // Flag-only, like `--schedules`: nobody wants tracing at minute two of setup, and the
+                // generated manifest carries the commented block for later (decision 16.4).
+                help: "send every turn as an OpenTelemetry trace to this OTLP/HTTP URL (Phoenix: http://localhost:6006)",
+            },
+            {
                 name: "skills",
                 kind: "string",
                 placeholder: "level",

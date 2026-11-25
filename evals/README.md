@@ -18,7 +18,7 @@ comes from. Negative results are listed with the positive ones.
 | [`phases`](phases/) | Phase-scoped tool visibility, measured — and the number is negative | [`results.json`](phases/results.json) | not recorded |
 | [`prompt-style`](prompt-style/) | promptStyle — the two open questions, measured | [`results.json`](prompt-style/results.json) | 2026-08-14 |
 | [`rules`](rules/) | `perRuleSuccess`, measured | [`results.json`](rules/results.json) | not recorded |
-| [`scenarios`](scenarios/) | Scenario evals — layer 2 | [`example/results.json`](scenarios/example/results.json) | 2026-09-27 |
+| [`scenarios`](scenarios/) | Scenario evals — layer 2 | [`example/results.json`](scenarios/example/results.json) | 2026-11-25 |
 | [`skills`](skills/) | Skill indexing | [`results.json`](skills/results.json) | 2026-10-20 |
 | [`subagents`](subagents/) | evals/subagents — is routing bulk tool work to a subagent worth it? | [`results.json`](subagents/results.json) | 2026-10-03 |
 | [`tenancy`](tenancy/) | Density: what an idle silo costs | [`results.json`](tenancy/results.json) | 2026-09-24 |

@@ -52,6 +52,7 @@ export const INIT_LOCAL_TOOL_SLUGS: readonly string[] = INIT_LOCAL_TOOLS.map((to
 
 export { PRESETS, type Preset, type PresetId, presetById } from "#lib/presets"
 
+import { readConfig as readTraceConfig } from "@dispach/trace-otlp"
 import { PRESETS, type PresetId, presetById } from "#lib/presets"
 
 /** A purpose as the manifest's `description`: one line, inside the schema's 200 characters. */
@@ -179,6 +180,14 @@ export interface InitAnswers {
      * default lives at that funnel rather than as a step fallback.
      */
     readonly schedules: string
+    /**
+     * The OTLP/HTTP URL every turn is sent to as a trace, or empty for none.
+     *
+     * Not asked. Set by `--traces` and defaulted to empty in `complete()`, like `schedules`: tracing
+     * is a thing somebody wants once an agent is doing real work, not at minute two of setting it
+     * up, so empty writes the commented `@dispach/trace-otlp` entry where they will look for it.
+     */
+    readonly traces: string
     readonly server: string
     /**
      * The API token, generated rather than asked. Not a third-party credential and not a choice —
@@ -1191,6 +1200,19 @@ export function validateAnswer(step: InitStep, raw: string): Answered {
                       reason: `pick 1-${SERVER_CHOICES.length}, or a name: ${SERVER_CHOICES.map((c) => c.value).join(", ")}.`,
                   }
                 : { ok: true, value: chosen.value }
+        }
+
+        case "traces": {
+            if (value.trim() === "") return { ok: true, value: "" }
+            // The plugin's own reader, so `init` and the runtime cannot disagree about what an
+            // endpoint is. It also normalises a bare origin to `/v1/traces`, and the manifest gets
+            // the URL the plugin will actually use.
+            try {
+                return { ok: true, value: readTraceConfig({ endpoint: value }, {}).endpoint }
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error)
+                return { ok: false, reason: `is not an OTLP/HTTP traces URL: ${detail}` }
+            }
         }
 
         case "schedules": {
@@ -2306,9 +2328,7 @@ function manifestFor(answers: InitAnswers, window: MeasuredWindow | undefined): 
         // **No entry for WhatsApp any more.** It is bundled, so naming it here would name a plugin
         // the binary already supplies — and a `plugins:` entry that cannot be satisfied is exactly
         // what made a generated manifest print an install command that could not work.
-        `# plugins:`,
-        `#   - "${BRAND.packageScope}/channel-telegram"`,
-        ``,
+        ...pluginsBlock(answers),
     )
     return lines.join("\n")
 }
@@ -2404,4 +2424,39 @@ function envExampleFor(answers: InitAnswers): string {
         lines.push(`${COMPOSIO_KEY_ENV}=`)
     }
     return `${lines.join("\n")}\n`
+}
+
+/**
+ * The `plugins:` entries: live when `--traces` named an endpoint, commented otherwise.
+ *
+ * The trace exporter is the one bundled plugin worth showing here, because it is the one a manifest
+ * has to name before it does anything (decision 16.1). The header line stays commented either way:
+ * Phoenix 22 requires auth by default and a local collector does not, and a `headersEnv` naming a
+ * variable that is not set fails the plugin's load, which is the wrong thing to generate blind.
+ */
+function pluginsBlock(answers: InitAnswers): readonly string[] {
+    const trace = (prefix: string, endpoint: string): string[] => [
+        `${prefix}  - spec: "${BRAND.packageScope}/trace-otlp"   # every turn as an OpenTelemetry trace`,
+        `${prefix}    config:`,
+        `${prefix}      endpoint: ${endpoint}`,
+        `#       headersEnv: { authorization: TRACES_AUTH }   # Phoenix 22+: "Bearer <key>" in .env`,
+    ]
+    if (answers.traces !== "") {
+        return [
+            `# Traces carry metadata only — names, models, tokens, latencies, outcomes — never a`,
+            `# prompt, a reply or a tool's output.`,
+            `plugins:`,
+            ...trace("", answers.traces),
+            `#   - "${BRAND.packageScope}/channel-telegram"`,
+            ``,
+        ]
+    }
+    return [
+        `# plugins:`,
+        `#   - "${BRAND.packageScope}/channel-telegram"`,
+        // `# ` + the live text, the convention every commented block here keeps, so deleting `# `
+        // from each line is the whole edit. `#` alone left the entry one column short of valid YAML.
+        ...trace("# ", "http://localhost:6006/v1/traces"),
+        ``,
+    ]
 }

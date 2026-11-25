@@ -505,6 +505,7 @@ describe("init --skills find", () => {
         telegram: "none",
         whatsapp: "none",
         schedules: "none",
+        traces: "",
         server: "none",
         daemon: "none",
         dirChoice: "custom",

@@ -2,7 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- Traces: name the bundled `@dispach/trace-otlp` plugin and every turn reaches an OpenTelemetry backend (Phoenix, any OTLP/HTTP collector) as a trace: model calls with tokens and latency, tool calls, delegations, nested. Metadata only, never prompt or reply text. `init --traces <url>` writes it for a new agent.
+- A plugin's `logger.warn` and `logger.error` now arrive as `agent.warning`. They were discarded before.
+
 ### Fixed
+
+- A plugin is handed the agent's environment, with the `.env` beside the manifest under the real one, as the plugin API documents. It received the process environment alone, so a key set in the agent's `.env` read as unset.
+- `serve` writes a plugin's warnings to its log, including a plugin that failed to load at boot. They reached only the event stream, so `docker logs` said nothing about them.
 
 - The standalone installer names a shared library Node cannot load (`libatomic.so.1` on slim Debian images since Node 26) and the package that provides it, instead of reporting only that the install does not start.
 

@@ -10,8 +10,9 @@
  *   tools** every scenario may call, and carries **calibration**: replies of known verdict, judged
  *   first. A judge that gets one wrong ends the run before a single scenario is scored.
  * - A scenario is one conversation. Each step has a `prompt`, the `expected_calls` (a hard check on
- *   the call log: `in_order` by default, or `exact` / `any_order`), three or four **binary**
- *   `criteria` a person could check in five seconds, and the `mocks` its tools return.
+ *   the call log: `in_order` by default, or `exact` / `any_order`), an optional `max_calls`
+ *   ceiling, three or four **binary** `criteria` a person could check in five seconds, and the
+ *   `mocks` its tools return.
  *
  * ## The rules this follows, and why
  *
@@ -95,6 +96,14 @@ const Step = z.object({
         )
         .default([]),
     order: z.enum(["exact", "in_order", "any_order"]).default("in_order"),
+    /**
+     * The most calls this step may make to the suite's mocked tools (built-ins such as `now` are not
+     * recorded, so not counted). DeepEval's "step efficiency", decided by code rather
+     * than a judge because a count is not a matter of opinion: an agent that reaches the right answer
+     * on its fourth call to the same tool passes `expected_calls` (`in_order` allows extras) and
+     * still spent three calls it did not need.
+     */
+    max_calls: z.number().int().min(0).optional(),
     criteria: z
         .array(z.string().min(1))
         .min(1)
@@ -391,6 +400,16 @@ for (const scenario of scenarios) {
                         step: index + 1,
                         kind: "calls",
                         detail: callProblem,
+                        reply: result.text,
+                    })
+                }
+                if (step.max_calls !== undefined && stage.calls.length > step.max_calls) {
+                    ok = false
+                    failures.push({
+                        run,
+                        step: index + 1,
+                        kind: "calls",
+                        detail: `made ${stage.calls.length} tool call(s) (${stage.calls.map((call) => call.slug).join(", ")}); the step allows ${step.max_calls}`,
                         reply: result.text,
                     })
                 }

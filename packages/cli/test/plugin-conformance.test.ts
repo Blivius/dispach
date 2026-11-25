@@ -15,10 +15,25 @@ import { describe, expect, test } from "bun:test"
 import { conformance, formatFindings } from "@dispach/core/testing"
 import { BUILT_IN_PLUGINS } from "#lib/providers"
 
+/**
+ * Config for the plugins that cannot be named without one.
+ *
+ * The suite passes `{}` by default, which a plugin with a required setting correctly refuses — and
+ * the suite's own hint says to pass a valid config rather than to make the setting optional.
+ * `@dispach/trace-otlp` is the first: an exporter with no endpoint is a misconfiguration to report at
+ * load, not a default to invent. No header variables, so `setup` still reads no environment.
+ */
+const CONFIG: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
+    "@dispach/trace-otlp": { endpoint: "http://localhost:4318/v1/traces" },
+}
+
+const check = (spec: string, plugin: (typeof BUILT_IN_PLUGINS)[string]) =>
+    conformance(plugin, CONFIG[spec] === undefined ? {} : { config: CONFIG[spec] })
+
 describe("the first-party plugins", () => {
     for (const [spec, plugin] of Object.entries(BUILT_IN_PLUGINS)) {
         test(`${spec} passes conformance`, async () => {
-            const result = await conformance(plugin)
+            const result = await check(spec, plugin)
             // The formatted findings are the failure message, so a break says what broke rather
             // than `expected true to be false`.
             expect({
@@ -32,12 +47,12 @@ describe("the first-party plugins", () => {
             // A plugin that passes every shape check and registers nothing extends nothing. The
             // suite only warns about that, because a middleware-only plugin is legitimate from
             // Phase 9B — so the assertion that it is *not* the case here belongs with the packages.
-            const result = await conformance(plugin)
+            const result = await check(spec, plugin)
             expect(result.registered.length).toBeGreaterThan(0)
         })
 
         test(`${spec} declares an API range that admits this host`, async () => {
-            const result = await conformance(plugin)
+            const result = await check(spec, plugin)
             const skew = result.findings.filter((finding) => finding.check === "dispachApi")
             expect(skew).toEqual([])
         })

@@ -27,7 +27,12 @@ import {
 import { EventBus } from "../events/bus.ts"
 import type { EnvSource } from "../manifest/env.ts"
 import { type ManifestHeader, readManifestHeader } from "../manifest/header.ts"
-import { type LoadedManifest, loadManifest, loadManifestFromObject } from "../manifest/load.ts"
+import {
+    type LoadedManifest,
+    loadManifest,
+    loadManifestFromObject,
+    manifestEnv,
+} from "../manifest/load.ts"
 import { resolveProviders } from "../manifest/providers.ts"
 import type { AgentManifest, TeamMemberConfig } from "../manifest/schema.ts"
 import type { MediaProviderFactory } from "../media/provider.ts"
@@ -2262,7 +2267,9 @@ async function prepareAgents(input: {
                     state: resolve(options.dir ?? process.cwd(), BRAND.stateDir),
                     manifest: manifestPath,
                 },
-                env: options.env ?? process.env,
+                // The agent's `.env` under the real environment, as `PluginContext.env` promises.
+                // This was `options.env ?? process.env`, so a plugin never saw the agent's own file.
+                env: manifestEnv(manifestPath, envOptions(options)),
                 bus,
                 ...(options.builtInPlugins === undefined
                     ? {}

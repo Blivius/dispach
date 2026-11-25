@@ -4,6 +4,7 @@ steps:
   - prompt: What's on my calendar today?
     expected_calls:
       - slug: calendar_list_events
+    max_calls: 1              # one read answers this; a second is wasted work
     mocks:
       calendar_list_events:
         events:

@@ -76,6 +76,7 @@
         "@dispach/tools-mcp": "workspace:*",
         "@dispach/tools-system": "workspace:*",
         "@dispach/tools-web": "workspace:*",
+        "@dispach/trace-otlp": "workspace:*",
         "@types/react": "19.2.18",
         "dts-bundle-generator": "9.5.1",
         "ink-testing-library": "4.0.0",
@@ -168,6 +169,13 @@
     },
     "packages/tools-web": {
       "name": "@dispach/tools-web",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dispach/core": "workspace:*",
+      },
+    },
+    "packages/trace-otlp": {
+      "name": "@dispach/trace-otlp",
       "version": "0.1.0",
       "dependencies": {
         "@dispach/core": "workspace:*",
@@ -373,6 +381,8 @@
     "@dispach/tools-system": ["@dispach/tools-system@workspace:packages/tools-system"],
 
     "@dispach/tools-web": ["@dispach/tools-web@workspace:packages/tools-web"],
+
+    "@dispach/trace-otlp": ["@dispach/trace-otlp@workspace:packages/trace-otlp"],
 
     "@dispach/web": ["@dispach/web@workspace:packages/web"],
 
