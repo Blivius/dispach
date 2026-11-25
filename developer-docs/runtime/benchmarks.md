@@ -63,3 +63,21 @@ on every trial (pass^k): what a user who repeats a task cares about, beside the 
 - **Limits:** one benchmark of our own design, each harness on its own defaults. Where Dispach loses,
   and why, is written up in the
   [benchmark README](https://github.com/blivius/dispach/blob/main/evals/harness/README.md).
+
+## Iterate tasks
+
+A separate family of fourteen small JavaScript projects. Each has a README, code with seeded bugs,
+and a hidden test suite. It measures work that takes several rounds of editing and checking, which
+the suite above does not ([`scripts/bench/iterate.ts`](https://github.com/blivius/dispach/blob/main/scripts/bench/iterate.ts)).
+
+- **The `run_check` tool** runs the project's suite against the files as they are now. It reports the
+  pass count and the first two failures, each saying what was expected and what came back. A test
+  that hangs is named.
+- **Staged suites:** in two of the projects, a later stage of tests runs only once the earlier ones
+  pass. Those later stages state rules the README leaves out, so reading the code alone cannot finish
+  the task.
+- **Running it:** `--tasks iterate` selects the family, which never runs by default. `run_check` is
+  listed only on those runs, so the 25-task suite keeps the eight tools it was measured with.
+  `--endpoint <baseUrl>,<KEY_ENV>,<model id>` calls a model's own API instead of its OpenRouter route,
+  and rows from those runs carry `@direct` in their model key.
+- **No published numbers yet.** A number appears here only with its row in `evals/CLAIMS.md`.

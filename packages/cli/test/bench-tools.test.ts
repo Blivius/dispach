@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { createToolServer } from "../../../scripts/bench/tools-server.ts"
+import { createToolServer, runCheck } from "../../../scripts/bench/tools-server.ts"
 import { McpClient } from "../../tools-mcp/src/client.ts"
 
 function connect(world = {}) {
@@ -97,5 +97,44 @@ describe("bench tool server", () => {
             calls: unknown[]
         }
         expect(state).toMatchObject({ kv: { seeded: "1" }, calls: [] })
+    })
+})
+
+describe("run_check", () => {
+    const tests =
+        'import { double } from "./src/double.js"\nexport default { "doubles 2": () => { if (double(2) !== 4) throw new Error("double(2) is " + double(2)) } }'
+
+    test("is listed only by a server made with checks", async () => {
+        expect((await connect().client.listTools()).map((t) => t.name)).not.toContain("run_check")
+        const server = createToolServer({}, { checks: true })
+        const client = new McpClient({
+            server: "bench",
+            url: "http://bench.test/mcp",
+            headers: () => ({}),
+            fetch: (url, init) => server.fetch(new Request(url, init)),
+            timeoutMs: 5_000,
+        })
+        expect((await client.listTools()).map((t) => t.name)).toContain("run_check")
+    })
+
+    test("runs the hidden suite against the files as they are now", () => {
+        const right = runCheck({ "src/double.js": "export const double = (n) => n + 2" }, tests)
+        expect(right).toEqual({ total: 1, failures: [] })
+        const wrong = runCheck({ "src/double.js": "export const double = (n) => n * 3" }, tests)
+        expect(wrong.failures.map((f) => f.message)).toEqual(["double(2) is 6"])
+    })
+
+    test("a file that does not parse is one failure the model can read, not a crash", () => {
+        const result = runCheck({ "src/double.js": "export const double = (n) =>" }, tests)
+        expect(result.failures.length).toBe(1)
+        expect(result.failures[0]?.name).toBe("the suite did not run")
+    })
+
+    test("a path that climbs out of the workspace is not written", () => {
+        const result = runCheck(
+            { "../escape.js": "export {}", "src/double.js": "export const double = (n) => n * 2" },
+            tests,
+        )
+        expect(result.failures).toEqual([])
     })
 })
