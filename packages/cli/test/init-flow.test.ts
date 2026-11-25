@@ -43,6 +43,7 @@ const ANSWERS: InitAnswers = {
     telegram: "none",
     whatsapp: "none",
     schedules: "none",
+    traces: "",
     server: "none",
     skills: "starter",
     daemon: "none",

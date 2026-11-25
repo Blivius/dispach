@@ -305,6 +305,8 @@ export interface InitOptions {
     readonly server?: string
     /** `none`, `daily` or `hourly` — what the agent runs on a schedule. */
     readonly schedules?: string
+    /** An OTLP/HTTP traces URL: send every turn as a trace there (`@dispach/trace-otlp`). */
+    readonly traces?: string
     /** `none` or `starter` — whether to scaffold a skills directory, and whether to seed it. */
     readonly skills?: string
     readonly daemon?: string

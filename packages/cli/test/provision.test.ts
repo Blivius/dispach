@@ -605,12 +605,14 @@ describe("every answer the wizard has is reachable at the terminal", () => {
      * is that question, asked structurally: `boundaries.test.ts` already walks every `CommandSpec`
      * flag into `index.ts`, and nothing walked the wizard's own steps.
      *
-     * Four steps are **deliberately** flag-only, and each is here by name with the reason rather
-     * than by a rule that would let a fifth in silently.
+     * These steps are **deliberately** flag-only, and each is here by name with the reason rather
+     * than by a rule that would let another in silently.
      */
     const FLAG_ONLY: ReadonlyMap<string, string> = new Map([
         // Withdrawn after use (9.17): nobody knows they want a schedule at minute two.
         ["schedules", "withdrawn as a question, kept as a flag"],
+        // 16.4: tracing is wanted once an agent does real work; the commented entry carries it.
+        ["traces", "never a question; --traces or the commented plugins entry"],
         // Withdrawn in 0.1.2: asking whether you want the product is not a question.
         ["server", "the server is on by default; --server none is the opt-out"],
         // A picker cannot run in CI, so the interactive and scripted paths differ by design.
