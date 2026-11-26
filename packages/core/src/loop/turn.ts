@@ -38,7 +38,6 @@ import { nativeWireTokens } from "../tools/dialect/native.ts"
 import type { EventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
 import {
-    inAnyGroup,
     missedSetNote,
     reachableGroups,
     readsAsMissed,
@@ -711,8 +710,8 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
     let repairs = 0
     /** The silence nudge has been spent this turn: once, then the reply stands (decision 14.123). */
     let nudged = false
-    /** Every slug a step of this turn ran, for the missed-set nudge: a turn that looked is not a miss. */
-    const ranThisTurn = new Set<string>()
+    /** A tool call of this turn succeeded, for the missed-set nudge: a turn that looked is not a miss. */
+    let looked = false
     /**
      * Signatures of the most recent tool-calling steps, oldest first, capped at the threshold.
      *
@@ -1357,9 +1356,10 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                 // something, or offers to look, while tool sets are still unloaded. The keywords missed
                 // and the model did not load a set itself, so it answered from what it had — the one way
                 // a withheld group turns into a wrong answer. Same single nudge per turn as the rest.
-                // Only a turn that did not look: once it ran `tools_load` or a tool from any set, "I
-                // found nothing" is a finding, and nudging it sent the model on into every other set —
-                // seen live, a mail search that found nothing went on to load and search the CRM too.
+                // Only a turn that did not look: once any tool call succeeded — `tools_load`, a tool from
+                // a set, or an ungrouped one such as `glob` or `web_search` — "I found nothing" is a
+                // finding, and nudging it sent the model on into every other set: seen live, a mail
+                // search that found nothing went on to load and search the CRM too.
                 // Only sets this turn could load, and only while the view in force offers the loader:
                 // a phase or a policy that leaves `tools_load` out would make the note an instruction to
                 // call a tool that is not there.
@@ -1367,11 +1367,6 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     wideTools === undefined
                         ? []
                         : unloadedReachable(wideTools, input.toolsAllow, groups, loadedGroups)
-                const looked = [...ranThisTurn].some(
-                    (slug) =>
-                        normaliseSlug(slug) === normaliseSlug(TOOLS_LOAD) ||
-                        inAnyGroup(groups, slug),
-                )
                 const missed =
                     silence === undefined &&
                     tools !== undefined &&
@@ -1577,17 +1572,30 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                                   ? {}
                                   : {
                                         loadToolGroup: async (name: string) => {
+                                            const had = loadedGroups.has(name)
+                                            const rebuild = (): ToolRuntime | undefined => {
+                                                baseTools = build()
+                                                views.clear()
+                                                return viewFor(phase)
+                                            }
                                             loadedGroups.add(name)
-                                            baseTools = build()
-                                            views.clear()
-                                            tools = viewFor(phase)
                                             // The view in force — a phase may hide some of the set —
                                             // so an empty answer means nothing reached the model.
-                                            const now = tools
+                                            const next = rebuild()
                                             const group = groups.find((one) => one.name === name)
-                                            return (group?.tools ?? []).filter(
-                                                (slug) => now?.registry.has(slug) === true,
+                                            const reached = (group?.tools ?? []).filter(
+                                                (slug) => next?.registry.has(slug) === true,
                                             )
+                                            if (reached.length > 0) {
+                                                tools = next
+                                                return reached
+                                            }
+                                            // Nothing reached: undo it, so the set is not loaded behind
+                                            // a "nothing was loaded" error and `tools_load` still offers
+                                            // it after a `phase_set` that would let it through.
+                                            if (!had) loadedGroups.delete(name)
+                                            tools = rebuild()
+                                            return []
                                         },
                                     }),
                               ...(input.phases === undefined
@@ -1647,7 +1655,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                               : { claimDelegated: input.claimDelegated }),
                       })
 
-            for (const result of outcome.results) ranThisTurn.add(result.slug)
+            if (outcome.results.some((result) => result.ok)) looked = true
 
             transientFailed =
                 outcome.results.length > 0 && outcome.results.every(failedTransiently)

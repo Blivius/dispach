@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- The conversation history is cached between turns. A request now marks the end of the history and the end of the turn before the last, so the next turn reads the conversation from the prompt cache instead of writing all of it again; before, the first call of every turn paid the cache-write price for the whole history. The prompt is unchanged. On Nova, no cache point is placed in a message that carries a tool result.
+- A request also marks two cache points in the history: the end of the history and the end of the turn before the last. Before, only the static prefix and the skill were marked, so nothing in the conversation was a prefix the next turn could read from a provider's cache. The prompt is unchanged. On Nova, no cache point is placed in a message that carries a tool result.
 
 ## 0.2.14 — 2026-11-26
 

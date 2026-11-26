@@ -87,11 +87,13 @@ function isWordChar(char: string): boolean {
 }
 
 /**
- * What `tools_load` returns, which is how a later turn finds the load. Searched for anywhere in an
- * observation, not anchored: NLT puts an `OBSERVATION <slug> — <state>` header in front of it. A page
- * quoting the sentence could load a set early, which costs its tokens and nothing else.
+ * What `tools_load` returns, which is how a later turn finds the load. Read only off a `tools_load`
+ * result: native, the `tool` message answering a `tools_load` call id, opening with the sentence; NLT,
+ * an `ok` block headed `OBSERVATION tools_load` in the observation after a step that called it. Read off
+ * any observation, a fetched page or an email quoting the sentence would load a set for the session.
  */
-const LOADED = /Loaded the "([a-z][a-z0-9_-]*)" tools/g
+const LOADED = /^Loaded the "([a-z][a-z0-9_-]*)" tools/
+const NLT_LOADED = /^OBSERVATION (\S+) — ok\nLoaded the "([a-z][a-z0-9_-]*)" tools/gm
 
 /** NLT puts a call in the assistant's text; native in `toolCalls`. Both count. */
 const NLT_ACTION = /^ACTION:\s*(\S+)/gm
@@ -109,20 +111,42 @@ export function activeToolGroups(
     const said = [input]
     const called = new Set<string>()
     const loaded = new Set<string>()
+    const isLoad = (slug: string): boolean => normaliseSlug(slug) === normaliseSlug(TOOLS_LOAD)
+    /** Native call ids of `tools_load`, so only their answers are read for the marker. */
+    const loadCalls = new Set<string>()
+    /** The last NLT step called `tools_load`, so its observation may carry the marker. */
+    let nltLoad = false
     for (const message of history) {
         // The person's words only. A runtime note is `user`-role too, and the missed-set nudge names
         // every unloaded set with its description — counted here, one nudge loaded them all for good.
         if (isPersonAuthored(message)) said.push(message.content)
-        for (const call of message.toolCalls ?? []) called.add(normaliseSlug(call.name))
+        for (const call of message.toolCalls ?? []) {
+            called.add(normaliseSlug(call.name))
+            if (isLoad(call.name)) loadCalls.add(call.id)
+        }
         if (message.role === "assistant" && message.origin === "call") {
+            nltLoad = false
             for (const match of message.content.matchAll(NLT_ACTION)) {
-                if (match[1] !== undefined) called.add(normaliseSlug(match[1]))
+                if (match[1] === undefined) continue
+                called.add(normaliseSlug(match[1]))
+                if (isLoad(match[1])) nltLoad = true
             }
         }
-        if (message.role === "tool" || message.origin === "observation") {
-            for (const match of message.content.matchAll(LOADED)) {
-                if (match[1] !== undefined) loaded.add(match[1])
+        if (message.role === "tool") {
+            const match =
+                message.toolCallId !== undefined && loadCalls.has(message.toolCallId)
+                    ? LOADED.exec(message.content)
+                    : null
+            if (match?.[1] !== undefined) loaded.add(match[1])
+        } else if (message.origin === "observation" && nltLoad) {
+            // ponytail: a fenced page in the same observation as a real `tools_load` could still forge
+            // a block at line start; closing that needs the observation stored per result.
+            for (const match of message.content.matchAll(NLT_LOADED)) {
+                if (match[1] !== undefined && match[2] !== undefined && isLoad(match[1])) {
+                    loaded.add(match[2])
+                }
             }
+            nltLoad = false
         }
     }
     const active = new Set<string>()
@@ -187,12 +211,6 @@ export function reachableGroups(
     available: ReadonlySet<string>,
 ): readonly ToolGroup[] {
     return groups.filter((group) => group.tools.some((tool) => available.has(normaliseSlug(tool))))
-}
-
-/** Whether `slug` is one of `groups`' tools, compared the registry's way. */
-export function inAnyGroup(groups: readonly ToolGroup[], slug: string): boolean {
-    const wanted = normaliseSlug(slug)
-    return groups.some((group) => group.tools.some((tool) => normaliseSlug(tool) === wanted))
 }
 
 /**

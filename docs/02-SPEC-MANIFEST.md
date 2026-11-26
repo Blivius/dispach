@@ -566,7 +566,8 @@ has nothing to do with this field. The two have been confused, so they are state
 **`tools.groups` keeps pinned tools out of the request until a conversation needs them** (decision
 18.2). Not tool search: a group only decides *when* tools the agent is already given are sent. A slug
 in no `tools.pinned` or `tools.local` list warns (`tool_group_unpinned`) rather than refusing the load —
-the agent's own `config_set` may unpin a grouped tool — and a tool in two groups is refused
+the agent's own `config_set` may unpin a grouped tool. The tools the runtime adds from other blocks
+(`image_generate`, `delegate`, `handoff`, `ask_agent`) are never warned about. A tool in two groups is refused
 (`tool_group_overlap`). Slugs compare the registry's way, ignoring case and separators, so
 `gmail_fetch_emails` groups the tool resolved as `GMAIL_FETCH_EMAILS`.
 

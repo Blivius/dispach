@@ -467,8 +467,11 @@ export function assembleContext(input: AssembleInput): AssembledContext {
  * trace follows the input and is the rolling point's business. A turn opens on the person's own message
  * (`isPersonAuthored`): a digest, a repair or a nudge is `user`-role and never opens one.
  *
- * B is dropped when both history marks are present — a hit at H1 covers everything B would have, and
- * Converse and Anthropic both allow four markers, the fourth being the rolling one.
+ * B is dropped when both history marks are present, because Converse and Anthropic allow four markers
+ * and the fourth is the rolling one. A hit at H1 covers B only while the volatile tier, the skill and the
+ * knowledge are what they were last turn. Knowledge is picked per turn, so on a turn where it changes H1
+ * misses and the volatile tier and the skill are written again, where B would have read them. That costs
+ * those two slots on such a turn, against the whole history on every turn without H1 and H2.
  * The prompt is byte-identical either way: only where a provider may cache changes.
  */
 function messagesOf(blocks: readonly ContextBlock[]): ChatMessage[] {

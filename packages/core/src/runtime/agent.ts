@@ -579,6 +579,13 @@ export class Agent {
      * show it using them.
      */
     #phases = new Map<string, string>()
+    /**
+     * Per session, the tool groups loaded before its checkpoint (decision 18.2). The prompt starts from
+     * the checkpoint, where the loads are gone, so the whole conversation is read once per session per
+     * process to find them, and `#checkpoint` adds what each new checkpoint covers. Absent means not
+     * read yet.
+     */
+    #groupsBefore = new Map<string, ReadonlySet<string>>()
     /** Absent when the embedder supplied none; then a skill's scripts are never discovered. */
     readonly #scriptRunner: ScriptRunner | undefined
     readonly #onPinned: (() => void) | undefined
@@ -2104,6 +2111,14 @@ export class Agent {
         if (last === undefined) throw sessionTooShort(sessionKey, starts.length, keep)
         const kept = stored.slice(cut).map(chatOf)
         const span = [...(previous?.messages ?? []), ...covered.map(chatOf)]
+        // The loads this checkpoint is about to hide from the prompt. Unread sessions stay unread: their
+        // next turn reads the whole conversation anyway.
+        const groups = toolGroupsOf(this.manifest.tools.groups)
+        const prior = this.#groupsBefore.get(sessionKey)
+        const groupsBefore =
+            prior === undefined || groups.length === 0
+                ? prior
+                : new Set([...prior, ...activeToolGroups(groups, "", covered.map(chatOf))])
 
         const meter = this.#meter(sessionKey, options.turnId, undefined)
         const summarise = this.#compaction(sessionKey, meter).summarise
@@ -2151,6 +2166,7 @@ export class Agent {
             tokensAfter: after,
             createdAt: new Date().toISOString(),
         })
+        if (groupsBefore !== undefined) this.#groupsBefore.set(sessionKey, groupsBefore)
         this.#bus.emit(
             "session.compacted",
             { before, after, digest, keptTurns: keep },
@@ -2296,9 +2312,9 @@ export class Agent {
      * A policy that would refuse `tools_load` — `mode: deny`, or `ask` with nobody to approve and no
      * rule allowing it — gets every tool too: a set the keywords missed could then never be loaded.
      *
-     * Activation is read from the whole stored conversation once a checkpoint exists. The prompt then
-     * starts from the checkpoint's digest and the person's requests, and the "Loaded the …" results and
-     * the calls that loaded a set are gone from it, so reading the prompt would unload them mid-session.
+     * Activation is read from the prompt plus `#groupsBefore`. Once a checkpoint exists the prompt starts
+     * from its digest and the person's requests, and the "Loaded the …" results and the calls that loaded
+     * a set are gone from it, so reading the prompt alone would unload them mid-session.
      */
     async #toolGroupsFor(
         input: string,
@@ -2316,12 +2332,21 @@ export class Agent {
         if (source === "subagent" || source === "handoff" || source === "ask") return undefined
         if (options.peerAsk !== undefined || options.from?.kind === "agent") return undefined
         if (!this.#mayLoadGroups()) return undefined
-        const checkpoint = await this.store.sessions.checkpoint(this.id, sessionKey)
-        const history =
-            checkpoint === undefined
-                ? promptHistory
-                : await this.store.messages.history(this.id, sessionKey)
-        return { groups, active: activeToolGroups(groups, input, history) }
+        let before = this.#groupsBefore.get(sessionKey)
+        if (before === undefined) {
+            const checkpoint = await this.store.sessions.checkpoint(this.id, sessionKey)
+            before =
+                checkpoint === undefined
+                    ? new Set<string>()
+                    : activeToolGroups(
+                          groups,
+                          "",
+                          await this.store.messages.history(this.id, sessionKey),
+                      )
+            this.#groupsBefore.set(sessionKey, before)
+        }
+        const active = new Set([...before, ...activeToolGroups(groups, input, promptHistory)])
+        return { groups, active }
     }
 
     /** Whether this agent's policy lets `tools_load` run: not denied, and `ask` only with an approver. */

@@ -12,9 +12,13 @@ import { isAbsolute, resolve } from "node:path"
 import { BRAND } from "../brand.ts"
 import { STAGE_ORDER, type StageName } from "../context/compaction/stages.ts"
 import { apiVersionMismatch, type ErrorDetail, HarnessError } from "../errors.ts"
+import { IMAGE_GENERATE } from "../media/image-tool.ts"
 import { resolveCapabilities } from "../model/capabilities.ts"
 import { nearest } from "../nearest.ts"
 import { parseSchedule } from "../schedule/kinds.ts"
+import { ASK_AGENT } from "../team/ask.ts"
+import { DELEGATE } from "../team/delegate.ts"
+import { HANDOFF } from "../team/supervisor.ts"
 import { normaliseSlug } from "../tools/slug.ts"
 import { planWorkspace, type WorkspaceFileRef } from "../workspace/load.ts"
 import { planSoul } from "../workspace/soul.ts"
@@ -245,6 +249,9 @@ function validateToolGroups(manifest: AgentManifest): ErrorDetail[] {
     return found
 }
 
+/** Tools the runtime registers from other blocks (`media`, `subagents`, `team`, peers), never pinned. */
+const RUNTIME_TOOLS = [IMAGE_GENERATE, DELEGATE, HANDOFF, ASK_AGENT]
+
 /**
  * A group naming a tool the agent is not given — a warning, never a refusal.
  *
@@ -256,7 +263,11 @@ function validateToolGroups(manifest: AgentManifest): ErrorDetail[] {
  * call this.
  */
 export function toolGroupWarnings(manifest: AgentManifest): ErrorDetail[] {
-    const given = new Set([...manifest.tools.pinned, ...manifest.tools.local].map(normaliseSlug))
+    // ponytail: the runtime's own tools are exempt by name, not by whether this manifest enables
+    // them; a group naming `delegate` on an agent with no subagents stays silent.
+    const given = new Set(
+        [...manifest.tools.pinned, ...manifest.tools.local, ...RUNTIME_TOOLS].map(normaliseSlug),
+    )
     return Object.entries(manifest.tools.groups).flatMap(([name, group]) => {
         const missing = group.tools.filter((tool) => !given.has(normaliseSlug(tool)))
         return missing.length === 0
