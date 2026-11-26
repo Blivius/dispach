@@ -1164,10 +1164,17 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     ? "Set model.<role>.maxTokens to raise the ceiling, if one is configured. Otherwise this is the endpoint's own limit and the request needs to ask for less."
                     : "This model bills its thinking to the output budget and thinks harder the more it is constrained, so a ceiling that fits a bare question may leave nothing for the answer under a longer prompt. Either raise model.<role>.maxTokens, or set model.<role>.reasoningEffort — `none` is the measured fix when the work is short and well specified."
 
+            // A call cut off mid-`arguments` is unreadable JSON, so it lands in `malformed`, never in
+            // `intents`. Both limit checks below skip such a step so it reaches the repair, which
+            // tells the model to split the work (a whole web page in one file write is the live
+            // case). Before this, both checks saw "no intents" and ended the turn.
+            const cutCall = (parsed.malformed?.length ?? 0) > 0
+
             if (
                 step.finishReason === "length" &&
                 text.trim() === "" &&
-                parsed.intents.length === 0
+                parsed.intents.length === 0 &&
+                !cutCall
             ) {
                 reason = "error"
                 const detail: ErrorDetail = {
@@ -1211,10 +1218,10 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
             // reads. The empty case above was handled and this one was not, which is the harder half
             // to notice, because the output looks like an answer.
             //
-            // Intents are excluded deliberately. A `length` finish mid-`arguments` produces invalid
-            // JSON under `native`, which `readArguments` catches and turns into a repair — a better
-            // remedy than ending the turn, and one that already exists.
-            if (step.finishReason === "length" && parsed.intents.length === 0) {
+            // Calls are excluded deliberately, the cut-off ones (`cutCall`) included. A `length` finish
+            // mid-`arguments` produces invalid JSON under `native`, which `readArguments` catches and
+            // turns into a repair — a better remedy than ending the turn, and one that already exists.
+            if (step.finishReason === "length" && parsed.intents.length === 0 && !cutCall) {
                 reason = "truncated"
                 const detail: ErrorDetail = {
                     code: "reply_truncated",
@@ -1244,8 +1251,20 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
             }
 
             const output: StepOutput = { text: step.text, calls: step.calls }
-            /** Calls the dialect could not read at all. Only `native` can produce these. */
-            const unreadable = parsed.malformed ?? []
+            /**
+             * Calls the dialect could not read at all. Only `native` can produce these. One cut off by
+             * the output limit says so: "send it again" alone repeats the same call into the same
+             * limit, and the single repair is spent on it.
+             */
+            const unreadable = (parsed.malformed ?? []).map((problem) =>
+                step.finishReason === "length"
+                    ? {
+                          ...problem,
+                          message: `was cut off at ${cap} before its arguments ended, so nothing ran.`,
+                          hint: "Sent again whole, it will be cut off the same way. Split the work across several smaller calls instead: for a long file, write the first part, then add the rest one part per call.",
+                      }
+                    : problem,
+            )
 
             // No tool call means this reply is the answer. The overwhelming majority of steps.
             // An unreadable call counts as work: breaking here would drop it silently and report the
