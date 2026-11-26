@@ -9,7 +9,14 @@
  */
 import type { World, WorldState } from "./tools-server.ts"
 
-export type Category = "single" | "chain" | "recall" | "abstention" | "recovery" | "long"
+export type Category =
+    | "single"
+    | "chain"
+    | "recall"
+    | "abstention"
+    | "recovery"
+    | "long"
+    | "iterate"
 
 export interface Task {
     readonly id: string

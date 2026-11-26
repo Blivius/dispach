@@ -30,6 +30,8 @@ export interface RosterModel {
      * harness on this model, so a slow provider is not scored as one harness's failure.
      */
     readonly turnTimeoutMs?: number
+    /** USD per million tokens, for an endpoint whose responses carry no cost (a vendor's own API). */
+    readonly price?: { readonly input: number; readonly output: number }
 }
 
 interface RosterFile {

@@ -81,13 +81,14 @@ export function FaqSection() {
         {
             question: "Does any telemetry, prompt, or workspace data leave my infrastructure?",
             plainAnswer:
-                "No. The self-hosted runtime collects zero usage telemetry and performs zero network I/O before reaching runtime.ready. Outbound traffic goes strictly to the model providers and remote MCP servers you explicitly configure.",
+                "No. The self-hosted runtime collects zero usage telemetry and performs zero network I/O before reaching runtime.ready. Outbound traffic goes only to services you configure: model endpoints, MCP servers, channels such as Telegram, WhatsApp, Slack and Teams, tool providers such as Composio and web search, webhooks, and the skill catalogues you add.",
             render: () => (
                 <>
                     No. The self-hosted runtime sends zero usage telemetry and performs zero network
-                    I/O before reaching <code>runtime.ready</code>. The only outbound requests go to
-                    the model endpoints (OpenAI-compatible APIs, AWS Bedrock, or local Ollama/vLLM)
-                    and remote MCP servers you explicitly configure.
+                    I/O before reaching <code>runtime.ready</code>. Outbound requests go only to
+                    services you configure: model endpoints (OpenAI-compatible APIs, AWS Bedrock,
+                    local Ollama/vLLM), MCP servers, channels such as Telegram and Slack, tool
+                    providers such as Composio and web search, webhooks, and skill catalogues.
                 </>
             ),
         },
@@ -113,14 +114,14 @@ export function FaqSection() {
         },
         {
             question: "How does the containment floor stop agents from weakening their own rules?",
-            plainAnswer: `${brand.name} separates capability settings (tools, MCP servers, skills) from protected security invariants (workspace.writeRoots, tools.policy.deny, untrusted-content write gates). Protected writes are refused below configuration before touching disk: 0 of 167 protected writes saved across evaluation, even when models attempted one in 65 cases.`,
+            plainAnswer: `${brand.name} separates capability settings (tools, MCP servers, skills) from protected security invariants (any writeRoots, allowFrom, tools.policy.deny, and the untrusted-content write gate). Protected writes are refused below configuration before touching disk: 0 of 167 protected writes saved across evaluation, even when models attempted one in 65 cases.`,
             render: () => (
                 <>
                     {brand.name} separates capability settings (tools, MCP servers, skills) from
-                    protected invariants (<code>workspace.writeRoots</code>,{" "}
-                    <code>tools.policy.deny</code>, untrusted-content write gates). Protected writes
-                    are refused beneath configuration before touching disk: 0 of 167 protected
-                    writes saved across evaluation (
+                    protected invariants (any <code>writeRoots</code>, <code>allowFrom</code>,{" "}
+                    <code>tools.policy.deny</code>, the untrusted-content write gate). Protected
+                    writes are refused beneath configuration before touching disk: 0 of 167
+                    protected writes saved across evaluation (
                     <a
                         href={paperUrl}
                         className="underline underline-offset-4 hover:text-fd-foreground"
@@ -134,13 +135,13 @@ export function FaqSection() {
         {
             question: "What happens if a client disconnects mid-turn or a browser tab refreshes?",
             plainAnswer:
-                "Every turn returns HTTP 202 and executes detached from the request socket. Any authorized client can reattach by turn ID over SSE or WebSocket and replay the event stream from sequence 0 without re-running tools or losing state.",
+                "Every send is accepted with HTTP 202 and the turn runs detached from the request socket. Any authorized client can reattach by turn ID over SSE or WebSocket; the server replays the events it still holds, says when older ones were evicted, and never re-runs tools.",
             render: () => (
                 <>
-                    Every send returns <code>HTTP 202</code> and executes detached from the request
-                    socket. Refresh a browser or drop mobile connectivity, then reattach by turn ID
-                    over SSE or WebSocket to replay the event stream from sequence 0 without
-                    re-running tools (
+                    Every send is accepted with <code>HTTP 202</code> and the turn runs detached
+                    from the request socket. Refresh a browser or drop mobile connectivity, then
+                    reattach by turn ID over SSE or WebSocket: the server replays the events it
+                    still holds, says when older ones were evicted, and never re-runs tools (
                     <Link
                         href={`${docsRoute}/runtime/concepts/turn-lifecycle`}
                         className="underline underline-offset-4 hover:text-fd-foreground"
@@ -153,7 +154,7 @@ export function FaqSection() {
         },
         {
             question: "Do I need Postgres, Redis, or a vector database to run it in production?",
-            plainAnswer: `No. A single process boots in ${evidence.bootMs} ms median with embedded SQLite and FTS5 + BM25 lexical recall (${evidence.memoryMedianMs} ms median over ${evidence.memoryPassages.toLocaleString("en-US")} passages) and hosts ${evidence.agents} idle isolated agents in ${evidence.idleMiB} MiB RSS. Deploy via npm, standalone curl binary, Docker, or Kubernetes.`,
+            plainAnswer: `No. A single process boots in ${evidence.bootMs} ms median with embedded SQLite and FTS5 + BM25 lexical recall (${evidence.memoryMedianMs} ms median over ${evidence.memoryPassages.toLocaleString("en-US")} passages) and hosts ${evidence.agents} idle isolated agents in ${evidence.idleMiB} MiB RSS. Deploy via npm, the standalone curl install, Docker, or Kubernetes.`,
             render: () => (
                 <>
                     No. One process boots in {evidence.bootMs} ms median with embedded SQLite and
@@ -190,7 +191,7 @@ export function FaqSection() {
         <section
             id="faq"
             aria-labelledby="faq-heading"
-            className="border-t border-fd-border px-5 py-16 sm:px-8"
+            className="border-t border-fd-border px-5 py-20 sm:px-8 lg:py-28"
         >
             <script
                 type="application/ld+json"
@@ -202,13 +203,12 @@ export function FaqSection() {
                 <div className="lg:sticky lg:top-24">
                     <h2
                         id="faq-heading"
-                        className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                        className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
                     >
                         Frequently asked questions
                     </h2>
                     <p className="mt-3 max-w-sm text-sm leading-relaxed text-fd-muted-foreground">
-                        Technical answers for teams self-hosting today or exploring managed agent
-                        infrastructure. Still have a question?{" "}
+                        Something not covered?{" "}
                         <Link
                             href={docsRoute}
                             className="text-fd-foreground underline underline-offset-4 hover:text-term-accent"

@@ -1,0 +1,28 @@
+name: retention
+description: >-
+  A fact the person states in turn one is used two turns later, after a tool result that
+  contradicts it. DeepEval's "knowledge retention", over conversation history; three short turns
+  do not make compaction fire.
+steps:
+  - prompt: Heads up, my dentist appointment moved to Friday at 09:00. My calendar isn't updated yet.
+    # No call is required and none is refused: looking at Friday first is a reasonable response.
+    criteria:
+      - Acknowledges the move without claiming to have changed the calendar
+  - prompt: What's on my calendar today?
+    expected_calls:
+      - slug: calendar_list_events
+    max_calls: 1
+    mocks:
+      calendar_list_events:
+        events:
+          - { start: "10:00", end: "10:15", title: "Standup" }
+          - { start: "15:30", end: "16:30", title: "Dentist" }
+    criteria:
+      - Mentions the standup at 10:00
+      - Notes that the dentist entry is out of date, or that the appointment moved to Friday
+  - prompt: So when do I actually see the dentist?
+    order: exact
+    expected_calls: []
+    criteria:
+      - Says Friday at 09:00
+      - Does not say today at 15:30 is the appointment

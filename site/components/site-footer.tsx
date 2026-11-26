@@ -1,7 +1,7 @@
 import Link from "next/link"
+import { Mark } from "@/components/mark"
 import { evidence } from "@/lib/evidence"
 import { brand, docsRoute, paperUrl, parentCompany, repoUrl } from "@/lib/shared"
-import { initial } from "@/lib/wordmark"
 
 export function SiteFooter() {
     return (
@@ -13,23 +13,7 @@ export function SiteFooter() {
                             href="/"
                             className="inline-flex items-center gap-2 font-semibold tracking-tight"
                         >
-                            <svg
-                                aria-hidden="true"
-                                viewBox={`0 0 ${initial.width} ${initial.height}`}
-                                className="h-4 w-4 text-term-accent"
-                                shapeRendering="crispEdges"
-                            >
-                                {initial.cells.map(({ x, y }) => (
-                                    <rect
-                                        key={`${x}:${y}`}
-                                        x={x}
-                                        y={y}
-                                        width={1}
-                                        height={1}
-                                        fill="currentColor"
-                                    />
-                                ))}
-                            </svg>
+                            <Mark />
                             <span>{brand.name}</span>
                             <span className="text-xs font-normal text-fd-muted-foreground">
                                 v{evidence.version}

@@ -1,54 +1,19 @@
 import Link from "next/link"
-import { evidence } from "@/lib/evidence"
-import { docsRoute, paperUrl } from "@/lib/shared"
-
-const BUILT_IN = [
-    [
-        "Sessions",
-        "Every conversation persisted and resumable in SQLite, keyed however your product keys tenants or users.",
-    ],
-    [
-        "Lexical memory",
-        `SQLite FTS5 + BM25 recalls notes and past turns in ${evidence.memoryMedianMs} ms median over ${evidence.memoryPassages.toLocaleString("en-US")} passages, with zero vector store.`,
-    ],
-    [
-        "Tools under policy",
-        <>
-            Shell, files, web, remote MCP, and Composio. A policy decides what runs;{" "}
-            <a href={paperUrl} className="underline underline-offset-4 hover:text-term-accent">
-                a floor no rule can lift
-            </a>
-            .
-        </>,
-    ],
-    [
-        "Schedules",
-        "Cron, interval, and one-shot jobs, DST-correct, delivered through the same idempotent outbox as replies.",
-    ],
-    [
-        "Channels & console",
-        "Telegram and WhatsApp stable; Slack, Teams, and A2A experimental; plus a built-in web console on the same origin.",
-    ],
-    [
-        "Approvals & keys",
-        "Human write gates over the wire and bearer keys scoped to one agent, one capability set, or an expiry.",
-    ],
-] as const
+import { docsRoute } from "@/lib/shared"
 
 export function ArchitectureBand() {
     return (
         <section className="border-t border-fd-border">
             {/* Alternating architectural deep-dive: Context prefix & 5-stage compaction */}
-            <div className="grid items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1.15fr]">
+            <div className="grid items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:py-28">
                 <div>
-                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                    <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                         Cache-stable context and five-stage compaction
                     </h2>
-                    <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">
-                        Most agent failures and runaway bills come from mutating the prompt prefix
-                        or slamming into an emergency 95% context truncation. This runtime keeps
-                        static identity and pinned tools frozen in slots 0 and 1 for prompt caching,
-                        gates knowledge by keyword, and compacts progressively starting at 60%.
+                    <p className="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-fd-muted-foreground">
+                        Identity and pinned tools stay frozen in slots 0 and 1, so the prompt prefix
+                        keeps its cache. Knowledge enters by keyword, and compaction starts at 60%
+                        instead of one lossy cut at 95%.
                     </p>
                     <div className="mt-5 flex flex-wrap gap-5 text-sm font-medium">
                         <Link
@@ -61,7 +26,7 @@ export function ArchitectureBand() {
                             href={`${docsRoute}/runtime/guides/workspaces-and-memory`}
                             className="text-fd-muted-foreground underline-offset-4 hover:text-fd-foreground hover:underline"
                         >
-                            Workspaces &amp; memory
+                            Workspaces and memory
                         </Link>
                     </div>
                 </div>
@@ -83,7 +48,7 @@ export function ArchitectureBand() {
                             fontSize="10"
                             fontFamily="monospace"
                         >
-                            CONTEXT ASSEMBLY (FIXED SLOT ORDER)
+                            Context assembly, in fixed slot order
                         </text>
 
                         <rect
@@ -105,7 +70,7 @@ export function ArchitectureBand() {
                             fontFamily="monospace"
                             fontWeight="600"
                         >
-                            SLOTS 0, 1 PINNED
+                            Slots 0, 1 pinned
                         </text>
                         <text x="24" y="65" fill="currentColor" fillOpacity="0.82" fontSize="11">
                             SOUL, AGENTS, Tools
@@ -220,11 +185,23 @@ export function ArchitectureBand() {
                         </text>
 
                         {[
-                            { x: 12, tag: "S1 (60%)", label: "Trim observations", accent: false },
-                            { x: 120, tag: "S2 (70%)", label: "Drop Tier 3", accent: false },
-                            { x: 228, tag: "S3 (78%)", label: "Fold old calls", accent: false },
-                            { x: 336, tag: "S4 (85%)", label: "Checkpoint", accent: true },
-                            { x: 444, tag: "S5 (92%)", label: "Hard summary", accent: true },
+                            // The defaults in core's manifest schema (`compaction.thresholds`) and the
+                            // order of `STAGE_ORDER`; the two accented stages are the ones that call a model.
+                            { x: 12, tag: "snip 60%", label: "Cut big results", accent: false },
+                            {
+                                x: 120,
+                                tag: "micro 70%",
+                                label: "Swap for pointer",
+                                accent: false,
+                            },
+                            {
+                                x: 228,
+                                tag: "collapse 80%",
+                                label: "Digest old turns",
+                                accent: true,
+                            },
+                            { x: 336, tag: "reset 88%", label: "Checkpoint", accent: true },
+                            { x: 444, tag: "trim 95%", label: "Keep requests", accent: false },
                         ].map((stage) => (
                             <g key={stage.tag}>
                                 <rect
@@ -263,29 +240,6 @@ export function ArchitectureBand() {
                         ))}
                     </svg>
                 </div>
-            </div>
-
-            {/* Built-in primitives bento */}
-            <div className="border-t border-fd-border bg-fd-card/30 px-5 py-16 sm:px-8">
-                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                    Everything around the model call, already wired
-                </h2>
-                <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {BUILT_IN.map(([term, detail]) => (
-                        <div
-                            key={term}
-                            className="rounded-xl border border-fd-border bg-fd-background/60 p-5"
-                        >
-                            <dt className="flex items-center gap-2 font-medium">
-                                <span className="font-mono text-xs text-term-accent">›</span>
-                                <span>{term}</span>
-                            </dt>
-                            <dd className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">
-                                {detail}
-                            </dd>
-                        </div>
-                    ))}
-                </dl>
             </div>
         </section>
     )

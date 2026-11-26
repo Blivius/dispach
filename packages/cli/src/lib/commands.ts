@@ -189,6 +189,14 @@ export const COMMANDS: readonly CommandSpec[] = [
                 defaultHelp: "none",
             },
             {
+                name: "traces",
+                kind: "string",
+                placeholder: "url",
+                // Flag-only, like `--schedules`: nobody wants tracing at minute two of setup, and the
+                // generated manifest carries the commented block for later (decision 16.4).
+                help: "send every turn as an OpenTelemetry trace to this OTLP/HTTP URL (Phoenix: http://localhost:6006)",
+            },
+            {
                 name: "skills",
                 kind: "string",
                 placeholder: "level",
@@ -228,7 +236,7 @@ export const COMMANDS: readonly CommandSpec[] = [
 
         inSession: "hidden",
         needsServer: true,
-        summary: "start an interactive session — bare `run` picks from the sandbox",
+        summary: "start an interactive session; bare `run` picks from the sandbox",
         args: [
             {
                 ...MANIFEST,
@@ -576,7 +584,7 @@ export const COMMANDS: readonly CommandSpec[] = [
 
         inSession: "view",
         needsServer: false,
-        summary: "browse the catalogue and install — or list, scaffold, check one agent's skills",
+        summary: "browse the catalogue and install, or list, scaffold and check one agent's skills",
         args: [
             {
                 name: "action",
@@ -817,7 +825,7 @@ export const COMMANDS: readonly CommandSpec[] = [
 
         inSession: "output",
         needsServer: false,
-        summary: "the service, the hosts, every agent and its channels — one screen",
+        summary: "the service, the hosts, every agent and its channels, on one screen",
         args: [],
         flags: [STORE, JSON_FLAG],
     },
@@ -828,7 +836,7 @@ export const COMMANDS: readonly CommandSpec[] = [
         // would spend a landing row on a duplicate.
         inSession: "hidden",
         needsServer: false,
-        summary: "the server's stderr tail — the same as `daemon logs`",
+        summary: "the server's stderr tail, the same as `daemon logs`",
         args: [
             {
                 ...MANIFEST,
@@ -1091,7 +1099,8 @@ export const COMMANDS: readonly CommandSpec[] = [
 
         inSession: "hidden",
         needsServer: false,
-        summary: "stop one agent for good, or everything — named, it stays stopped across restarts",
+        summary:
+            "stop one agent for good, or everything; a named agent stays stopped across restarts",
         args: [
             {
                 name: "agent",
@@ -1133,7 +1142,7 @@ export const COMMANDS: readonly CommandSpec[] = [
 
         inSession: "output",
         needsServer: false,
-        summary: "ask the endpoint what it can actually do — window, output cap, prompt caching",
+        summary: "ask the endpoint what it can do: window, output cap, prompt caching",
         args: [
             {
                 name: "action",
@@ -1223,7 +1232,7 @@ export const COMMANDS: readonly CommandSpec[] = [
 
         inSession: "output",
         needsServer: false,
-        summary: "keep an agent serving in the background — starts at login, restarts on crash",
+        summary: "keep agents serving in the background; starts at login, restarts on crash",
         args: [
             {
                 name: "action",

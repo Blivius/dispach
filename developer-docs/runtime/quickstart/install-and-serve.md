@@ -14,12 +14,16 @@ dispach --version
 Without Node, one line installs a standalone build that carries its own Node (macOS and Linux, arm64 and x64, no root):
 
 ```bash
-curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+curl -fsSL https://dispach.blivius.com/install.sh | sh
 ```
 
-It checks the archive against the release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links `~/.dispach/bin/dispach`, and adds that directory to `PATH` in your shell's rc file, saying which. Open a new shell, or run the line it prints, before `dispach --version`. Run it again to upgrade; `DISPACH_VERSION=<version>` pins a release.
+It checks the archive against the release's `SHA256SUMS`, unpacks it into `~/.dispach/versions/<version>`, links `~/.dispach/bin/dispach`, and adds that directory to `PATH` in your shell's rc file, saying which. Open a new shell, or run the line it prints, before `dispach --version`.
 
-Homebrew (`brew install blivius/tap/dispach`) installs the same command. The [README](https://github.com/blivius/dispach#install) lists every route.
+- Run it again to upgrade; `DISPACH_VERSION=<version>` pins a release.
+- The address redirects to the script attached to the [latest GitHub release](https://github.com/blivius/dispach/releases/latest). To read it first: `curl -fsSL https://dispach.blivius.com/install.sh | less`.
+- It also works on slim Linux images (`debian:*-slim`) once `libatomic1` is installed. The script names it if it is missing.
+
+Homebrew (`brew install blivius/tap/dispach`) installs the same command. The [README](https://github.com/blivius/dispach#getting-set-up) lists every route.
 
 ## Create an agent
 
@@ -46,7 +50,7 @@ Dispach serving on http://127.0.0.1:7420
   open once to claim this server:
     http://127.0.0.1:7420/?claim=dispach_…
     without a browser: curl -sX POST http://127.0.0.1:7420/v1/keys -H 'Authorization: Bearer dispach_…' -H 'content-type: application/json' -d '{"label":"my browser"}'
-  ctrl-c to stop — this ends when the terminal does. `dispach daemon install milo` keeps it running.
+  ctrl-c to stop — this ends when the terminal does. `dispach daemon install` keeps it running.
 ```
 
 `serve` hosts every agent in `~/.dispach/agents`. An agent whose model key is still blank is reported as not served; the server still starts.
@@ -70,7 +74,7 @@ export TOKEN='dispach_…'   # the "secret" field from that response
 ## Keep it running on Linux
 
 ```bash
-dispach daemon install milo
+dispach daemon install
 ```
 
 This writes a systemd user unit and prints three commands to run yourself: `systemctl --user daemon-reload`, `systemctl --user enable --now <unit>`, and `loginctl enable-linger <user>`. Without lingering, the server stops when you log out.

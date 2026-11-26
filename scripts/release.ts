@@ -168,9 +168,10 @@ if (!argv.includes("--no-gate")) {
 process.stdout.write(`
   Review the diff, then:
 
-    git add -A && git commit -m "chore(release): ${version}"
-    git tag -a v${version} -m "v${version}"
-    git push && git push origin v${version}
+    git add -A && git commit -m "chore(release): ${version}" && git push
+    git switch main && git pull && git merge --no-edit development && git push
+    git tag -a v${version} -m "v${version}" && git push origin v${version}
+    git switch development
 
   ${
       prerelease

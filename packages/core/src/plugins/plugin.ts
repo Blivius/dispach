@@ -183,7 +183,10 @@ export interface PluginContext {
     readonly config: unknown
     readonly agentId: string
     readonly paths: PluginPaths
-    /** The agent's environment — the manifest's `.env` layered over the ambient one, as core resolved it. */
+    /**
+     * The agent's environment as core resolved it: the `.env` beside the manifest under the real
+     * environment, which wins on a collision (`manifestEnv`).
+     */
     readonly env: EnvSource
     readonly logger: Logger
     /**

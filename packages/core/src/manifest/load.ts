@@ -266,6 +266,20 @@ export function loadManifestFromObject(
 }
 
 /** Load and fully validate a manifest from disk. */
+/**
+ * An agent's environment as `loadManifest` resolves it: the `.env` beside the manifest, under the
+ * real one (the real environment wins, as everywhere).
+ *
+ * For the plugin loader, which runs *before* the manifest is loaded and had been handing plugins the
+ * ambient environment alone — while `PluginContext.env` promised this. A plugin reading a key from
+ * the agent's `.env` (an exporter's auth header, decision 16.4) found it unset. One derivation, so the
+ * two cannot disagree about which variables an agent has.
+ */
+export function manifestEnv(path: string, options: LoadOptions = {}): EnvSource {
+    const absolute = isAbsolute(path) ? path : resolve(process.cwd(), path)
+    return resolveOptions(dirname(absolute), options).liveEnv
+}
+
 export function loadManifest(path: string, options: LoadOptions = {}): LoadedManifest {
     const absolute = isAbsolute(path) ? path : resolve(process.cwd(), path)
     const dir = dirname(absolute)

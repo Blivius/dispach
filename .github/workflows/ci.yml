@@ -1,13 +1,22 @@
 name: ci
 
+# Only a pull request into `development` (the default branch) runs this, and not while it is a draft:
+# a direct push runs nothing, and a release PR into `main` is gated again by `release.yml` when its
+# tag publishes, so running it here too would test the same tree twice. `workflow_dispatch` runs it
+# on any branch by hand.
+#
+# No `paths-ignore`: standard runners are free on a public repository, so a filter would save nothing
+# and would let a docs-only pull request skip the checks a code change slipped into it needs.
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [development]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# A new push to a pull request cancels the run it replaces.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -15,6 +24,7 @@ concurrency:
 jobs:
   # The gate. Everything here blocks a merge.
   bun:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     # A job with no bound is a job that can burn the six-hour ceiling on a hang, twice a day,
     # and report nothing anybody reads until somebody notices the bill. Green is under two
@@ -73,6 +83,7 @@ jobs:
   # Dockerfile was written on a machine with no Docker daemon running, so until this job runs, the
   # size and start-to-ready figures Phase 11 asks for are unmeasured rather than met.
   docker:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -298,6 +309,7 @@ jobs:
   # **Node**, which is what `npm i -g dispach`, the brew formula and the container all execute: the
   # suite runs under bun, so this leg is the only one that exercises the shipped runtime end to end.
   bundle:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -441,6 +453,7 @@ jobs:
   #
   # A one-entry matrix on purpose: adding 26 is then one line, not a restructure.
   node:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     continue-on-error: true
     timeout-minutes: 15

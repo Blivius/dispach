@@ -1,0 +1,272 @@
+{
+    "measuredAt": "2026-11-25T16:04:20.931Z",
+    "commit": "190d093",
+    "runtime": "bun 1.4.4",
+    "machine": {
+        "cpu": "Apple M4 Pro",
+        "os": "darwin 27.2.0",
+        "loadAverage": [
+            2.36,
+            3.24,
+            3.64
+        ]
+    },
+    "arms": [
+        {
+            "arm": "native.haiku-5.5@direct",
+            "harness": "dispach-native",
+            "model": "haiku-5.5@direct",
+            "overall": {
+                "pass": 69,
+                "n": 70,
+                "rate": 0.9857,
+                "low": 0.9234,
+                "high": 0.9975
+            },
+            "errored": 0,
+            "throttled": 0,
+            "retries": 0,
+            "cost": 0.3144,
+            "promptTokens": 2312628,
+            "completionTokens": 166309,
+            "medianWallMs": 9593,
+            "categories": {
+                "iterate": {
+                    "pass": 69,
+                    "n": 70,
+                    "rate": 0.9857,
+                    "low": 0.9234,
+                    "high": 0.9975
+                }
+            },
+            "tasks": {
+                "iterate-cart": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-slug": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-csv": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-semver": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-business-days": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-lru": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-roman": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-intervals": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-template": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-allocate": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-wrap": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-limiter": {
+                    "pass": 4,
+                    "n": 5,
+                    "rate": 0.8,
+                    "low": 0.3755,
+                    "high": 0.9638
+                },
+                "iterate-ledger": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-build-plan": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                }
+            }
+        },
+        {
+            "arm": "native.sonnet-5.5@direct",
+            "harness": "dispach-native",
+            "model": "sonnet-5.5@direct",
+            "overall": {
+                "pass": 70,
+                "n": 70,
+                "rate": 1,
+                "low": 0.948,
+                "high": 1
+            },
+            "errored": 0,
+            "throttled": 0,
+            "retries": 0,
+            "cost": 6.7527,
+            "promptTokens": 2738649,
+            "completionTokens": 127539,
+            "medianWallMs": 11947,
+            "categories": {
+                "iterate": {
+                    "pass": 70,
+                    "n": 70,
+                    "rate": 1,
+                    "low": 0.948,
+                    "high": 1
+                }
+            },
+            "tasks": {
+                "iterate-cart": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-slug": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-csv": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-semver": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-business-days": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-lru": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-roman": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-intervals": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-template": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-allocate": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-wrap": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-limiter": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-ledger": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                },
+                "iterate-build-plan": {
+                    "pass": 5,
+                    "n": 5,
+                    "rate": 1,
+                    "low": 0.5655,
+                    "high": 1
+                }
+            }
+        }
+    ]
+}

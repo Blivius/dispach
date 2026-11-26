@@ -16,9 +16,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { loadRoster, type RosterModel } from "../lib/roster.ts"
 import { HARNESSES } from "./adapters.ts"
+import { ITERATE_TASKS } from "./iterate.ts"
 import { createProxy, type ProxyRecord } from "./proxy.ts"
 import { TASKS, type Task } from "./tasks.ts"
 import { createToolServer } from "./tools-server.ts"
+
+const ALL_TASKS: readonly Task[] = [...TASKS, ...ITERATE_TASKS]
 
 export interface RunRow {
     readonly harness: string
@@ -68,6 +71,8 @@ export interface HarnessContext {
     readonly mcpUrl: string
     /** A fresh scratch directory this harness may own. */
     readonly dir: string
+    /** The run includes iterate tasks, so the tool server lists `run_check` and a harness that pins tools pins it too. */
+    readonly checks: boolean
 }
 
 /**
@@ -113,7 +118,7 @@ export async function runTask(options: {
         await harness.reset()
         server.reset(task.world)
         options.takeRecords()
-        const session = `t${TASKS.indexOf(task)}r${repeat}a${retries}`
+        const session = `t${ALL_TASKS.indexOf(task)}r${repeat}a${retries}`
         const started = Date.now()
         let reply = ""
         let errored = false
@@ -165,7 +170,16 @@ export async function runTask(options: {
             modelCalls: records.length,
             promptTokens: sum((r) => r.usage?.prompt),
             completionTokens: sum((r) => r.usage?.completion),
-            cost: sum((r) => r.usage?.cost),
+            // ponytail: cached tokens are priced as fresh input; exact for an endpoint that does not cache.
+            cost: sum(
+                (r) =>
+                    r.usage?.cost ??
+                    (model.price === undefined
+                        ? undefined
+                        : ((r.usage?.prompt ?? 0) * model.price.input +
+                              (r.usage?.completion ?? 0) * model.price.output) /
+                          1e6),
+            ),
             generationIds: records.flatMap((r) =>
                 r.generationId === undefined ? [] : [r.generationId],
             ),
@@ -190,15 +204,47 @@ if (import.meta.main) {
         )
         process.exit(1)
     }
-    const [model] = loadRoster([modelKey])
-    if (model === undefined) process.exit(1)
+    const [rostered] = loadRoster([modelKey])
+    if (rostered === undefined) process.exit(1)
+    // `--endpoint <baseUrl>,<KEY_ENV>,<model id>[,<input $/M>,<output $/M>]` calls a model's own API instead
+    // of its OpenRouter pin, e.g. https://api.anthropic.com/v1,ANTHROPIC_API_KEY,claude-haiku-5-5,0.10,0.50.
+    // Rows say so in the model key. A vendor's API reports no cost, so the prices are how a run is costed.
+    const endpoint = flag("endpoint")?.split(",")
+    const prices = endpoint?.slice(3).map(Number) ?? []
+    if (
+        (endpoint !== undefined && ![3, 5].includes(endpoint.length)) ||
+        prices.some((p) => !Number.isFinite(p) || p < 0)
+    ) {
+        console.error(
+            "--endpoint takes <baseUrl>,<KEY_ENV>,<model id>[,<input $/M>,<output $/M>].\n  hint: https://api.anthropic.com/v1,ANTHROPIC_API_KEY,claude-haiku-5-5,0.10,0.50",
+        )
+        process.exit(1)
+    }
+    const model: RosterModel =
+        endpoint === undefined
+            ? rostered
+            : {
+                  key: `${rostered.key}@direct`,
+                  tier: rostered.tier,
+                  openWeight: rostered.openWeight,
+                  baseUrl: endpoint[0] ?? "",
+                  apiKeyEnv: endpoint[1] ?? "",
+                  id: endpoint[2] ?? "",
+                  ...(prices.length === 2
+                      ? { price: { input: prices[0] ?? 0, output: prices[1] ?? 0 } }
+                      : {}),
+              }
     const apiKey = model.apiKeyEnv === undefined ? undefined : process.env[model.apiKeyEnv]
     if (model.apiKeyEnv !== undefined && !apiKey) {
         console.error(`${model.apiKeyEnv} is not set.\n  hint: run with bun --env-file=.env.`)
         process.exit(1)
     }
     const only = flag("tasks")?.split(",")
-    const tasks = only === undefined ? TASKS : TASKS.filter((t) => only.includes(t.id))
+    // The iterate family runs only when named: `--tasks` with its ids, or `--tasks iterate` for all of it.
+    const tasks =
+        only === undefined
+            ? TASKS
+            : ALL_TASKS.filter((t) => only.includes(t.id) || only.includes(t.category))
     const repeats = Number(flag("repeats") ?? 1)
     // One repeat only, so a slow model's repeats can run as separate processes, each with its own world.
     // Rows carry the same repeat number either way, so shards merge into the arm they came from.
@@ -206,7 +252,8 @@ if (import.meta.main) {
     const log = flag("log")
     let current = ""
 
-    const server = createToolServer()
+    const checks = tasks.some((t) => t.world.check !== undefined)
+    const server = createToolServer({}, { checks })
     let records: ProxyRecord[] = []
     const proxy = createProxy({
         label: harness.name,
@@ -227,6 +274,7 @@ if (import.meta.main) {
         modelBaseUrl: `http://127.0.0.1:${models.port}/v1`,
         mcpUrl: `http://127.0.0.1:${tools.port}/mcp`,
         dir,
+        checks,
     })
 
     // ponytail: sequential, because the tool server holds one world; parallel runs need a world per session.

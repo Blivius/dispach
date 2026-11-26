@@ -1,20 +1,11 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared"
+import { Mark } from "@/components/mark"
 import { brand, docsRoute, parentCompany, repoUrl } from "./shared"
-import { initial } from "./wordmark"
 
 function BrandTitle() {
     return (
         <span className="inline-flex items-center gap-2 font-semibold tracking-tight">
-            <svg
-                aria-hidden="true"
-                viewBox={`0 0 ${initial.width} ${initial.height}`}
-                className="h-4 w-4 text-term-accent"
-                shapeRendering="crispEdges"
-            >
-                {initial.cells.map(({ x, y }) => (
-                    <rect key={`${x}:${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />
-                ))}
-            </svg>
+            <Mark />
             <span>{brand.name}</span>
         </span>
     )

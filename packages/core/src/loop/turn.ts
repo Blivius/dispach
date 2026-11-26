@@ -867,6 +867,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     traceAfterInput:
                         input.role.capabilities.thinking === "anthropic" ||
                         input.role.capabilities.promptCache === "bedrock" ||
+                        input.role.capabilities.promptCache === "anthropic" ||
                         input.role.capabilities.traceAfterInput !== false,
                     input: promptInput,
                     ...(input.turnNote === undefined ? {} : { note: input.turnNote }),

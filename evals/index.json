@@ -45,6 +45,17 @@
             ]
         },
         {
+            "section": "Model choice on iterative work",
+            "claim": "On the iterate family, Claude Haiku 5.5 passes 69/70 and Claude Sonnet 5.5 70/70, and Haiku costs about a twentieth as much per success ($0.0046 against $0.0965)",
+            "evidence": "`evals/harness/summary.json` (`iterate`), `evals/harness/runs/iterate-190d093/` (2026-11-25)",
+            "scope": "14 projects × 5 repeats, Dispach native, each vendor's own API, graded by the hidden suite",
+            "limitation": "14 small projects of our own design; the 95% intervals overlap (92–100% against 95–100%); cost is tokens at list price, not a bill",
+            "status": "verified",
+            "files": [
+                "evals/harness/summary.json"
+            ]
+        },
+        {
             "section": "Tool dialect (NLT vs native)",
             "claim": "NLT ahead of native: qwen3.5:9b 94.6% vs 91.9%, deepseek-chat 97.3% vs 86.5%, deepseek-reasoner 91.9% vs 89.2%",
             "evidence": "`evals/tools/results.json`, `evals/tools/qwen-3pass/results.json` (2026-08-14)",
@@ -145,7 +156,7 @@
         {
             "section": "Boot and runtime",
             "claim": "Container image 867 MB",
-            "evidence": "`docker image inspect`, 2026-10-20; re-measured on every push by the `image size` step in `.github/workflows/ci.yml`",
+            "evidence": "`docker image inspect`, 2026-10-20; re-measured on every pull request by the `image size` step in `.github/workflows/ci.yml`",
             "scope": "arm64 Docker Desktop, 0.2.0 release candidate",
             "limitation": "701 MB at 0.1.3; the static `ffmpeg` layer is 104 MB. Reported by CI on every push, no longer gated",
             "status": "verified",
@@ -407,10 +418,11 @@
                 "runs/baseline-aae8fe4/results.json",
                 "runs/h2h-309fdf8/results.json",
                 "runs/h2h-cachefix/results.json",
+                "runs/iterate-190d093/results.json",
                 "runs/sweep-4f3e00a/results.json",
                 "runs/sweep-552660a/results.json"
             ],
-            "measuredAt": "2026-10-23T14:28:59.470Z"
+            "measuredAt": "2026-11-25T16:04:20.931Z"
         },
         {
             "name": "memory",
@@ -456,7 +468,7 @@
             "results": [
                 "example/results.json"
             ],
-            "measuredAt": "2026-09-27T17:39:17.853Z"
+            "measuredAt": "2026-11-25T11:04:50.948Z"
         },
         {
             "name": "skills",

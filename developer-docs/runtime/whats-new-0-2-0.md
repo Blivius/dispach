@@ -20,17 +20,17 @@ on the tools' final state rather than the reply's wording:
 
 The full tables, the dialect comparison and how the runs were made are on [Benchmarks](benchmarks.md).
 Every run is committed under
-[`evals/harness/`](https://github.com/moeen-mahmud/dispach/tree/main/evals/harness).
+[`evals/harness/`](https://github.com/blivius/dispach/tree/main/evals/harness).
 
 ## Highlights
 
-**Agents that finish the job.** `init` now writes native tool calls wherever the model supports them;
+**Fewer turns that stop early.** `init` now writes native tool calls wherever the model supports them;
 on the benchmark native tied or beat the plain-text dialect on all 13 models measured both ways. A step that would end
 silent, on "I'll do that", or claiming a save that never happened gets one note from the runtime and
 one more step. A retry the tool itself asked for is no longer refused as a loop, and a tool result can
 take a quarter of the context window instead of a flat 2,000 tokens.
 
-**Any model, through more than one door.** Model transports are pluggable: AWS Bedrock ships
+**Pluggable model transports.** Model transports are pluggable: AWS Bedrock ships
 (`api: bedrock-converse`), and a plugin can register another. `fallbacks` tries the next model when
 an endpoint fails before any output. Images reach models with vision, signed thinking is replayed
 across tool calls, and a refused reply ends the turn as `model_refused` instead of an empty answer.
@@ -47,7 +47,7 @@ calls (`/v1/usage`) with ids a biller can debit, signed outbound webhooks, concu
 limits, exact-text deliveries, repair of an agent that will not load, and `GET /v1/backup` for the
 whole silo. `dispach/client` ships its own type declarations and no terminal UI.
 
-**Secrets stay secret.** `file_read` and `grep` never read `.env`, key files or credential
+**Tighter secret handling.** `file_read` and `grep` never read `.env`, key files or credential
 directories, path rules match the normalised path, `exec` can run with the runtime's secrets
 scrubbed, and `X_FILE` sets a variable from a file without it entering the environment.
 
@@ -55,14 +55,16 @@ scrubbed, and `X_FILE` sets a variable from a file without it entering the envir
 next turn. `memory_forget` deletes exactly the notes named, and a conversation can be taken out of
 recall without deleting it.
 
-**Runs where you deploy.** A Kubernetes guide and example, a drain on stop for running turns, `ffmpeg`
+**Deployment.** A Kubernetes guide and example, a drain on stop for running turns, `ffmpeg`
 in the image for voice notes, and one host token shared by every agent in a sandbox.
 
 ## Upgrading from 0.1.3
 
 1. Back up `store.db`. Migrations 18 to 31 run on first boot and have no down-migration.
-2. Install 0.2.0 (`npm install --global dispach@latest`, `brew upgrade dispach`, or
-   `docker pull ghcr.io/moeen-mahmud/dispach:0.2.0`) and start it. No `agent.yaml` change is needed.
+2. Install the current 0.2.x (`npm install --global dispach@latest`, which needs Node 26.13.0 or
+   later since 0.2.12; `brew install blivius/tap/dispach`; or `docker pull ghcr.io/blivius/dispach:<version>`)
+   and start it. No `agent.yaml` change is needed. Everything after 0.2.0 is additive apart from that
+   Node floor ([What's new since 0.2.0](whats-new-since-0-2-0.md)).
 3. Check the four breaking changes, if they touch you:
    - a plugin must declare `dispachApi: "^0.2"`;
    - a reload during a turn answers `202 pending` instead of `409`;
@@ -85,9 +87,9 @@ here.
 
 ## Read more
 
-- [`CHANGELOG.md`](https://github.com/moeen-mahmud/dispach/blob/main/CHANGELOG.md): every change, one
+- [`CHANGELOG.md`](https://github.com/blivius/dispach/blob/main/CHANGELOG.md): every change, one
   line each.
-- [`docs/00-DECISIONS.md`](https://github.com/moeen-mahmud/dispach/blob/main/docs/00-DECISIONS.md):
+- [`docs/00-DECISIONS.md`](https://github.com/blivius/dispach/blob/main/docs/00-DECISIONS.md):
   why each of them was made, with its measurement.
-- [`evals/CLAIMS.md`](https://github.com/moeen-mahmud/dispach/blob/main/evals/CLAIMS.md): every public
+- [`evals/CLAIMS.md`](https://github.com/blivius/dispach/blob/main/evals/CLAIMS.md): every public
   number and the file it comes from.

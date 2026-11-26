@@ -32,6 +32,7 @@ import composioPlugin, { composioFromConfig } from "@dispach/tools-composio"
 import mcpPlugin, { mcpFromConfig } from "@dispach/tools-mcp"
 import systemPlugin, { SystemScriptRunner, systemFromConfig } from "@dispach/tools-system"
 import webPlugin, { webFromConfig } from "@dispach/tools-web"
+import tracePlugin from "@dispach/trace-otlp"
 
 export const TOOL_PROVIDERS: Readonly<Record<string, ToolProviderFactory>> = {
     composio: composioFromConfig,
@@ -162,6 +163,9 @@ export const BUILT_IN_PLUGINS: BuiltInPlugins = {
     "@dispach/tools-mcp": mcpPlugin,
     "@dispach/tools-system": systemPlugin,
     "@dispach/tools-web": webPlugin,
+    // Loaded only when a manifest names it, like the A2A channel: it registers no capability a
+    // default could select, only an observer, so it is opt-in by name (decision 16.1).
+    "@dispach/trace-otlp": tracePlugin,
 }
 
 export const BUILT_IN_PLUGIN_SPECS: readonly string[] = Object.keys(BUILT_IN_PLUGINS)

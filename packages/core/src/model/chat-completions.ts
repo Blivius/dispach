@@ -39,7 +39,7 @@ export interface RetryPolicy {
 
 export const DEFAULT_RETRY: RetryPolicy = { attempts: 3, baseDelayMs: 400, maxDelayMs: 8000 }
 
-const RETRYABLE_STATUS = new Set([408, 409, 425, 429, 500, 502, 503, 504])
+export const RETRYABLE_STATUS = new Set([408, 409, 425, 429, 500, 502, 503, 504])
 
 export interface ChatCompletionsConfig {
     /** Provider id, for events. Defaults to `chat-completions`. */
@@ -336,7 +336,7 @@ function asNumber(value: unknown): number | undefined {
 }
 
 /** `Retry-After` is either seconds or an HTTP date. Both appear in the wild. */
-function retryAfterMs(header: string | null): number | undefined {
+export function retryAfterMs(header: string | null): number | undefined {
     if (header === null) return undefined
     const seconds = Number(header)
     if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000)
@@ -345,14 +345,14 @@ function retryAfterMs(header: string | null): number | undefined {
     return undefined
 }
 
-function backoffMs(policy: RetryPolicy, attempt: number): number {
+export function backoffMs(policy: RetryPolicy, attempt: number): number {
     const exponential = policy.baseDelayMs * 2 ** (attempt - 1)
     const capped = Math.min(exponential, policy.maxDelayMs)
     // Full jitter. Synchronised retries from several agents are their own outage.
     return Math.round(capped * (0.5 + Math.random() / 2))
 }
 
-function sleep(ms: number, signal: AbortSignal): Promise<void> {
+export function sleep(ms: number, signal: AbortSignal): Promise<void> {
     return new Promise((resolve) => {
         if (signal.aborted) {
             resolve()

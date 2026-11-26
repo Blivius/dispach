@@ -16,6 +16,12 @@ result yet), **fix** (the prose and the evidence disagree), **remove** (no evide
 | OpenClaw 2026.10.5 scores lowest on every model, 11–60 runs behind | `evals/harness/summary.json` | As above | Each harness on its own documented defaults | verified |
 | Hermes leads on the small open models: qwen3.5-9b 112 vs 104, gpt-oss-20b 111 vs 97 | `evals/harness/summary.json` | As above | The qwen3.5-9b intervals overlap widely; the gpt-oss-20b ones only just | verified |
 
+## Model choice on iterative work
+
+| Claim | Evidence | Scope | Limitation | Status |
+| --- | --- | --- | --- | --- |
+| On the iterate family, Claude Haiku 5.5 passes 69/70 and Claude Sonnet 5.5 70/70, and Haiku costs about a twentieth as much per success ($0.0046 against $0.0965) | `evals/harness/summary.json` (`iterate`), `evals/harness/runs/iterate-190d093/` (2026-11-25) | 14 projects × 5 repeats, Dispach native, each vendor's own API, graded by the hidden suite | 14 small projects of our own design; the 95% intervals overlap (92–100% against 95–100%); cost is tokens at list price, not a bill | verified |
+
 ## Tool dialect (NLT vs native)
 
 | Claim | Evidence | Scope | Limitation | Status |
@@ -39,7 +45,7 @@ result yet), **fix** (the prose and the evidence disagree), **remove** (no evide
 | --- | --- | --- | --- | --- |
 | Boot to `runtime.ready` under 1000 ms, CI fails at 1200 ms | `scripts/bench-boot.ts:18`, `.github/workflows/ci.yml` | Every CI run | Boot, not response latency | verified |
 | Boot to ready ~65 ms (0.2.0; ~53 ms at 0.1.3) | `evals/boot/results.json` (`bench:boot --write`) | 7-run median, Apple M4 Pro, bun, load average recorded | Boot, not response latency. One machine | verified |
-| Container image 867 MB | `docker image inspect`, 2026-10-20; re-measured on every push by the `image size` step in `.github/workflows/ci.yml` | arm64 Docker Desktop, 0.2.0 release candidate | 701 MB at 0.1.3; the static `ffmpeg` layer is 104 MB. Reported by CI on every push, no longer gated | verified |
+| Container image 867 MB | `docker image inspect`, 2026-10-20; re-measured on every pull request by the `image size` step in `.github/workflows/ci.yml` | arm64 Docker Desktop, 0.2.0 release candidate | 701 MB at 0.1.3; the static `ffmpeg` layer is 104 MB. Reported by CI on every push, no longer gated | verified |
 | `Runtime.create` 20.6 ms | `evals/boot/results.json` (`createMs`) | Same run as boot | — | verified |
 | Importing Ink and React costs ~170-210 ms under Node, so no shared CLI path imports them | `packages/cli/test/boundaries.test.ts` (structural guard); measured in decision 11.5 prose | Node 24, Apple M4 Pro | The guard is structural; the figure is from one machine and not re-measured by CI | needs-run |
 | `docker compose up -d --wait` reaches healthy in about six seconds; 26 `model.chunk` frames in the first streamed turn | README `## Docker` prose, measured by hand 2026-10-20 | arm64 Docker Desktop, 0.2.0 | Dominated by the first healthcheck probe interval; the frame count is one DeepSeek reply | needs-run |

@@ -69,6 +69,7 @@
         "@dispach/tools-mcp": "workspace:*",
         "@dispach/tools-system": "workspace:*",
         "@dispach/tools-web": "workspace:*",
+        "@dispach/trace-otlp": "workspace:*",
         "@types/react": "19.2.18",
         "dts-bundle-generator": "9.5.1",
         "ink-testing-library": "4.0.0",

@@ -1,6 +1,6 @@
 # 25 — Fan-out subagents, and compacting a session on demand
 
-Status: **accepted and built** (Moeen, 2026-11-02; issue #99; decisions 15.20, 15.21). Phase 37,
+Status: **accepted and built** (Moeen, 2026-11-02; issue #56; decisions 15.20, 15.21). Phase 37,
 0.2.3. Asked for by VelaCrew. This document is binding the way `02` and `04` are: a field, route, or
 event it names changes here in the same PR as the code.
 
