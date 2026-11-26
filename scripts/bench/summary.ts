@@ -30,6 +30,8 @@ const RIVALS = {
     openclaw: { name: "OpenClaw", version: "2026.10.5" },
 } as const
 const RIVAL_DIRS = ["sweep-bfaf549", "h2h-cachefix", "sweep-552660a"]
+/** The iterate family's run: each model on its vendor's own API, so the arms are `native.<key>@direct`. */
+const ITERATE = { dir: "iterate-190d093", commit: "190d093" }
 /** An arm stopped before it finished: shown as partial, never as a rate. */
 const PAUSED: Record<string, string> = { "nlt.qwen3.5-9b": "paused-qwen-nlt" }
 
@@ -137,6 +139,11 @@ export function build() {
             openclaw: rival("openclaw"),
         }
     })
+    const iterateArms = load(join(RUNS, ITERATE.dir))
+    const iterate = MODELS.flatMap(([key, name]) => {
+        const arm = iterateArms.find((a) => a.arm === `native.${key}@direct`)
+        return arm === undefined ? [] : [{ key, name, ...cell(arm, dateOf(ITERATE.dir, arm.arm)) }]
+    })
     return {
         generatedBy: "scripts/bench/summary.ts",
         tasks: 25,
@@ -144,6 +151,7 @@ export function build() {
         sweep: { ...SWEEP, harness: BRAND.name },
         rivals: RIVALS,
         models,
+        iterate: { ...ITERATE, repeats: 5, models: iterate },
     }
 }
 
@@ -233,6 +241,35 @@ ${summary.models.map((m) => `| ${m.name} | ${score(m.native)} | ${all5(m.native)
 - **Limits:** one benchmark of our own design, each harness on its own defaults. Where ${name} loses,
   and why, is written up in the
   [benchmark README](https://github.com/blivius/dispach/blob/main/evals/harness/README.md).
+
+## Iterate tasks
+
+A separate family of fourteen small JavaScript projects. Each has a README, code with seeded bugs,
+and a hidden test suite. It measures work that takes several rounds of editing and checking, which
+the suite above does not ([\`scripts/bench/iterate.ts\`](https://github.com/blivius/dispach/blob/main/scripts/bench/iterate.ts)).
+
+| Model | Passed | 95% CI | All ${summary.iterate.repeats} | Cost | Per success |
+| --- | --- | --- | --- | --- | --- |
+${summary.iterate.models.map((m) => `| ${m.name} | ${score(m)} | ${Math.round(m.low * 100)}–${Math.round(m.high * 100)}% | ${all5(m)} | ${money(m)} | $${(m.cost / m.pass).toFixed(4)} |`).join("\n")}
+
+${name} native at \`${summary.iterate.commit}\`, each model ${summary.iterate.repeats} times per project through its
+vendor's own API, measured ${[...new Set(summary.iterate.models.map((m) => m.measured))].join(", ")}. A vendor's API
+reports no cost, so cost is the run's tokens at list price: Sonnet 5.5 $2 / $10 and Haiku 5.5
+$0.10 / $0.50 per million input / output tokens.
+
+- **The \`run_check\` tool** runs the project's suite against the files as they are now. It reports the
+  pass count and the first two failures, each saying what was expected and what came back. A test
+  that hangs is named.
+- **Staged suites:** in two of the projects, a later stage of tests runs only once the earlier ones
+  pass. Those later stages state rules the README leaves out, so reading the code alone cannot finish
+  the task.
+- **Running it:** \`--tasks iterate\` selects the family, which never runs by default. \`run_check\` is
+  listed only on those runs, so the 25-task suite keeps the eight tools it was measured with.
+  \`--endpoint <baseUrl>,<KEY_ENV>,<model id>[,<input $/M>,<output $/M>]\` calls a model's own API
+  instead of its OpenRouter route; rows from those runs carry \`@direct\` in their model key and are
+  costed at the prices given.
+- **Limits:** fourteen projects of our own design, each small. The intervals overlap, so this says
+  the two models pass about equally often here, not which one is better.
 `
 }
 

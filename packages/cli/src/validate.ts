@@ -375,8 +375,8 @@ export function cacheNote(promptCache: string, modelId: string): string {
     const claude = /(^|\/)claude-/i.test(modelId)
     return claude
         ? "               promptCache none — Anthropic's OpenAI-compatible endpoint does not support\n" +
-              "               caching at all, so no request field reaches it. Caching lives on the native\n" +
-              "               Messages API, which this runtime does not speak.\n"
+              "               caching at all, so no request field reaches it. Set api: anthropic-messages\n" +
+              "               (no baseUrl needed) to reach the native Messages API, which caches.\n"
         : "               promptCache none — this runtime sends no cache directives. Many endpoints cache\n" +
               "               a stable prefix anyway; `/context` reports what was actually charged.\n"
 }

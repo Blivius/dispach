@@ -84,6 +84,20 @@ describe("bench runner", () => {
         expect(row.generationIds).toEqual(["gen-x"])
     })
 
+    test("a run on an endpoint that reports no cost is priced from its tokens", async () => {
+        const silent = { status: 200, usage: { prompt: 1_000_000, completion: 100_000 } }
+        const row = await runTask({
+            harness: setup([]).harness,
+            model: { ...model, price: { input: 2, output: 10 } },
+            task,
+            repeat: 1,
+            server: createToolServer(),
+            takeRecords: () => [silent as unknown as ProxyRecord],
+            sleep: async () => {},
+        })
+        expect(row.cost).toBeCloseTo(3)
+    })
+
     test("a 429 that failed the run is re-run and counted, never scored", async () => {
         const { server, harness, takeRecords } = setup(["429", "429", "ok"])
         const row = await runTask({

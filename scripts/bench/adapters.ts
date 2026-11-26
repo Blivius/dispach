@@ -246,7 +246,9 @@ function runtimeSpec(name: string, variant: Variant): Contained {
                         JSON.stringify([
                             "config_read",
                             "config_set",
-                            ...BENCH_TOOLS.map((t) => `bench__${t}`),
+                            ...[...BENCH_TOOLS, ...(context.checks ? ["run_check"] : [])].map(
+                                (t) => `bench__${t}`,
+                            ),
                         ]),
                     ),
                     ...(variant.allowWrites
