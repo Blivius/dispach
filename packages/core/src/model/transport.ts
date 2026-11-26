@@ -13,6 +13,7 @@ import { ConfigError, type ErrorDetail } from "../errors.ts"
 import type { EnvSource } from "../manifest/env.ts"
 import { DEFAULT_MODEL_API, type ModelRoleConfig } from "../manifest/schema.ts"
 import type { ConfigSchema } from "../plugins/plugin.ts"
+import { ANTHROPIC_MESSAGES_API, ANTHROPIC_MESSAGES_TRANSPORT } from "./anthropic-messages.ts"
 import type { ModelCapabilities } from "./capabilities.ts"
 import { type ChatCompletionsConfig, createChatCompletionsProvider } from "./chat-completions.ts"
 import type { FetchLike, ModelProvider } from "./provider.ts"
@@ -87,6 +88,7 @@ export const CHAT_COMPLETIONS_TRANSPORT: ModelTransport = {
 /** The transports every runtime has, before any plugin adds one. */
 export const BUILT_IN_TRANSPORTS: ReadonlyMap<string, ModelTransport> = new Map([
     [DEFAULT_MODEL_API, CHAT_COMPLETIONS_TRANSPORT],
+    [ANTHROPIC_MESSAGES_API, ANTHROPIC_MESSAGES_TRANSPORT],
 ])
 
 /**
