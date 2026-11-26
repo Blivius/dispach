@@ -221,6 +221,19 @@ export function isTurnStart(message: ChatMessage): boolean {
 }
 
 /**
+ * A message the person wrote: `user`, with no runtime origin.
+ *
+ * Narrower than `isTurnStart`, which also counts the runtime's own `user`-role notes — a repair, a nudge,
+ * a digest — and has to, because compaction keeps them as part of the request spine. Two readers need
+ * the narrow question instead: tool groups, which load on the person's words and must not load on a
+ * nudge that *names* every unloaded set; and the history's cache marks, which must open a turn where the
+ * person opened it, or a turn with a repair note in it moves the mark and misses the cache.
+ */
+export function isPersonAuthored(message: ChatMessage): boolean {
+    return message.role === "user" && message.origin === undefined
+}
+
+/**
  * What the model is told where the working detail used to be.
  *
  * Without it the survivors are a run of bare requests, and the `VOLATILE_HEADER` lesson applies

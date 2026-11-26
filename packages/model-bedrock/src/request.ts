@@ -157,6 +157,12 @@ export function converseInput(
     const system: SystemContentBlock[] = []
     const messages: Message[] = []
 
+    // Nova refuses a cachePoint in any message carrying a tool result (see the tail below). The
+    // history's breakpoints can land on one — an observation, or a turn's input merged into it — so
+    // the rule covers them too. Claude takes the point anywhere.
+    const nova = /(^|[./])amazon\.nova/.test(request.model)
+    const holdsToolResult = (blocks: readonly ContentBlock[] | undefined) =>
+        (blocks ?? []).some((block) => block.toolResult !== undefined)
     let leading = true
     for (const message of conversationOrder(request.messages)) {
         if (leading && message.role === "system") {
@@ -166,14 +172,24 @@ export function converseInput(
         }
         leading = false
         const { role, content } = contentOf(message)
-        if (caching && message.cacheBreakpoint === true && content.length > 0) {
-            content.push(CACHE_POINT)
-        }
         if (content.length === 0) continue
         const last = messages.at(-1)
-        if (last !== undefined && last.role === role)
-            last.content = [...(last.content ?? []), ...content]
-        else messages.push({ role, content })
+        const merging = last !== undefined && last.role === role
+        if (
+            caching &&
+            message.cacheBreakpoint === true &&
+            !(nova && (holdsToolResult(content) || (merging && holdsToolResult(last.content))))
+        ) {
+            content.push(CACHE_POINT)
+        }
+        if (merging) {
+            // A tool result arriving into a Nova message that already holds a point takes it out again.
+            const kept =
+                nova && holdsToolResult(content)
+                    ? (last.content ?? []).filter((block) => block.cachePoint === undefined)
+                    : (last.content ?? [])
+            last.content = [...kept, ...content]
+        } else messages.push({ role, content })
     }
     // A rolling cache point at the end (pilot.13): each step of a tool loop then reads every
     // earlier step from the cache instead of resending it at full price. Measured on their Haiku 4.5:

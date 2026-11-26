@@ -28,6 +28,7 @@ import {
     resolveWorkspace,
     ruleBudgetFailure,
     scheduleDeliveryWarnings,
+    toolGroupWarnings,
     windowReport,
 } from "@dispach/core"
 import { ambientEnv } from "#lib/ambient"
@@ -172,6 +173,7 @@ export async function validateCommand(options: ValidateOptions): Promise<number>
             ...channelFindings,
             ...scheduleDeliveryWarnings(manifest),
             ...fallbackWarnings(manifest),
+            ...toolGroupWarnings(manifest),
             ...(ruleFailure === undefined ? [] : [ruleFailure.toDetail()]),
         ]
 

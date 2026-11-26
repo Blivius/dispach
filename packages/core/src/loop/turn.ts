@@ -37,9 +37,19 @@ import type { ParsedOutput, StepOutput, ToolDialect } from "../tools/dialect/dia
 import { nativeWireTokens } from "../tools/dialect/native.ts"
 import type { EventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
+import {
+    missedSetNote,
+    reachableGroups,
+    readsAsMissed,
+    TOOLS_LOAD,
+    type ToolGroup,
+    toolsLoadTool,
+    withheldSlugs,
+} from "../tools/groups.ts"
 import { phaseSetTool } from "../tools/local.ts"
 import type { PolicyConfig } from "../tools/policy.ts"
 import type { ToolRegistry } from "../tools/registry.ts"
+import { normaliseSlug } from "../tools/slug.ts"
 import type { OnMutate } from "../tools/trust.ts"
 import type {
     DisplacedArtifact,
@@ -264,6 +274,15 @@ export interface TurnInput {
      * what the agent may call without breaking what the turn itself brings.
      */
     readonly toolsAllow?: readonly string[]
+    /**
+     * Pinned tools held out of the catalogue until loaded (decision 18.2): the manifest's groups and
+     * the ones this turn starts with. A group not in `active` is withheld from slot 1 and the wire
+     * schemas, and `tools_load` is offered to load it mid-turn. Absent: every tool, as before.
+     */
+    readonly toolGroups?: {
+        readonly groups: readonly ToolGroup[]
+        readonly active: ReadonlySet<string>
+    }
     /** Personal tools withheld from this turn (pilot.15). See `ExecuteInput.withheld`. */
     readonly withheld?: readonly string[]
     /** Every mutating call is queued rather than run: a stand-in's turn. See `ExecuteInput.defer`. */
@@ -573,6 +592,49 @@ function narrowedTools(tools: ToolRuntime, allow: readonly string[]): ToolRuntim
     }
 }
 
+/**
+ * The agent's own catalogue as one turn may see it: a schedule's allowlist, minus every slug in a tool
+ * group that is not loaded, plus `tools_load` while any group is withheld (decision 18.2).
+ *
+ * One function for the turn and for `Agent.previewContext`, so `GET /context` reports the catalogue a
+ * turn would actually send rather than the agent's whole one. With no allowlist and nothing withheld it
+ * returns `wide` itself, so the cached prefix of an agent without groups is untouched.
+ */
+export function turnCatalogue(
+    wide: ToolRuntime,
+    toolsAllow: readonly string[] | undefined,
+    groups: readonly ToolGroup[],
+    loaded: ReadonlySet<string>,
+): ToolRuntime {
+    const held = withheldSlugs(groups, loaded)
+    const allowed = toolsAllow ?? wide.registry.specs().map((spec) => spec.slug)
+    const allow =
+        held.size === 0 ? toolsAllow : allowed.filter((slug) => !held.has(normaliseSlug(slug)))
+    const own = allow === undefined ? wide : narrowedTools(wide, allow)
+    const notLoaded = unloadedReachable(wide, toolsAllow, groups, loaded)
+    return notLoaded.length === 0 ? own : withRenderedTools(own, [toolsLoadTool(notLoaded)], true)
+}
+
+/**
+ * The groups this turn has not loaded and could load: one of their tools is in the catalogue the turn
+ * is allowed. What `tools_load` offers and what the missed-set nudge names — one function, so the two
+ * cannot offer a non-owner a set of the owner's that neither could deliver.
+ */
+export function unloadedReachable(
+    wide: ToolRuntime,
+    toolsAllow: readonly string[] | undefined,
+    groups: readonly ToolGroup[],
+    loaded: ReadonlySet<string>,
+): readonly ToolGroup[] {
+    if (groups.length === 0) return []
+    const inCatalogue = new Set(wide.registry.specs().map((spec) => normaliseSlug(spec.slug)))
+    const available =
+        toolsAllow === undefined
+            ? inCatalogue
+            : new Set(toolsAllow.map(normaliseSlug).filter((slug) => inCatalogue.has(slug)))
+    return reachableGroups(groups, available).filter((group) => !loaded.has(group.name))
+}
+
 async function runTurnCore(input: TurnInput): Promise<TurnResult> {
     const turnId = input.turnId ?? newTurnId()
     const context: EventContext = {
@@ -648,6 +710,8 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
     let repairs = 0
     /** The silence nudge has been spent this turn: once, then the reply stands (decision 14.123). */
     let nudged = false
+    /** A tool call of this turn succeeded, for the missed-set nudge: a turn that looked is not a miss. */
+    let looked = false
     /**
      * Signatures of the most recent tool-calling steps, oldest first, capped at the threshold.
      *
@@ -769,15 +833,26 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
          */
         const rendered = input.turnTools ?? []
         const layered = [...turnScripts, ...rendered]
-        const ownTools =
-            input.tools === undefined || input.toolsAllow === undefined
-                ? input.tools
-                : narrowedTools(input.tools, input.toolsAllow)
-        // `let`: a tool pinned mid-turn (`pinTools`) is layered onto this and the views rebuilt.
-        let baseTools =
-            ownTools === undefined || layered.length === 0
-                ? ownTools
-                : withRenderedTools(ownTools, layered, rendered.length > 0)
+        // Tool groups (decision 18.2): the sets loaded so far this turn. `tools_load` adds to it.
+        const groups = input.toolGroups?.groups ?? []
+        const loadedGroups = new Set(input.toolGroups?.active ?? [])
+        /**
+         * The agent's own catalogue as this turn may see it: a schedule's allowlist, minus every slug
+         * in a group that is not loaded, plus `tools_load` while any group is withheld. With no
+         * allowlist and nothing withheld it returns `wide` itself, so the usual cached prefix is
+         * untouched — the case every agent without groups is in.
+         */
+        const narrow = (wide: ToolRuntime): ToolRuntime =>
+            turnCatalogue(wide, input.toolsAllow, groups, loadedGroups)
+        // `let`: a tool pinned mid-turn (`pinTools`) widens this, and `build` derives the rest from it.
+        let wideTools = input.tools
+        const build = (): ToolRuntime | undefined => {
+            if (wideTools === undefined) return undefined
+            const own = narrow(wideTools)
+            return layered.length === 0 ? own : withRenderedTools(own, layered, rendered.length > 0)
+        }
+        // `let`: a mid-turn pin or a group load rebuilds it, and the views with it.
+        let baseTools = build()
 
         /**
          * The catalogue as one phase sees it, rebuilt only when the phase changes.
@@ -1277,7 +1352,30 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     tools === undefined || nudged
                         ? undefined
                         : silenceOf(parsed.text, trace, sideEffects)
-                if (silence !== undefined && tools !== undefined) {
+                // Decision 18.2's backstop: a reply that says it has nothing, cannot see or check
+                // something, or offers to look, while tool sets are still unloaded. The keywords missed
+                // and the model did not load a set itself, so it answered from what it had — the one way
+                // a withheld group turns into a wrong answer. Same single nudge per turn as the rest.
+                // Only a turn that did not look: once any tool call succeeded — `tools_load`, a tool from
+                // a set, or an ungrouped one such as `glob` or `web_search` — "I found nothing" is a
+                // finding, and nudging it sent the model on into every other set: seen live, a mail
+                // search that found nothing went on to load and search the CRM too.
+                // Only sets this turn could load, and only while the view in force offers the loader:
+                // a phase or a policy that leaves `tools_load` out would make the note an instruction to
+                // call a tool that is not there.
+                const notLoaded =
+                    wideTools === undefined
+                        ? []
+                        : unloadedReachable(wideTools, input.toolsAllow, groups, loadedGroups)
+                const missed =
+                    silence === undefined &&
+                    tools !== undefined &&
+                    !nudged &&
+                    !looked &&
+                    notLoaded.length > 0 &&
+                    tools.registry.has(TOOLS_LOAD) &&
+                    readsAsMissed(parsed.text)
+                if ((silence !== undefined || missed) && tools !== undefined) {
                     nudged = true
                     const said: ChatMessage[] =
                         parsed.text === ""
@@ -1285,7 +1383,10 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                             : [{ ...tools.dialect.renderCall(output), origin: "call" }]
                     const note: ChatMessage = {
                         role: "user",
-                        content: SILENCE_NOTE[silence],
+                        content:
+                            silence === undefined
+                                ? missedSetNote(notLoaded)
+                                : SILENCE_NOTE[silence],
                         origin: "repair",
                     }
                     history.push(...said, note)
@@ -1296,11 +1397,13 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                         {
                             slugs: [],
                             errors: [
-                                silence === "empty"
-                                    ? "no visible reply after a tool result"
-                                    : silence === "claim"
-                                      ? "said it was done and nothing that acts ran"
-                                      : "said it would act and made no call",
+                                silence === undefined
+                                    ? "said it had nothing while tool sets were not loaded"
+                                    : silence === "empty"
+                                      ? "no visible reply after a tool result"
+                                      : silence === "claim"
+                                        ? "said it was done and nothing that acts ran"
+                                        : "said it would act and made no call",
                             ],
                         },
                         context,
@@ -1390,6 +1493,11 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                 )
             }
 
+            // The catalogue these calls run against, kept: a call in this step may replace `tools`
+            // (`phase_set`, `tools_load`, a mid-turn pin), and what a call *was* is a fact about the
+            // catalogue that ran it. Read from the new one, the last group's `tools_load` was gone from
+            // it, and asking whether that call changed anything failed the whole turn (2026-11-26).
+            const ranWith = tools.registry
             // A step is all-or-nothing, so an unreadable call stops it before anything runs.
             // Executing the readable calls and repairing the rest would re-run a mutating call that
             // had already succeeded, and there is no idempotency key at this layer to make that safe.
@@ -1441,24 +1549,55 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                               // the price of not asking the person twice (decision 14.96).
                               pinTools: async (slugs: readonly string[]) => {
                                   input.onPinned?.()
-                                  const base = baseTools
-                                  if (base === undefined) return []
-                                  const found = await base.registry.resolveMore(slugs)
+                                  const wide = wideTools
+                                  if (wide === undefined) return []
+                                  const found = await wide.registry.resolveMore(slugs)
                                   if (found.length === 0) return []
-                                  const layered = withRenderedTools(base, found, true)
-                                  // A turn narrowed to some tools (a schedule's `tools.allow`, a peer
-                                  // ask without `handoff`) stays narrowed: a pin cannot widen it.
-                                  baseTools =
-                                      input.toolsAllow === undefined
-                                          ? layered
-                                          : narrowedTools(layered, input.toolsAllow)
+                                  // Pinned onto the wide catalogue and narrowed again by `build`: a
+                                  // turn narrowed to some tools (a schedule's `tools.allow`, a peer ask
+                                  // without `handoff`) stays narrowed, and a pin cannot widen it.
+                                  wideTools = withRenderedTools(wide, found, true)
+                                  baseTools = build()
                                   views.clear()
                                   tools = viewFor(phase)
                                   const now = baseTools
                                   return found
                                       .map((tool) => tool.spec.slug)
-                                      .filter((slug) => now.registry.has(slug))
+                                      .filter((slug) => now?.registry.has(slug) === true)
                               },
+                              // A group loaded by `tools_load` (decision 18.2): in the catalogue from
+                              // the next step of this turn, the way a phase change is — deferring it to
+                              // the next turn would make the backstop a second message from the person.
+                              ...(groups.length === 0
+                                  ? {}
+                                  : {
+                                        loadToolGroup: async (name: string) => {
+                                            const had = loadedGroups.has(name)
+                                            const rebuild = (): ToolRuntime | undefined => {
+                                                baseTools = build()
+                                                views.clear()
+                                                return viewFor(phase)
+                                            }
+                                            loadedGroups.add(name)
+                                            // The view in force — a phase may hide some of the set —
+                                            // so an empty answer means nothing reached the model.
+                                            const next = rebuild()
+                                            const group = groups.find((one) => one.name === name)
+                                            const reached = (group?.tools ?? []).filter(
+                                                (slug) => next?.registry.has(slug) === true,
+                                            )
+                                            if (reached.length > 0) {
+                                                tools = next
+                                                return reached
+                                            }
+                                            // Nothing reached: undo it, so the set is not loaded behind
+                                            // a "nothing was loaded" error and `tools_load` still offers
+                                            // it after a `phase_set` that would let it through.
+                                            if (!had) loadedGroups.delete(name)
+                                            tools = rebuild()
+                                            return []
+                                        },
+                                    }),
                               ...(input.phases === undefined
                                   ? {}
                                   : {
@@ -1516,19 +1655,22 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                               : { claimDelegated: input.claimDelegated }),
                       })
 
+            if (outcome.results.some((result) => result.ok)) looked = true
+
             transientFailed =
                 outcome.results.length > 0 && outcome.results.every(failedTransiently)
                     ? signature
                     : undefined
 
             if (outcome.results.some((result) => result.ok)) {
-                // Optional-chained rather than narrowed: `tools` became reassignable when phases landed,
-                // so TypeScript correctly stops narrowing it across the await above — `phase_set` may
-                // have swapped the view in between. The registry wanted here is whichever one resolved
-                // the call, and a slug missing from it is not a side effect.
+                // The registry that ran the call (`ranWith`), not `tools`: `phase_set` or `tools_load`
+                // may have swapped the view during the await above, and the new one need not hold the
+                // tool that swapped it.
                 sideEffects ||= outcome.results.some(
                     (result) =>
-                        result.ok && tools?.registry.resolve(result.slug).spec.mutating === true,
+                        result.ok &&
+                        ranWith.has(result.slug) &&
+                        ranWith.resolve(result.slug).spec.mutating === true,
                 )
             }
 

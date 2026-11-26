@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Added
+
+- `tools.groups`: pinned tools kept out of the request until a conversation needs them. A group loads when the person's message mentions one of its keywords and stays loaded for the session; `tools_load` loads one the keywords missed, from the next step of the same turn, and a reply that says it has nothing, without having looked, while a set is unloaded is nudged once to load it and look. Schedules, subagents, handoffs, peer asks and a turn with an explicit allowlist get every tool.
+
+### Fixed
+
+- A request also marks two cache points in the history: the end of the history and the end of the turn before the last. Before, only the static prefix and the skill were marked, so nothing in the conversation was a prefix the next turn could read from a provider's cache. The prompt is unchanged. On Nova, no cache point is placed in a message that carries a tool result.
 
 ## 0.2.14 — 2026-11-26
 

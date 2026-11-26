@@ -26,7 +26,7 @@ import {
     VOLATILE_END,
     VOLATILE_HEADER,
 } from "./blocks.ts"
-import { isTurnStart } from "./compaction/stages.ts"
+import { isPersonAuthored, isTurnStart } from "./compaction/stages.ts"
 import { estimateMessageTokens, estimateTokens } from "./tokens.ts"
 
 export interface AssembleInput {
@@ -450,21 +450,71 @@ export function assembleContext(input: AssembleInput): AssembledContext {
  * breakpoint B is the active skill. Marked whatever the model's cache protocol, because the marker is
  * harness metadata: `chat-completions` never sends it, and a transport with an explicit cache protocol
  * is the one that knows whether to act on it.
+ *
+ * **Two more mark the history, because without them a conversation is re-written every turn.** The
+ * slots after the history — reminder, recalled memory, the note, the input — differ every turn, so the
+ * transport's rolling point at the end of a request is never a prefix of the next turn's request. Only
+ * A and B were, which meant the first call of every turn paid the cache-*write* price for the whole
+ * history rather than the read price, again on every turn. So:
+ *
+ * - **H2, the end of the prior history**, writes this turn's prefix for the next turn to read.
+ * - **H1, the end of the turn before the last**, is where the previous turn's H2 *was*. A marker only
+ *   at the end of the history is written and never read: next turn the history is longer, H2 sits
+ *   further on, and a provider looks back a bounded number of blocks (about twenty on Anthropic's)
+ *   for an earlier entry — fewer than one tool-heavy turn holds. H1 asks at the exact position.
+ *
+ * "The prior history" is the history ahead of the input: with `traceAfterInput` the current turn's
+ * trace follows the input and is the rolling point's business. A turn opens on the person's own message
+ * (`isPersonAuthored`): a digest, a repair or a nudge is `user`-role and never opens one.
+ *
+ * B is dropped when both history marks are present, because Converse and Anthropic allow four markers
+ * and the fourth is the rolling one. A hit at H1 covers B only while the volatile tier, the skill and the
+ * knowledge are what they were last turn. Knowledge is picked per turn, so on a turn where it changes H1
+ * misses and the volatile tier and the skill are written again, where B would have read them. That costs
+ * those two slots on such a turn, against the whole history on every turn without H1 and H2.
+ * The prompt is byte-identical either way: only where a provider may cache changes.
  */
 function messagesOf(blocks: readonly ContextBlock[]): ChatMessage[] {
     let lastStatic = -1
     let skill = -1
+    let input = blocks.length
     blocks.forEach((b, index) => {
         if (b.slot <= SLOT.examples) lastStatic = index
         if (b.slot === SLOT.skill) skill = index
+        if (b.slot === SLOT.input && index < input) input = index
     })
+    const prior: number[] = []
+    blocks.forEach((b, index) => {
+        if (b.slot === SLOT.history && index < input) prior.push(index)
+    })
+    const lastHistory = prior.at(-1) ?? -1
+    // The last turn start in the prior history; the block before it closes the turn before the last.
+    let turnBefore = -1
+    for (let i = prior.length - 1; i > 0; i -= 1) {
+        const at = prior[i]
+        const before = prior[i - 1]
+        if (at === undefined || before === undefined) continue
+        const message = blockMessage(blocks[at])
+        // The person's message, not any `user`-role note: a repair or a nudge inside the previous turn
+        // would otherwise be taken for its start, and H1 would miss the position H2 was written at.
+        if (message !== undefined && isPersonAuthored(message)) {
+            turnBefore = before
+            break
+        }
+    }
+    const marked = new Set([lastStatic, lastHistory, turnBefore])
+    if (lastHistory < 0 || turnBefore < 0) marked.add(skill)
+    marked.delete(-1)
     return blocks.map((b, index) => {
-        const plain = b.message ?? { role: b.role, content: b.content }
+        const plain = blockMessage(b) ?? { role: b.role, content: b.content }
         const message = b.slot === SLOT.input ? { ...plain, turnInput: true as const } : plain
-        return index === lastStatic || index === skill
-            ? { ...message, cacheBreakpoint: true as const }
-            : message
+        return marked.has(index) ? { ...message, cacheBreakpoint: true as const } : message
     })
+}
+
+function blockMessage(block: ContextBlock | undefined): ChatMessage | undefined {
+    if (block === undefined) return undefined
+    return block.message ?? { role: block.role, content: block.content }
 }
 
 /**

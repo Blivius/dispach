@@ -78,6 +78,12 @@ tools:
     - GOOGLECALENDAR_CREATE_EVENT
   search:
     enabled: false
+  # Pinned tools kept out of the request until a conversation needs them (decision 18.2).
+  groups:
+    calendar:
+      description: the person's Google Calendar
+      tools: [GOOGLECALENDAR_LIST_EVENTS, GOOGLECALENDAR_CREATE_EVENT]
+      keywords: [calendar, meeting, schedule, event]
   local:
     - memory_write
     - artifact_read
@@ -556,6 +562,34 @@ provider's own catalogue — 25,438 entries, for Composio — so the model could
 given. That meta-tool is not built, and enabling the field is refused by design: search-then-execute is two-hop reasoning, which is where
 small models fail. Searching the *internet* is `web_search`, or a pinned `COMPOSIO_SEARCH_*` tool, and
 has nothing to do with this field. The two have been confused, so they are stated together here.
+
+**`tools.groups` keeps pinned tools out of the request until a conversation needs them** (decision
+18.2). Not tool search: a group only decides *when* tools the agent is already given are sent. A slug
+in no `tools.pinned` or `tools.local` list warns (`tool_group_unpinned`) rather than refusing the load —
+the agent's own `config_set` may unpin a grouped tool. The tools the runtime adds from other blocks
+(`image_generate`, `delegate`, `handoff`, `ask_agent`) are never warned about. A tool in two groups is refused
+(`tool_group_overlap`). Slugs compare the registry's way, ignoring case and separators, so
+`gmail_fetch_emails` groups the tool resolved as `GMAIL_FETCH_EMAILS`.
+
+| field | type | default | |
+| --- | --- | --- | --- |
+| `groups.<name>.description` | string | — | One line the model reads in `tools_load` while the set is not loaded |
+| `groups.<name>.tools` | string[] | — | Pinned or local slugs, at least one |
+| `groups.<name>.keywords` | string[] | `[]` | Load the set when the person's message mentions one: start of a word, any case, so `email` also matches "emails" |
+
+`<name>` is a lowercase letter followed by letters, digits, `-` or `_`. A conversation's turn starts with
+the groups whose keywords its input mentions, plus every group the session already used: a person's
+earlier message with a keyword, a call to one of its tools, or a `tools_load` result — read from the whole
+stored conversation once it has a checkpoint. Only the person's own messages count, never a runtime note.
+So a group loads at most once per conversation, and the cached prefix changes with it once. While a group
+this turn could load is withheld, the catalogue offers `tools_load(group)`, which loads a set from the next
+step of the same turn; every phase's allow list includes it, as it does `phase_set`. A set whose tools the
+turn's allowlist removes entirely (the owner's own tools in a turn that is not the owner's) is not offered.
+A reply that says it has nothing, or offers to look, before the turn looked in any set is nudged once to
+load one. A schedule's run, a subagent's handed call, a handoff, a peer ask, a turn an agent sent, a turn
+with an explicit `toolsAllow`, and any turn under a policy that would refuse `tools_load` get every tool.
+Set by a person (`PATCH /config`, `config set`), never by the agent's own `config_set`.
+`GET /v1/agents/:id/context?input=…` reports the catalogue that input would get.
 
 **Trust.** Every tool carries `trust`, and a provider-resolved tool defaults to `untrusted` — a
 provider cannot know what its upstream API will return, so the default is the one that is wrong
