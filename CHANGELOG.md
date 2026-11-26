@@ -2,16 +2,22 @@
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.2.14 — 2026-11-26
+
 ### Added
 
 - Traces: name the bundled `@dispach/trace-otlp` plugin and every turn reaches an OpenTelemetry backend (Phoenix, any OTLP/HTTP collector) as a trace: model calls with tokens and latency, tool calls, delegations, nested. Metadata only, never prompt or reply text. `init --traces <url>` writes it for a new agent.
 - A plugin's `logger.warn` and `logger.error` now arrive as `agent.warning`. They were discarded before.
+- `model.<role>.api: anthropic-messages` talks to Anthropic's native Messages API with prompt caching, so a direct Claude key reads a repeated prefix from the cache instead of paying full input price on every step. The key is read from `ANTHROPIC_API_KEY` unless `apiKeyEnv` names another. The `anthropic` preset (OpenAI-compatible, no caching) is unchanged.
 
 ### Fixed
 
+- A tool call cut off at the output limit gets a repair that tells the model to split the work, instead of ending the turn.
+- `serve` and `run` suggest `daemon install`, not `daemon install <agent>`, which is refused.
 - A plugin is handed the agent's environment, with the `.env` beside the manifest under the real one, as the plugin API documents. It received the process environment alone, so a key set in the agent's `.env` read as unset.
 - `serve` writes a plugin's warnings to its log, including a plugin that failed to load at boot. They reached only the event stream, so `docker logs` said nothing about them.
-
 - The standalone installer names a shared library Node cannot load (`libatomic.so.1` on slim Debian images since Node 26) and the package that provides it, instead of reporting only that the install does not start.
 
 ## 0.2.13 — 2026-11-23
