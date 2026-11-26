@@ -16,6 +16,12 @@ result yet), **fix** (the prose and the evidence disagree), **remove** (no evide
 | OpenClaw 2026.10.5 scores lowest on every model, 11–60 runs behind | `evals/harness/summary.json` | As above | Each harness on its own documented defaults | verified |
 | Hermes leads on the small open models: qwen3.5-9b 112 vs 104, gpt-oss-20b 111 vs 97 | `evals/harness/summary.json` | As above | The qwen3.5-9b intervals overlap widely; the gpt-oss-20b ones only just | verified |
 
+## Model choice on iterative work
+
+| Claim | Evidence | Scope | Limitation | Status |
+| --- | --- | --- | --- | --- |
+| On the iterate family, Claude Haiku 5.5 passes 69/70 and Claude Sonnet 5.5 70/70, and Haiku costs about a twentieth as much per success ($0.0046 against $0.0965) | `evals/harness/summary.json` (`iterate`), `evals/harness/runs/iterate-190d093/` (2026-11-25) | 14 projects × 5 repeats, Dispach native, each vendor's own API, graded by the hidden suite | 14 small projects of our own design; the 95% intervals overlap (92–100% against 95–100%); cost is tokens at list price, not a bill | verified |
+
 ## Tool dialect (NLT vs native)
 
 | Claim | Evidence | Scope | Limitation | Status |

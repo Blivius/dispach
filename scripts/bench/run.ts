@@ -170,7 +170,16 @@ export async function runTask(options: {
             modelCalls: records.length,
             promptTokens: sum((r) => r.usage?.prompt),
             completionTokens: sum((r) => r.usage?.completion),
-            cost: sum((r) => r.usage?.cost),
+            // ponytail: cached tokens are priced as fresh input; exact for an endpoint that does not cache.
+            cost: sum(
+                (r) =>
+                    r.usage?.cost ??
+                    (model.price === undefined
+                        ? undefined
+                        : ((r.usage?.prompt ?? 0) * model.price.input +
+                              (r.usage?.completion ?? 0) * model.price.output) /
+                          1e6),
+            ),
             generationIds: records.flatMap((r) =>
                 r.generationId === undefined ? [] : [r.generationId],
             ),
@@ -197,12 +206,17 @@ if (import.meta.main) {
     }
     const [rostered] = loadRoster([modelKey])
     if (rostered === undefined) process.exit(1)
-    // `--endpoint <baseUrl>,<KEY_ENV>,<model id>` calls a model's own API instead of its OpenRouter pin,
-    // e.g. https://api.anthropic.com/v1,ANTHROPIC_API_KEY,claude-haiku-5-5. Rows say so in the model key.
+    // `--endpoint <baseUrl>,<KEY_ENV>,<model id>[,<input $/M>,<output $/M>]` calls a model's own API instead
+    // of its OpenRouter pin, e.g. https://api.anthropic.com/v1,ANTHROPIC_API_KEY,claude-haiku-5-5,0.10,0.50.
+    // Rows say so in the model key. A vendor's API reports no cost, so the prices are how a run is costed.
     const endpoint = flag("endpoint")?.split(",")
-    if (endpoint !== undefined && endpoint.length !== 3) {
+    const prices = endpoint?.slice(3).map(Number) ?? []
+    if (
+        (endpoint !== undefined && ![3, 5].includes(endpoint.length)) ||
+        prices.some((p) => !Number.isFinite(p) || p < 0)
+    ) {
         console.error(
-            "--endpoint takes <baseUrl>,<KEY_ENV>,<model id>.\n  hint: https://api.anthropic.com/v1,ANTHROPIC_API_KEY,claude-haiku-5-5",
+            "--endpoint takes <baseUrl>,<KEY_ENV>,<model id>[,<input $/M>,<output $/M>].\n  hint: https://api.anthropic.com/v1,ANTHROPIC_API_KEY,claude-haiku-5-5,0.10,0.50",
         )
         process.exit(1)
     }
@@ -216,6 +230,9 @@ if (import.meta.main) {
                   baseUrl: endpoint[0] ?? "",
                   apiKeyEnv: endpoint[1] ?? "",
                   id: endpoint[2] ?? "",
+                  ...(prices.length === 2
+                      ? { price: { input: prices[0] ?? 0, output: prices[1] ?? 0 } }
+                      : {}),
               }
     const apiKey = model.apiKeyEnv === undefined ? undefined : process.env[model.apiKeyEnv]
     if (model.apiKeyEnv !== undefined && !apiKey) {

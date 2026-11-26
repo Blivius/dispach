@@ -725,5 +725,42 @@
                 "measured": "2026-10-23"
             }
         }
-    ]
+    ],
+    "iterate": {
+        "dir": "iterate-190d093",
+        "commit": "190d093",
+        "repeats": 5,
+        "models": [
+            {
+                "key": "sonnet-5.5",
+                "name": "Claude Sonnet 5.5",
+                "pass": 70,
+                "n": 70,
+                "rate": 1,
+                "low": 0.948,
+                "high": 1,
+                "passK": {
+                    "pass": 14,
+                    "tasks": 14
+                },
+                "cost": 6.7527,
+                "measured": "2026-11-25"
+            },
+            {
+                "key": "haiku-5.5",
+                "name": "Claude Haiku 5.5",
+                "pass": 69,
+                "n": 70,
+                "rate": 0.9857,
+                "low": 0.9234,
+                "high": 0.9975,
+                "passK": {
+                    "pass": 13,
+                    "tasks": 14
+                },
+                "cost": 0.3144,
+                "measured": "2026-11-25"
+            }
+        ]
+    }
 }

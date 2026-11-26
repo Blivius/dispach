@@ -70,6 +70,16 @@ A separate family of fourteen small JavaScript projects. Each has a README, code
 and a hidden test suite. It measures work that takes several rounds of editing and checking, which
 the suite above does not ([`scripts/bench/iterate.ts`](https://github.com/blivius/dispach/blob/main/scripts/bench/iterate.ts)).
 
+| Model | Passed | 95% CI | All 5 | Cost | Per success |
+| --- | --- | --- | --- | --- | --- |
+| Claude Sonnet 5.5 | 70/70 (100%) | 95–100% | 14/14 | $6.75 | $0.0965 |
+| Claude Haiku 5.5 | 69/70 (99%) | 92–100% | 13/14 | $0.31 | $0.0046 |
+
+Dispach native at `190d093`, each model 5 times per project through its
+vendor's own API, measured 2026-11-25. A vendor's API
+reports no cost, so cost is the run's tokens at list price: Sonnet 5.5 $2 / $10 and Haiku 5.5
+$0.10 / $0.50 per million input / output tokens.
+
 - **The `run_check` tool** runs the project's suite against the files as they are now. It reports the
   pass count and the first two failures, each saying what was expected and what came back. A test
   that hangs is named.
@@ -78,6 +88,8 @@ the suite above does not ([`scripts/bench/iterate.ts`](https://github.com/bliviu
   the task.
 - **Running it:** `--tasks iterate` selects the family, which never runs by default. `run_check` is
   listed only on those runs, so the 25-task suite keeps the eight tools it was measured with.
-  `--endpoint <baseUrl>,<KEY_ENV>,<model id>` calls a model's own API instead of its OpenRouter route,
-  and rows from those runs carry `@direct` in their model key.
-- **No published numbers yet.** A number appears here only with its row in `evals/CLAIMS.md`.
+  `--endpoint <baseUrl>,<KEY_ENV>,<model id>[,<input $/M>,<output $/M>]` calls a model's own API
+  instead of its OpenRouter route; rows from those runs carry `@direct` in their model key and are
+  costed at the prices given.
+- **Limits:** fourteen projects of our own design, each small. The intervals overlap, so this says
+  the two models pass about equally often here, not which one is better.
