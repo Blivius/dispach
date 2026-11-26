@@ -81,6 +81,7 @@ export const FLAG_FOR: Record<InitStep, string> = {
     // No flag, same reason as every other secret: a token on a command line lands in history.
     telegramToken: "(asked at the prompt only)",
     schedules: "--schedules",
+    traces: "--traces",
     server: "--server",
     skills: "--skills",
     skillsSearch: "--skills",
@@ -164,6 +165,7 @@ export function complete(
             | "skillsSearch"
             | "skillsPick"
             | "schedules"
+            | "traces"
             | "server"
             | "dir"
             | "dirChoice"
@@ -177,6 +179,8 @@ export function complete(
          * Defaulted below, at the funnel, for the reason `apiKeyEnv` is.
          */
         schedules?: string
+        /** Undefined unless `--traces` was passed. Flag-only, like `schedules`. */
+        traces?: string
         /**
          * Undefined unless `--server` was passed. Same shape as `schedules`, and for the same
          * reason: the question was withdrawn in 0.1.2 and the flag stayed.
@@ -275,6 +279,9 @@ export function complete(
         // both the wizard and `--schedules daily` pass through, which is the lesson `apiKeyEnv` above
         // records from the last time a question was removed and its field silently went missing.
         schedules: answers.schedules ?? "none",
+        // Defaulted at the funnel for the same reason as `schedules` one line up: an empty string is
+        // "no tracing". Required on `InitAnswers`, like `whatsapp`, so leaving it out is a type error.
+        traces: answers.traces ?? "",
         /**
          * **On by default, and no longer asked.** "Serve the HTTP API?" defaulted to *No* —
          * `fallback: "1"` is a 1-based menu index and element 0 of `SERVER_CHOICES` is `none` — so

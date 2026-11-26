@@ -258,6 +258,12 @@ export {
     scopeCorpus,
 } from "./memory/scopes.ts"
 export {
+    ANTHROPIC_MESSAGES_API,
+    ANTHROPIC_MESSAGES_TRANSPORT,
+    messagesBody,
+    messagesChunks,
+} from "./model/anthropic-messages.ts"
+export {
     CAPABILITY_REGISTRY,
     type CapabilityEntry,
     describeWindowSource,
@@ -279,6 +285,15 @@ export {
     modelsUrl,
     type RetryPolicy,
 } from "./model/chat-completions.ts"
+export {
+    adaptiveFields,
+    conversationOrder,
+    parseToolInput,
+    refusesSampling,
+    roleWarnings,
+    thinkingOff,
+    thinkingStyle,
+} from "./model/claude.ts"
 export {
     DEFAULT_PROMPT_STYLE,
     defaultPromptStyle,

@@ -1,0 +1,72 @@
+name: site
+
+# The landing page and docs site (`site/`) on Vercel, deployed with a token rather than Vercel's Git
+# integration: that needs Vercel's GitHub App on the org, and the CLI needs only `VERCEL_TOKEN`.
+#
+# The build runs on Vercel, from what `.vercelignore` lets through: `site/`, `developer-docs/`, the
+# six eval results the site imports, `packages/cli`'s `package.json`, and core's
+# `brand.ts`. The project's Root Directory is `site`, so nothing else in the tree is uploaded.
+#
+#   push to main         → production (dispach.blivius.com)
+#   pull request         → a preview (into `development`), its URL in the job summary (same-repo branches only: a fork's
+#                          pull request is given no secrets, so it could not deploy anyway)
+#   workflow_dispatch    → production, for a redeploy with no change (a new env var, a failed build)
+
+on:
+  push:
+    branches: [main]
+    paths: &site
+      - "site/**"
+      - "developer-docs/**"
+      - "evals/index.json"
+      - "evals/*/results.json"
+      - "evals/harness/summary.json"
+      - "packages/core/src/brand.ts"
+      - "packages/cli/package.json"
+      - ".vercelignore"
+      - ".github/workflows/site.yml"
+  pull_request:
+    branches: [development]
+    paths: *site
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One production deploy at a time, and a newer push replaces a waiting one; previews never queue
+# behind production.
+concurrency:
+  group: site-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'production' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Not secrets: they name the project, and the token is what grants access to it.
+  VERCEL_ORG_ID: team_kF5gAInfg7ld7OI1wUPIFLCa
+  VERCEL_PROJECT_ID: prj_LCew9X6O4qS8tQs1w8G46UUnJUdb
+
+jobs:
+  deploy:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: VERCEL_TOKEN is set
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN is not set. Nothing was deployed. Create a token at vercel.com/account/tokens scoped to the team that owns the project, add it as a repository secret, and re-run this job."
+            exit 1
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: deploy
+        run: |
+          prod=""
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then prod=--prod; fi
+          url=$(npx --yes vercel@66.6.0 deploy $prod --yes --token "$VERCEL_TOKEN")
+          echo "deployed: $url"
+          echo "${prod:+production }deployment: $url" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

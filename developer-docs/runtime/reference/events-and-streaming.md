@@ -72,9 +72,22 @@ Turn execution is detached from this connection. Reconnect with the same turn ID
 
 ## Runtime event stream
 
-`GET /v1/events` streams every event the key can reach. `agentId` narrows it to one agent, `types` to a comma-separated list of catalogue types (an unknown type is refused with `400 unknown_event_type`), and `chunks=true` adds `model.chunk`; naming `model.chunk` in `types` also turns chunks on. `/v1/ws` carries the same events over a WebSocket. Webhooks use the same catalogue but accept only webhook-eligible types.
+`GET /v1/events` streams every event the key can reach. Query parameters:
 
-In TypeScript, `dispach/wire` exports the types `AnyEvent`, `EventEnvelope`, `EventType`, `EventDataMap`, `EventContext`, and `TurnEndReason`, the `EVENT_TYPES` list, `parseSSE`, `endNote` and `endedBadly` for describing how a turn ended, and the stream filters `createNltStreamFilter` and `passThroughFilter`, which strip NLT tool-call blocks out of `model.chunk` text. Or consume the discriminated stream items returned by `dispach/client`.
+- `agentId` narrows it to one agent.
+- `types` narrows it to a comma-separated list of catalogue types. An unknown type is refused with `400 unknown_event_type`.
+- `chunks=true` adds `model.chunk`. Naming `model.chunk` in `types` also turns chunks on.
+
+`/v1/ws` carries the same events over a WebSocket. Webhooks use the same catalogue but accept only webhook-eligible types.
+
+In TypeScript, `dispach/wire` exports:
+
+- the types `AnyEvent`, `EventEnvelope`, `EventType`, `EventDataMap`, `EventContext`, and `TurnEndReason`;
+- the `EVENT_TYPES` list and `parseSSE`;
+- `endNote` and `endedBadly`, for describing how a turn ended;
+- the stream filters `createNltStreamFilter` and `passThroughFilter`, which strip NLT tool-call blocks out of `model.chunk` text.
+
+Or consume the discriminated stream items returned by `dispach/client`.
 
 The authoritative schemas and delivery rules are in the Wire protocol specification. The current
 endpoint shapes are in the [generated HTTP API](../../reference/README.md).

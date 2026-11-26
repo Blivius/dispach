@@ -5,6 +5,8 @@ export const brand = DEFAULT_BRAND
 export const docsRoute = "/docs"
 export const repoUrl = `https://github.com/blivius/${brand.slug}`
 export const dockerImage = `ghcr.io/blivius/${brand.slug}`
+/** The site's own origin. `/install.sh` on it redirects to the latest release's installer (`next.config.mjs`). */
+export const siteUrl = `https://${brand.slug}.blivius.com`
 /** The preprint that measures the settings floor. A preprint, not peer-reviewed: say so wherever it is cited. */
 export const paperUrl = "https://arxiv.org/abs/2610.06274"
 

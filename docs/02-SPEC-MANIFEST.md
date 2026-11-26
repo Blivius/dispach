@@ -1081,7 +1081,12 @@ plugins:
   - "@dispach/channel-telegram"          # shorthand, no config
   - spec: "./plugins/custom-metrics"       # relative path
     config: { endpoint: "http://localhost:9090" }
+  - spec: "@dispach/trace-otlp"            # bundled; every turn as an OpenTelemetry trace
+    config: { endpoint: "http://localhost:6006/v1/traces" }
 ```
+
+`@dispach/trace-otlp` takes `endpoint` (required, OTLP/HTTP), `headersEnv` (header name → the
+environment variable holding its value) and `serviceName`; `docs/26-SPEC-TRACES.md` is its contract.
 
 Resolved at boot from `node_modules` or a relative path. **Never installed at runtime.**
 Load order is manifest order; middleware composes outermost-first. A plugin whose

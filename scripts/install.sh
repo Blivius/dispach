@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install the standalone build from a GitHub release.
 #
-#   curl -fsSL https://github.com/blivius/dispach/releases/latest/download/install.sh | sh
+#   curl -fsSL https://dispach.blivius.com/install.sh | sh
 #
 # Puts the release in ~/.dispach/versions/<version>, links ~/.dispach/bin/dispach at it, and adds
 # ~/.dispach/bin to PATH in your shell's rc file (it says which). Nothing needs root.
@@ -105,7 +105,15 @@ mv "$unpacked" "$dest"
 # Swapped by rename, so a shell running the command mid-install sees the old one or the new one.
 ln -s "$dest/bin/$slug" "$link.new"
 mv -f "$link.new" "$link"
-"$link" --version >/dev/null || fail "installed $installed, but it does not start" "run $link --version to see why"
+if ! "$link" --version >/dev/null 2>&1; then
+    # Node's Linux builds link libatomic, which slim images (debian:*-slim and the like) leave out.
+    missing=$(ldd "$dest/node/bin/node" 2>/dev/null | awk '/not found/ { printf "%s ", $1 }')
+    if [ -n "$missing" ]; then
+        fail "installed $installed, but its Node cannot load: $missing" \
+            "install it and run this again (Debian/Ubuntu: apt-get install libatomic1; Fedora/RHEL: dnf install libatomic)"
+    fi
+    fail "installed $installed, but it does not start" "run $link --version to see why"
+fi
 
 # A service unit names the version directory it was installed from, so that one stays, and so does
 # the version this replaced, which a running process may still load files from. Others go.

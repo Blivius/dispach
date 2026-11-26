@@ -663,3 +663,7 @@ plugins:
   - "@dispach/channel-telegram"
 #   - spec: "./plugins/custom-metrics"
 #     config: { endpoint: "http://localhost:9090" }   # validated against the plugin's own schema
+#   - spec: "@dispach/trace-otlp"    # every turn as an OpenTelemetry trace (docs/26-SPEC-TRACES.md)
+#     config:
+#       endpoint: http://localhost:6006/v1/traces   # OTLP/HTTP; a bare origin gets /v1/traces
+#       headersEnv: { authorization: TRACES_AUTH }  # header -> variable NAME; Phoenix 22+ needs one

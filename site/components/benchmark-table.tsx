@@ -27,7 +27,6 @@ interface BenchmarkTableProps {
     openclawName: string
     openclawVersion: string
     rows: readonly BenchmarkRow[]
-    sonnet?: BenchmarkRow
     benchmarkHref: string
 }
 
@@ -63,48 +62,22 @@ export function BenchmarkTable(props: BenchmarkTableProps) {
     const openCount = props.rows.filter((r) => r.tier === "open").length
     const visible = filter === "all" ? props.rows : props.rows.filter((row) => row.tier === filter)
 
-    const sonnetSavings =
-        props.sonnet && props.sonnet.runtime.cost > 0
-            ? (props.sonnet.openclaw.cost / props.sonnet.runtime.cost).toFixed(1)
-            : undefined
-
     return (
-        <section className="border-t border-fd-border px-5 py-16 sm:px-8">
-            <div className="flex flex-wrap items-end justify-between gap-6">
-                <div className="max-w-3xl">
-                    <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-                        {props.brandName} matches or beats {props.hermesName} on{" "}
-                        {props.atLeastHermes} of {props.rows.length} models, and costs the least on{" "}
-                        {props.cheapest}.
-                        {props.openclawLast
-                            ? ` ${props.openclawName} scores lowest on every one.`
-                            : ""}
-                    </h2>
-                    <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">
-                        Tasks passed out of {props.runs}: {props.tasks} multi-turn tool tasks, run{" "}
-                        {props.repeats} times each, graded on what the tools were left holding.
-                        Every harness runs in its own container against the same tools and pinned
-                        model providers. Cost is the OpenRouter bill for all {props.runs} runs.
-                    </p>
-                </div>
-
-                {props.sonnet && sonnetSavings && (
-                    <div className="rounded-xl border border-term-accent/40 bg-term-accent/8 px-4 py-3 text-xs">
-                        <p className="font-medium text-term-accent">
-                            {props.sonnet.name} (125 runs)
-                        </p>
-                        <p className="mt-1 font-mono text-sm font-semibold text-fd-foreground">
-                            {props.sonnet.runtime.pass}/{props.sonnet.runtime.n} at $
-                            {props.sonnet.runtime.cost.toFixed(2)}{" "}
-                            <span className="font-sans font-normal text-fd-muted-foreground">
-                                vs. {props.openclawName} {props.sonnet.openclaw.pass}/
-                                {props.sonnet.openclaw.n} at $
-                                {props.sonnet.openclaw.cost.toFixed(2)} ({sonnetSavings}× lower
-                                cost)
-                            </span>
-                        </p>
-                    </div>
-                )}
+        <section className="border-t border-fd-border px-5 py-20 sm:px-8 lg:py-28">
+            <div className="max-w-3xl">
+                <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                    {props.brandName} matches or beats {props.hermesName} on {props.atLeastHermes}{" "}
+                    of {props.rows.length} models
+                </h2>
+                <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-fd-muted-foreground">
+                    It costs the least on {props.cheapest}
+                    {props.openclawLast
+                        ? `, and ${props.openclawName} scores lowest on every one`
+                        : ""}
+                    . Each model ran {props.tasks} multi-turn tool tasks {props.repeats} times,
+                    graded on what the tools were left holding, every harness in its own container
+                    against the same tools. Cost is the OpenRouter bill for all {props.runs} runs.
+                </p>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">

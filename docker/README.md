@@ -65,7 +65,7 @@ arm64 Docker Desktop, 2026-09-21, on the compose stack (`name: dispach`, so the 
 | web UI, `/docs`, `/v1/openapi.json` | 200, unauthenticated |
 | store | `~/.dispach/store.db` on the volume, as uid 1000 |
 
-Image size is re-measured by the CI `docker` job on every push. What CI measures on
+Image size is re-measured by the CI `docker` job on every pull request. What CI measures on
 `ubuntu-latest` is amd64; the figures above are arm64.
 
 ## Three things a real run found, none of them visible by reading

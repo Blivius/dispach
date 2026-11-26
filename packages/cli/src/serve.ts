@@ -363,6 +363,28 @@ export async function serveCommand(options: ServeOptions): Promise<number> {
                 `  turn failed${where}: ${data.code}: ${data.message}\n    hint: ${data.hint}\n`,
             )
         })
+        /**
+         * A plugin's warning, in the same log, for the reason `error` above is here.
+         *
+         * Found live in the container: a trace exporter refused by Phoenix with a 401 put
+         * `trace_export_failed` on the event stream (`logger.warn`, decision 16.5) and nothing in
+         * `docker logs`. Boot-time ones too: a plugin that fails to load is on `agent.warnings`, which
+         * the banner does not print, so a bad trace config was written nowhere. Only `field:
+         * "plugins"`, because turn-scoped warnings belong to the transcript showing that turn. On the
+         * probe path a boot warning can print once per attempt; repeated is better than absent.
+         */
+        bus.on("agent.warning", (event) => {
+            const data = event.data as {
+                code: string
+                message: string
+                hint: string
+                field?: string
+            }
+            if (data.field !== "plugins") return
+            process.stderr.write(
+                `  ${event.agentId ?? "runtime"}: ${data.code}: ${data.message}\n    hint: ${data.hint}\n`,
+            )
+        })
         // The one thing a person watching a bot most wants to see, and it is otherwise only in the
         // event stream: who was refused, and the line that would let them in.
         bus.on("agent.channel.rejected", (event) => {
@@ -871,9 +893,9 @@ export async function serveCommand(options: ServeOptions): Promise<number> {
             )
         } else {
             process.stdout.write(
-                `  ctrl-c to stop — this ends when the terminal does. \`${BRAND.slug} daemon install${
-                    agents[0]?.id === undefined ? "" : ` ${agents[0].id}`
-                }\` keeps it running.\n`,
+                // No agent id: the service hosts every agent, and `daemon install <agent>` is refused
+                // (`daemon_per_agent_retired`), so naming one here would print a dead end.
+                `  ctrl-c to stop — this ends when the terminal does. \`${BRAND.slug} daemon install\` keeps it running.\n`,
             )
         }
     }

@@ -4,7 +4,6 @@ import { useState } from "react"
 
 interface DemoItem {
     id: string
-    code: string
     label: string
     title: string
     caption: string
@@ -15,7 +14,6 @@ interface DemoItem {
 const DEMOS: readonly DemoItem[] = [
     {
         id: "quickstart",
-        code: "01",
         label: "HTTP provision & SSE",
         title: "Docker start, live agent provision, and streamed reply in three requests",
         caption:
@@ -25,7 +23,6 @@ const DEMOS: readonly DemoItem[] = [
     },
     {
         id: "floor",
-        code: "02",
         label: "Containment floor live",
         title: "Agent told to widen writeRoots to ~, refused at the hardline floor",
         caption:
@@ -35,7 +32,6 @@ const DEMOS: readonly DemoItem[] = [
     },
     {
         id: "install",
-        code: "03",
         label: "Bare Linux install",
         title: "Fresh machine with no Node: standalone curl install, init, serve, and TUI",
         caption:
@@ -51,15 +47,15 @@ export function RuntimeShowcase() {
     if (!current) return null
 
     return (
-        <section className="border-t border-fd-border px-5 py-16 sm:px-8">
+        <section className="border-t border-fd-border px-5 py-20 sm:px-8 lg:py-28">
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="max-w-2xl">
-                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                    <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                         See the runtime in action
                     </h2>
-                    <p className="mt-2 text-sm text-fd-muted-foreground">
-                        Unedited terminal captures from the shipped container image and CLI: HTTP
-                        provisioning, the containment floor firing live, and a zero-Node Linux boot.
+                    <p className="mt-4 max-w-[56ch] text-[15px] leading-relaxed text-fd-muted-foreground">
+                        Unedited captures from the shipped image and CLI: provisioning over HTTP,
+                        the settings floor refusing a write, and an install on Linux with no Node.
                     </p>
                 </div>
 
@@ -83,11 +79,6 @@ export function RuntimeShowcase() {
                                         : "border-fd-border bg-fd-card/50 text-fd-muted-foreground hover:text-fd-foreground"
                                 }`}
                             >
-                                <span
-                                    className={`font-mono ${selected ? "text-term-accent" : "opacity-60"}`}
-                                >
-                                    {demo.code}
-                                </span>
                                 <span>{demo.label}</span>
                             </button>
                         )

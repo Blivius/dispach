@@ -1,6 +1,8 @@
 # API reference
 
-Every HTTP endpoint the runtime serves, <!-- fact:endpoints -->90<!-- /fact --> operations, is listed in this section's sidebar under **HTTP API**, grouped by resource. Each page gives the request body, parameters, the success response body, every status the route returns, and the error shape. They are generated from the server's registered routes and the same Zod schemas the server validates requests with, and the server's test suite checks every response it produces against the declared schema, so a page cannot describe a body the server does not send.
+Every HTTP endpoint the runtime serves, <!-- fact:endpoints -->90<!-- /fact --> operations, is listed in this section's sidebar under **HTTP API**, grouped by resource. Each page gives the request body, parameters, the success response body, every status the route returns, and the error shape.
+
+The pages are generated from the server's registered routes and the same Zod schemas the server validates requests with. The server's test suite checks every response it produces against the declared schema, so a page cannot describe a body the server does not send.
 
 Start with these:
 

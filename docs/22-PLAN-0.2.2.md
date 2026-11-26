@@ -7,12 +7,12 @@ off `development` per phase.
 
 | Phase | Issue | What | Status |
 | --- | --- | --- | --- |
-| 32 | #64 | README: the docker one-liner and every stale claim | **built** (PR #69) |
-| 33 | #67 | The web console reaches what the runtime does; Bedrock preset | **built** (PR #70) |
-| 34 | #65 | One conversation per person across surfaces; the owner's shared memory pool | **built** (PR #71) |
-| 35 | #66 | `ask_agent` between one owner's agents, in a silo | **built** (PR #73) |
-| 36 | #66 | The same ask across silos, relayed by the control plane | **built** (one PR with 35) |
-| — | #74 | Control: a silo's port is fixed for its lifetime | **built** (PR #75) |
+| 32 | #32 | README: the docker one-liner and every stale claim | **built** (`67d9edc`) |
+| 33 | #35 | The web console reaches what the runtime does; Bedrock preset | **built** (`85aeb79`) |
+| 34 | #33 | One conversation per person across surfaces; the owner's shared memory pool | **built** (`8ca247b`) |
+| 35 | #34 | `ask_agent` between one owner's agents, in a silo | **built** (`8218e00`) |
+| 36 | #34 | The same ask across silos, relayed by the control plane | **built** (one PR with 35) |
+| — | #36 | Control: a silo's port is fixed for its lifetime | **built** (`ee27fc3`) |
 
 ## Phase 34 — sessions across surfaces, shared pool
 
@@ -58,7 +58,7 @@ wire to say more: `GET /v1/agents/:id/vars` (the read half of `PATCH`) and `capa
 
 ## Phase 37 — fan-out subagents and session checkpoints (0.2.3)
 
-Spec: `25-SPEC-FAN-OUT.md`. Decisions 15.20, 15.21. Issue #99, asked for by VelaCrew. `subagents[].spawn`
+Spec: `25-SPEC-FAN-OUT.md`. Decisions 15.20, 15.21. Issue #56, asked for by VelaCrew. `subagents[].spawn`
 and the core tool `delegate(tasks[])`: up to 8 tasks per call, each in a fresh child, read-only children
 in parallel up to `limits.maxParallelTools`, one section per task back to the parent. Migration 35
 (`session_checkpoints`), `POST …/sessions/:key/compact`, `session.compacted`, `compactedAt` on a listed

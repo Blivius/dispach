@@ -88,6 +88,38 @@ limits:
   turnTimeoutMs: 5000
 `
 
+describe("what a plugin is handed", () => {
+    test("env is the agent's .env under the real environment, as PluginContext.env promises", async () => {
+        // It was the ambient environment alone, so a key in the agent's own .env read as unset —
+        // found when a trace exporter's auth header named one and the plugin refused to load.
+        const dir = workspace(`plugins:
+  - "@fixture/env"
+`)
+        writeFileSync(join(dir, ".env"), "FROM_DOTENV=file\nSHADOWED=file\n")
+        let seen: Record<string, string | undefined> = {}
+        const plugin: Plugin = {
+            name: "env-reader",
+            version: "1.0.0",
+            dispachApi: "^0.2",
+            setup(context) {
+                seen = {
+                    fromDotEnv: context.env.FROM_DOTENV,
+                    shadowed: context.env.SHADOWED,
+                    ambient: context.env.MODEL_API_KEY,
+                }
+            },
+        }
+        const runtime = await Runtime.create({
+            agents: [join(dir, "agent.yaml")],
+            env: { ...ENV, SHADOWED: "real" },
+            builtInPlugins: { "@fixture/env": plugin },
+            fetch: async () => new Response("{}"),
+        })
+        await runtime.stop()
+        expect(seen).toEqual({ fromDotEnv: "file", shadowed: "real", ambient: "test-key" })
+    })
+})
+
 describe("a manifest that names a plugin", () => {
     test("gets the provider the plugin registered", async () => {
         const dir = workspace(USES_PLUGIN)

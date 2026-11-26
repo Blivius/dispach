@@ -2,13 +2,23 @@
 
 ## Unreleased
 
-_Nothing yet._
+### Added
+
+- Traces: name the bundled `@dispach/trace-otlp` plugin and every turn reaches an OpenTelemetry backend (Phoenix, any OTLP/HTTP collector) as a trace: model calls with tokens and latency, tool calls, delegations, nested. Metadata only, never prompt or reply text. `init --traces <url>` writes it for a new agent.
+- A plugin's `logger.warn` and `logger.error` now arrive as `agent.warning`. They were discarded before.
+
+### Fixed
+
+- A plugin is handed the agent's environment, with the `.env` beside the manifest under the real one, as the plugin API documents. It received the process environment alone, so a key set in the agent's `.env` read as unset.
+- `serve` writes a plugin's warnings to its log, including a plugin that failed to load at boot. They reached only the event stream, so `docker logs` said nothing about them.
+
+- The standalone installer names a shared library Node cannot load (`libatomic.so.1` on slim Debian images since Node 26) and the package that provides it, instead of reporting only that the install does not start.
 
 ## 0.2.13 — 2026-11-23
 
 ### Changed
 
-- The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again; the GitLab project is archived.
+- The repository moved to `github.com/blivius/dispach`. CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again. The GitLab project is no longer updated.
 - The image is published to `ghcr.io/blivius/dispach` and, unchanged, to `docker.io/moeenmahmud007/dispach`.
 - npm publishing and the Homebrew tap (`brew install blivius/tap/dispach`) resume.
 
@@ -125,14 +135,14 @@ The web console reaches nearly every route the API has; one conversation per per
 - Turns on one session key now run one at a time over HTTP and WebSocket too; a second turn waits instead of running concurrently on the same history.
 - `sessions.scope` defaults to `channel-peer` and `delegation.ask` to `false`, so an existing agent keeps its sessions and gains no `ask_agent`. `init` writes `owner` and `ask: true` for agents it creates; For an existing agent, `dispach owner adopt <agent>` writes the scope, and `delegation.ask: true` (or the Team page's switch) turns on asking.
 - `DispachError.message` now lists `details[]` lines before the hint. Code matching on the exact message text should match `code` instead.
-- Control plane: an existing silo that was published on a Docker-chosen port is recreated on that same port the next time it is idle, and keeps it from then on (#74).
+- Control plane: an existing silo that was published on a Docker-chosen port is recreated on that same port the next time it is idle, and keeps it from then on (#36).
 
 ### Added
 
 - Install without Node: `curl -fsSL https://github.com/moeen-mahmud/dispach/releases/latest/download/install.sh | sh`. macOS and Linux (glibc), arm64 and x64; each release attaches one archive per platform (Node 24 plus the npm package) and `SHA256SUMS`. Windows: WSL or the container.
 - Web console: replies render as Markdown (headings, lists, tables, fenced code with a copy button; no HTML, links only `http(s)`/`mailto`), the transcript follows the newest row by a scroll-owned pin, a role picker on the composer, image attachments by paste or drop, and on the Models page an AWS Bedrock preset (region, optional profile) and a fallback-chain editor per role.
 - `init --preset bedrock --region <aws-region>` and `POST /v1/agents {answers: {preset: "bedrock", region}}` write `api: bedrock-converse` with `options.region`, no URL and no key variable. The region is a wizard step asked only for that preset.
-- Web console, new pages (#67): **Schedules** as cards with a sentence for the expression, the next run as a distance, and a form with role, tools, limits, timezone, shared session and a live preview of the next instants; **Tools** grouped by provider with the catalogue's token cost, search, pin/unpin, allow/deny policy rules and a catalogue refresh; **Usage** (calls, prompt/cached/output tokens, a tokens-by-day chart, by model and by sender, 7/30/90 days); **Turns** (every turn, how it ended, expandable asked/reply); **People** (participants, presence, assigned agents), **Rooms** (rooms and DMs, mentions, stand-in and hop labels, polled log), **Actions** (the stand-in queue, approve/decline), **Memory** (shared scopes, notes, projects, space writer, read audit); **Webhooks**, **Backup** (server tar.gz, agent bundle export/import), **Files** (the declared workspace files, read and edited in place); creating an agent **from a template**; key scopes (agents, capabilities, session prefix, participant, expiry) on the Keys page; an **add a channel** form (Telegram, WhatsApp, Slack, Teams, A2A); and **clear history** on a conversation.
+- Web console, new pages (#35): **Schedules** as cards with a sentence for the expression, the next run as a distance, and a form with role, tools, limits, timezone, shared session and a live preview of the next instants; **Tools** grouped by provider with the catalogue's token cost, search, pin/unpin, allow/deny policy rules and a catalogue refresh; **Usage** (calls, prompt/cached/output tokens, a tokens-by-day chart, by model and by sender, 7/30/90 days); **Turns** (every turn, how it ended, expandable asked/reply); **People** (participants, presence, assigned agents), **Rooms** (rooms and DMs, mentions, stand-in and hop labels, polled log), **Actions** (the stand-in queue, approve/decline), **Memory** (shared scopes, notes, projects, space writer, read audit); **Webhooks**, **Backup** (server tar.gz, agent bundle export/import), **Files** (the declared workspace files, read and edited in place); creating an agent **from a template**; key scopes (agents, capabilities, session prefix, participant, expiry) on the Keys page; an **add a channel** form (Telegram, WhatsApp, Slack, Teams, A2A); and **clear history** on a conversation.
 - `GET /v1/agents/:id/schedules/preview?kind=&expr=&timezone=&count=` answers the next instants an expression would fire at, the zone in force and the jitter, parsed by the same core function the write uses.
 - `GET /v1/agents/:id/workspace` lists the files the agent's prompt is built from, and `GET /v1/agents/:id/workspace/:file` returns one file's text — the read half of the existing `PUT`, from the same declaration.
 - `@dispach/client`: `previewSchedule`, `refreshTools`, `assignment`, `workspaceFiles`, `workspaceFile`, `putWorkspaceFile`; `KeyScopeLike.can` includes `peer`; `registerParticipant` takes `title` and `timezone`; `AgentDescriptionLike.team` typed.
@@ -186,16 +196,16 @@ The web console reaches nearly every route the API has; one conversation per per
 - The recorded quickstart (`.github/assets/quickstart.tape`) runs the container with `--init` and the 0.2.2 tag. The GIF in the README is re-recorded after this release.
 - Web console: a conversation set aside today is labelled with the time it was last used, an older one with its date, both in the viewer's zone (it was the UTC date). Named conversations ("You") are set in the text face, not the code face.
 - Web console: each schedule card shows its last run, `failed` with the error when it failed, so a schedule whose delivery fails no longer looks healthy.
-- Control plane (#74): a silo's port is fixed for its lifetime. Docker used to choose a new one at every container start, so after a `docker restart`, a crash restart or a Docker daemon restart, control could not reach the silo: `recreate` and `pause` were refused with `silo_unreachable`, `wake` did nothing, and the proxy, the monitor and the peer-ask relay failed. A silo could also get another silo's old port. `recreate` keeps the port. The sweep moves a silo created before this change onto a fixed port, keeping the port it has, once it is idle.
+- Control plane (#36): a silo's port is fixed for its lifetime. Docker used to choose a new one at every container start, so after a `docker restart`, a crash restart or a Docker daemon restart, control could not reach the silo: `recreate` and `pause` were refused with `silo_unreachable`, `wake` did nothing, and the proxy, the monitor and the peer-ask relay failed. A silo could also get another silo's old port. `recreate` keeps the port. The sweep moves a silo created before this change onto a fixed port, keeping the port it has, once it is idle.
 - A container recreated with `--init` (as the README now says) after one that ran without it was refused for 45 minutes with `agent_already_serving … pid 1`: the old lease named pid 1, and under `--init` pid 1 is `docker-init`, alive and not the runtime. A lease naming pid 1 is now dead when `/proc/1/exe` is not node or bun (decision 15.11).
 - README: every `docker run` names the `dispach-home` volume and passes `--init`, so an upgrade keeps the store and backgrounded `exec` children are reaped; the image tag is the current release; the `.env` step copies `examples/minimal/.env.example` (only the example is tracked); compose text matches `docker-compose.yml` (plain `up` pulls, `DISPACH_VERSION` pins); the image's shell is dash, not busybox; package count and provider list corrected; load average 3.3.
 - `evals/CLAIMS.md` carries rows for the Ink import cost, compose startup time, image size breakdown and the 91 ms boot aside, marked `needs-run`.
 - `dispach` on npm declares `engines.node >= 24`, so an install on an older Node warns instead of failing at runtime.
 - `docs/06-VELAOPS-INTEGRATION.md`: schedule routes, boot figure and the MCP row corrected.
 - `init --whatsapp` help no longer calls WhatsApp an opt-in plugin; `--whatsapp-number` says it sets `pairWith`.
-- `POST /v1/agents` refusing a missing answer names the missing answer keys and points at `GET /v1/provision`, not the terminal's wording (#61).
-- The unread `kv` store is removed: `Store.kv`, its SQLite table (migration 32) and its export (#63).
-- The harness benchmark reports pass^k, the tasks passed on every trial, beside the pass rate (#57).
+- `POST /v1/agents` refusing a missing answer names the missing answer keys and points at `GET /v1/provision`, not the terminal's wording (`54920e8`).
+- The unread `kv` store is removed: `Store.kv`, its SQLite table (migration 32) and its export (`ecd41dd`).
+- The harness benchmark reports pass^k, the tasks passed on every trial, beside the pass rate (`ee63518`).
 
 Thanks to @Dikshant-Neupane for #57, #61, #62 and #63.
 

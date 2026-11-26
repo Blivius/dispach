@@ -341,6 +341,44 @@ describe("what the bus is told", () => {
         await load(["p"], { bus, builtIn: { p: plugin() } })
         expect(events.some((event) => event.type === "plugin.slow")).toBe(false)
     })
+
+    test("a plugin's warn and error reach the bus as agent.warning; debug and info do not", async () => {
+        // The logger is kept and used *after* setup, which is the only case that needed it: an
+        // exporter's endpoint going away mid-session had nowhere to say so.
+        const { bus, events } = harness()
+        let logger: PluginContext["logger"] | undefined
+        await load(["p"], {
+            bus,
+            builtIn: {
+                p: plugin({
+                    name: "exporter",
+                    setup: (context) => {
+                        logger = context.logger
+                    },
+                }),
+            },
+        })
+        logger?.debug("quiet")
+        logger?.info("quiet")
+        logger?.warn("endpoint refused", { code: "export_failed", hint: "Check the endpoint." })
+        logger?.error("plain")
+        const warnings = events.filter((event) => event.type === "agent.warning")
+        expect(warnings.map((event) => event.data)).toEqual([
+            {
+                code: "export_failed",
+                message: "exporter: endpoint refused",
+                hint: "Check the endpoint.",
+                field: "plugins",
+            },
+            {
+                code: "plugin_warning",
+                message: "exporter: plain",
+                hint: 'Reported by the plugin "exporter". Its documentation says what the message means.',
+                field: "plugins",
+            },
+        ])
+        expect(warnings.every((event) => event.agentId === "test")).toBe(true)
+    })
 })
 
 describe("the plugin root — the middle of the three lookups", () => {
