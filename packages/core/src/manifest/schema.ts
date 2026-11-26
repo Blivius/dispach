@@ -353,6 +353,27 @@ export const ToolsPolicySchema = z
     })
     .strict()
 
+/** One set of pinned tools that loads on demand. See `ToolsSchema.groups`. */
+export const ToolGroupSchema = z
+    .object({
+        /** One line the model reads in `tools_load` when the set is not loaded: what the set is for. */
+        description: z.string().min(1),
+        /** Pinned or local slugs. A slug belongs to at most one group. */
+        tools: z.array(z.string().min(1)).min(1),
+        /**
+         * Words that load the set when the person's message mentions one, matched at the start of a
+         * word and case-insensitively, so `email` also loads on "emails". Empty: the set loads only
+         * when the model asks for it or the session already used it.
+         */
+        keywords: z.array(z.string().min(1)).default([]),
+    })
+    .strict()
+
+/** A group's name: what `tools_load` takes, so it is kept to one plain token. */
+const groupName = z
+    .string()
+    .regex(/^[a-z][a-z0-9_-]*$/, "a lowercase letter, then letters, digits, - or _")
+
 export const ToolsSchema = z
     .object({
         /** Config only — never auto-detected, so behaviour cannot drift with the model. */
@@ -378,6 +399,16 @@ export const ToolsSchema = z
             .object({ enabled: z.boolean().default(false) })
             .strict()
             .prefault({}),
+        /**
+         * Pinned tools held out of the catalogue until a conversation needs them (decision 17.2).
+         *
+         * Not tool search: every slug here is already pinned, so the working set is still fixed at
+         * load. A group only decides *when* its tools are in the request — the harness loads one when
+         * the person's message mentions a keyword, keeps it for the rest of the session, and the model
+         * can load one itself with `tools_load` when the keywords missed. Schedules, subagents and a
+         * turn with an explicit tool allowlist get every group.
+         */
+        groups: z.record(groupName, ToolGroupSchema).default({}),
         local: z.array(z.string().min(1)).default([]),
         untrusted: ToolsUntrustedSchema.prefault({}),
         policy: ToolsPolicySchema.prefault({}),

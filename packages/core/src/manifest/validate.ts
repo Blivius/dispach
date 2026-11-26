@@ -217,6 +217,58 @@ function validateToolBudget(manifest: AgentManifest): ErrorDetail[] {
     ]
 }
 
+/**
+ * A tool belongs to one group at most: loading one set must not quietly depend on another.
+ *
+ * Only the operator writes `tools.groups` (it is not agent-settable), so an overlap is a mistake in
+ * one write and is refused where it was made.
+ */
+function validateToolGroups(manifest: AgentManifest): ErrorDetail[] {
+    const found: ErrorDetail[] = []
+    const owner = new Map<string, string>()
+    for (const [name, group] of Object.entries(manifest.tools.groups)) {
+        for (const tool of group.tools) {
+            const first = owner.get(tool)
+            if (first !== undefined && first !== name) {
+                found.push({
+                    code: "tool_group_overlap",
+                    message: `${tool} is in two tool groups: ${first} and ${name}.`,
+                    hint: "A tool belongs to at most one group, or loading one set would quietly depend on whether the other was loaded. Keep it in the group whose keywords describe it best.",
+                    field: `tools.groups.${name}.tools`,
+                })
+            } else owner.set(tool, name)
+        }
+    }
+    return found
+}
+
+/**
+ * A group naming a tool the agent is not given — a warning, never a refusal.
+ *
+ * The slug is not in the catalogue either way, so the group changes nothing about it; what is worth
+ * saying is that the author may have meant a tool that was never pinned. Refusing the load would be
+ * worse than the mismatch: the agent's own `config_set` may unpin a tool its operator grouped, and
+ * an agent that then could not reload would be stuck on its old settings for a slug it no longer has.
+ * The same reason a pinned slug no provider resolved is a warning. `Agent.create` and `validate` both
+ * call this.
+ */
+export function toolGroupWarnings(manifest: AgentManifest): ErrorDetail[] {
+    const given = new Set([...manifest.tools.pinned, ...manifest.tools.local])
+    return Object.entries(manifest.tools.groups).flatMap(([name, group]) => {
+        const missing = group.tools.filter((tool) => !given.has(tool))
+        return missing.length === 0
+            ? []
+            : [
+                  {
+                      code: "tool_group_unpinned",
+                      message: `tools.groups.${name} names ${missing.length === 1 ? "a tool" : "tools"} the agent is not given: ${missing.join(", ")}.`,
+                      hint: "A group only decides when a pinned tool is in the request; it never gives the agent a tool. Add the slug to tools.pinned (or tools.local), or take it out of the group.",
+                      field: `tools.groups.${name}.tools`,
+                  },
+              ]
+    })
+}
+
 function validateContextBudget(manifest: AgentManifest, resolvedWindow: number): ErrorDetail[] {
     const { reserveOutput } = manifest.context
     if (reserveOutput < resolvedWindow) return []
@@ -970,6 +1022,7 @@ export function validateManifest(manifest: AgentManifest, options: ValidateOptio
     return [
         ...validateThresholds(manifest),
         ...validateToolBudget(manifest),
+        ...validateToolGroups(manifest),
         ...validateContextBudget(manifest, options.resolvedWindow),
         ...validateWorkspaceFiles(manifest, options.dir, options.resolvedWindow),
         ...validateKnowledgeDir(manifest, options.dir),

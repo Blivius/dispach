@@ -62,7 +62,13 @@ import {
     trustOfSender,
 } from "../loop/sender.ts"
 import { runStep, type StepUsage } from "../loop/step.ts"
-import { runTurn, type ToolRuntime, type TurnCompaction, type TurnResult } from "../loop/turn.ts"
+import {
+    runTurn,
+    type ToolRuntime,
+    type TurnCompaction,
+    type TurnResult,
+    turnCatalogue,
+} from "../loop/turn.ts"
 import type { EnvSource } from "../manifest/env.ts"
 import type { LoadedManifest } from "../manifest/load.ts"
 import { resolveProviders } from "../manifest/providers.ts"
@@ -73,7 +79,11 @@ import type {
     SpeechConfig,
     TranscriptionConfig,
 } from "../manifest/schema.ts"
-import { fallbackWarnings, scheduleDeliveryWarnings } from "../manifest/validate.ts"
+import {
+    fallbackWarnings,
+    scheduleDeliveryWarnings,
+    toolGroupWarnings,
+} from "../manifest/validate.ts"
 import { imageGenerateTool, MEDIA_DIR, type MediaUsage } from "../media/image-tool.ts"
 import {
     MediaError,
@@ -135,6 +145,7 @@ import { nativeDialect, nativeWireTokens } from "../tools/dialect/native.ts"
 import { nltDialect } from "../tools/dialect/nlt.ts"
 import { eventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
+import { activeToolGroups, type ToolGroup, toolGroupsOf } from "../tools/groups.ts"
 import { MEMORY_DIR } from "../tools/local.ts"
 import { onceOnlyTools } from "../tools/policy.ts"
 import { ToolRegistry } from "../tools/registry.ts"
@@ -981,6 +992,7 @@ export class Agent {
                 // perfectly and reaches nobody — the surface where nothing else would say so.
                 ...scheduleDeliveryWarnings(loaded.manifest),
                 ...fallbackWarnings(loaded.manifest),
+                ...toolGroupWarnings(loaded.manifest),
                 // Same function `validate` calls. A deliverability check only one of them performs
                 // is a check the two disagree about, and this one is about a schedule that fires
                 // perfectly and reaches nobody — the surface where nothing else would say so.
@@ -1784,6 +1796,7 @@ export class Agent {
         // and one on a 1M model sized against a 32k main compacts for nothing (pilot.7).
         const window = named === this.roles.main ? this.window : named.capabilities.contextWindow
         const tools = this.#toolsFor(options.turnTools, child !== undefined)
+        const toolGroups = this.#toolGroupsFor(input, history, source, options, child !== undefined)
         // A child reads its routed call's output up to what its window holds, not the parent's
         // `observationMaxTokens`: reading all of it is the child's job, and it holds nothing else. Cut
         // at the parent's figure, mail triage lost the two messages that mattered and the child
@@ -1891,6 +1904,7 @@ export class Agent {
                 ? {}
                 : { images: options.images }),
             ...(toolsAllow === undefined ? {} : { toolsAllow }),
+            ...(toolGroups === undefined ? {} : { toolGroups }),
             ...(withheld.length === 0 ? {} : { withheld }),
             ...(options.turnNote === undefined ? {} : { turnNote: options.turnNote }),
             ...(options.turnTools === undefined ? {} : { turnTools: options.turnTools }),
@@ -2276,6 +2290,26 @@ export class Agent {
      * `input` defaults to empty, which activates no knowledge and no skill — both are selected from
      * the turn's input, so a preview with no input honestly shows a turn with no input.
      */
+    /**
+     * The tool groups a turn starts with (decision 17.2), or `undefined` for every tool.
+     *
+     * Only a conversation gets groups. A schedule's run, a subagent's handed call and a turn with an
+     * explicit allowlist get every tool: nobody is there to rephrase a request the keywords missed,
+     * and an allowlist is already the caller's statement of which tools the turn has.
+     */
+    #toolGroupsFor(
+        input: string,
+        history: readonly ChatMessage[],
+        source: string,
+        options: AgentSendOptions,
+        child: boolean,
+    ): { readonly groups: readonly ToolGroup[]; readonly active: ReadonlySet<string> } | undefined {
+        const groups = toolGroupsOf(this.manifest.tools.groups)
+        if (groups.length === 0 || child || options.toolsAllow !== undefined) return undefined
+        if (source.startsWith("schedule:") || source === "subagent") return undefined
+        return { groups, active: activeToolGroups(groups, input, history) }
+    }
+
     async previewContext(
         options: { readonly sessionKey?: string; readonly input?: string } = {},
     ): Promise<{
@@ -2344,7 +2378,12 @@ export class Agent {
             await this.#readPlan(undefined, null),
             undefined,
         )
-        const tools = this.#toolRuntime
+        // Narrowed the way `send` narrows it: a conversation's groups, from this input and history.
+        const grouped = this.#toolGroupsFor(input, history, "preview", {}, false)
+        const tools =
+            this.#toolRuntime === undefined || grouped === undefined
+                ? this.#toolRuntime
+                : turnCatalogue(this.#toolRuntime, undefined, grouped.groups, grouped.active)
 
         const assembled = assembleContext({
             identity: this.identity,

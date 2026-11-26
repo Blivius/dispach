@@ -363,6 +363,53 @@ describe("request mapping", () => {
             ),
         ).toContain("cachePoint")
     })
+
+    test("the history's two marks become cache points, four in all with the rolling one", () => {
+        const request: ChatRequest = {
+            model: MODEL,
+            messages: [
+                { role: "system", content: "soul and tools", cacheBreakpoint: true },
+                { role: "user", content: "list my projects" },
+                { role: "assistant", content: "apollo and gemini", cacheBreakpoint: true },
+                { role: "user", content: "which is late?" },
+                { role: "assistant", content: "gemini", cacheBreakpoint: true },
+                { role: "user", content: "and the other?", turnInput: true },
+            ],
+        }
+        const input = converseInput(request, CONFIG)
+        const points = JSON.stringify(input).split('"cachePoint"').length - 1
+        expect(points).toBe(4)
+        expect(input.messages?.[1]?.content?.at(-1)).toEqual({ cachePoint: { type: "default" } })
+        expect(input.messages?.[3]?.content?.at(-1)).toEqual({ cachePoint: { type: "default" } })
+    })
+
+    test("Nova: a history mark on a tool result is not sent, nor one a tool result merges into", () => {
+        const nova = "amazon.nova-lite-v1:0"
+        const request: ChatRequest = {
+            model: nova,
+            messages: [
+                { role: "user", content: "list my projects", cacheBreakpoint: true },
+                {
+                    role: "assistant",
+                    content: "",
+                    origin: "call",
+                    toolCalls: [{ id: "t1", name: "list", arguments: "{}" }],
+                },
+                // Marked, and a tool result: Nova refuses the point here.
+                { role: "tool", content: "[a, b]", toolCallId: "t1", cacheBreakpoint: true },
+                { role: "user", content: "thanks", turnInput: true },
+            ],
+        }
+        const messages = converseInput(request, { ...CONFIG, id: nova }).messages ?? []
+        for (const message of messages) {
+            const content = message.content ?? []
+            if (content.some((block) => block.toolResult !== undefined)) {
+                expect(content.some((block) => block.cachePoint !== undefined)).toBe(false)
+            }
+        }
+        // The first user message keeps its point: it carries no tool result.
+        expect(messages[0]?.content?.at(-1)).toEqual({ cachePoint: { type: "default" } })
+    })
 })
 
 describe("stream mapping", () => {

@@ -212,6 +212,7 @@ export {
     fallbackWarnings,
     scanForLiteralSecrets,
     scheduleDeliveryWarnings,
+    toolGroupWarnings,
     type ValidateOptions,
     validateManifest,
 } from "./manifest/validate.ts"

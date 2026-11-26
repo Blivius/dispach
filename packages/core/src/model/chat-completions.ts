@@ -212,7 +212,8 @@ export function sendsCacheControl(baseUrl: string, model: string): boolean {
  * The wire messages, with Anthropic's markers where assembly put a `cacheBreakpoint` and on the last
  * message. The last is the rolling point the Bedrock transport also places (pilot.13): each step of a
  * tool loop then reads every earlier step from the cache, which pays because core keeps a caching
- * role's steps append-only. Three of Anthropic's four allowed markers at most.
+ * role's steps append-only. Four markers at most, Anthropic's limit: `messagesOf` marks no more than
+ * three (the static prefix, then either the skill or the history's two), and this adds the last.
  */
 function wireMessages(
     messages: readonly ChatMessage[],

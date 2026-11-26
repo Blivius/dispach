@@ -521,5 +521,8 @@ export function toolContext(overrides: Partial<ToolContext> = {}): ToolContext {
         ...(overrides.forgetMemory === undefined ? {} : { forgetMemory: overrides.forgetMemory }),
         ...(overrides.meter === undefined ? {} : { meter: overrides.meter }),
         ...(overrides.pinTools === undefined ? {} : { pinTools: overrides.pinTools }),
+        ...(overrides.loadToolGroup === undefined
+            ? {}
+            : { loadToolGroup: overrides.loadToolGroup }),
     }
 }

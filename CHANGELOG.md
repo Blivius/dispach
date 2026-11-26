@@ -4,11 +4,13 @@
 
 ### Added
 
+- `tools.groups`: pinned tools kept out of the request until a conversation needs them. A group loads when the person's message mentions one of its keywords and stays loaded for the session; `tools_load` loads one the keywords missed, from the next step of the same turn. Schedules, subagents and a turn with an explicit allowlist get every tool. Measured on a real agent, the schemas were 34k of a 41k-token greeting.
 - Traces: name the bundled `@dispach/trace-otlp` plugin and every turn reaches an OpenTelemetry backend (Phoenix, any OTLP/HTTP collector) as a trace: model calls with tokens and latency, tool calls, delegations, nested. Metadata only, never prompt or reply text. `init --traces <url>` writes it for a new agent.
 - A plugin's `logger.warn` and `logger.error` now arrive as `agent.warning`. They were discarded before.
 
 ### Fixed
 
+- The conversation history is cached between turns. A request now marks the end of the history and the end of the turn before the last, so the next turn reads the conversation from the prompt cache instead of writing all of it again; before, the first call of every turn paid the cache-write price for the whole history. The prompt is unchanged. On Nova, no cache point is placed in a message that carries a tool result.
 - A plugin is handed the agent's environment, with the `.env` beside the manifest under the real one, as the plugin API documents. It received the process environment alone, so a key set in the agent's `.env` read as unset.
 - `serve` writes a plugin's warnings to its log, including a plugin that failed to load at boot. They reached only the event stream, so `docker logs` said nothing about them.
 

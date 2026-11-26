@@ -229,6 +229,12 @@ export interface ToolContext {
      */
     readonly pinTools?: (slugs: readonly string[]) => Promise<readonly string[]>
     /**
+     * Load a withheld tool group for the rest of this turn (decision 17.2), returning the slugs now
+     * in the catalogue. Resolved by the turn, which owns the catalogue it changes; absent where no
+     * turn withheld one, and `tools_load` refuses rather than reporting a load that did not happen.
+     */
+    readonly loadToolGroup?: (name: string) => Promise<readonly string[]>
+    /**
      * Absolute path of the archive directory eviction writes to — `memory.dir`, resolved.
      *
      * Absent means the runtime has no memory configured, and `memory_write` then appends without

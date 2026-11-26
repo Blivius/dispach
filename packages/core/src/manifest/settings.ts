@@ -95,6 +95,13 @@ export const SETTINGS: readonly Setting[] = [
         means: "the tools from those providers this agent may call",
         agentListed: true,
     },
+    // Not the agent's: which of its tools wait to be loaded is a cost decision about the whole request,
+    // and an agent that could rewrite it could also talk itself into loading everything every turn.
+    {
+        path: "tools.groups",
+        means: "pinned tools kept out of the request until a conversation needs them — {crm: {description, tools: [...], keywords: [...]}}. A keyword in the person's message loads its group for the session; tools_load loads one the keywords missed",
+        agentListed: false,
+    },
     {
         path: "tools.policy.allow",
         means: 'rules permitting a call: "exec", or narrower like "exec(git *)". Also what lets a mutating tool run in a turn that has read untrusted content',

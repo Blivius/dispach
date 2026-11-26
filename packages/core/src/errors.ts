@@ -913,6 +913,24 @@ export function phaseNotAvailable(): ToolError {
     })
 }
 
+// ─── Tool groups ─────────────────────────────────────────────────────────────────────────
+
+export function toolGroupUnknown(name: string, groups: readonly string[]): ToolError {
+    return new ToolError({
+        code: "tool_group_unknown",
+        message: `${JSON.stringify(name)} is not a tool set this agent can load.`,
+        hint: `Loadable sets are ${groups.join(", ") || "none — every set is already loaded"}. They come from the manifest and cannot be created at run time; if the tool you need is in none of them, say so rather than guessing at a name.`,
+    })
+}
+
+export function toolGroupNotAvailable(): ToolError {
+    return new ToolError({
+        code: "tool_group_not_available",
+        message: "This runtime cannot load a tool set here.",
+        hint: "tools_load only works inside a turn that withheld a set. If you are seeing this tool without one, the catalogue was built by something that does not run turns — report it rather than retrying.",
+    })
+}
+
 // ─── Soul ────────────────────────────────────────────────────────────────────────────────
 
 export function soulRequirementInvalid(expr: string): ConfigError {

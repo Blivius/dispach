@@ -37,6 +37,7 @@ import type { ParsedOutput, StepOutput, ToolDialect } from "../tools/dialect/dia
 import { nativeWireTokens } from "../tools/dialect/native.ts"
 import type { EventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
+import { type ToolGroup, toolsLoadTool, withheldSlugs } from "../tools/groups.ts"
 import { phaseSetTool } from "../tools/local.ts"
 import type { PolicyConfig } from "../tools/policy.ts"
 import type { ToolRegistry } from "../tools/registry.ts"
@@ -264,6 +265,15 @@ export interface TurnInput {
      * what the agent may call without breaking what the turn itself brings.
      */
     readonly toolsAllow?: readonly string[]
+    /**
+     * Pinned tools held out of the catalogue until loaded (decision 17.2): the manifest's groups and
+     * the ones this turn starts with. A group not in `active` is withheld from slot 1 and the wire
+     * schemas, and `tools_load` is offered to load it mid-turn. Absent: every tool, as before.
+     */
+    readonly toolGroups?: {
+        readonly groups: readonly ToolGroup[]
+        readonly active: ReadonlySet<string>
+    }
     /** Personal tools withheld from this turn (pilot.15). See `ExecuteInput.withheld`. */
     readonly withheld?: readonly string[]
     /** Every mutating call is queued rather than run: a stand-in's turn. See `ExecuteInput.defer`. */
@@ -573,6 +583,32 @@ function narrowedTools(tools: ToolRuntime, allow: readonly string[]): ToolRuntim
     }
 }
 
+/**
+ * The agent's own catalogue as one turn may see it: a schedule's allowlist, minus every slug in a tool
+ * group that is not loaded, plus `tools_load` while any group is withheld (decision 17.2).
+ *
+ * One function for the turn and for `Agent.previewContext`, so `GET /context` reports the catalogue a
+ * turn would actually send rather than the agent's whole one. With no allowlist and nothing withheld it
+ * returns `wide` itself, so the cached prefix of an agent without groups is untouched.
+ */
+export function turnCatalogue(
+    wide: ToolRuntime,
+    toolsAllow: readonly string[] | undefined,
+    groups: readonly ToolGroup[],
+    loaded: ReadonlySet<string>,
+): ToolRuntime {
+    const held = withheldSlugs(groups, loaded)
+    const allow =
+        held.length === 0
+            ? toolsAllow
+            : (toolsAllow ?? wide.registry.specs().map((spec) => spec.slug)).filter(
+                  (slug) => !held.includes(slug),
+              )
+    const own = allow === undefined ? wide : narrowedTools(wide, allow)
+    const notLoaded = groups.filter((group) => !loaded.has(group.name))
+    return notLoaded.length === 0 ? own : withRenderedTools(own, [toolsLoadTool(notLoaded)], true)
+}
+
 async function runTurnCore(input: TurnInput): Promise<TurnResult> {
     const turnId = input.turnId ?? newTurnId()
     const context: EventContext = {
@@ -769,15 +805,26 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
          */
         const rendered = input.turnTools ?? []
         const layered = [...turnScripts, ...rendered]
-        const ownTools =
-            input.tools === undefined || input.toolsAllow === undefined
-                ? input.tools
-                : narrowedTools(input.tools, input.toolsAllow)
-        // `let`: a tool pinned mid-turn (`pinTools`) is layered onto this and the views rebuilt.
-        let baseTools =
-            ownTools === undefined || layered.length === 0
-                ? ownTools
-                : withRenderedTools(ownTools, layered, rendered.length > 0)
+        // Tool groups (decision 17.2): the sets loaded so far this turn. `tools_load` adds to it.
+        const groups = input.toolGroups?.groups ?? []
+        const loadedGroups = new Set(input.toolGroups?.active ?? [])
+        /**
+         * The agent's own catalogue as this turn may see it: a schedule's allowlist, minus every slug
+         * in a group that is not loaded, plus `tools_load` while any group is withheld. With no
+         * allowlist and nothing withheld it returns `wide` itself, so the usual cached prefix is
+         * untouched — the case every agent without groups is in.
+         */
+        const narrow = (wide: ToolRuntime): ToolRuntime =>
+            turnCatalogue(wide, input.toolsAllow, groups, loadedGroups)
+        // `let`: a tool pinned mid-turn (`pinTools`) widens this, and `build` derives the rest from it.
+        let wideTools = input.tools
+        const build = (): ToolRuntime | undefined => {
+            if (wideTools === undefined) return undefined
+            const own = narrow(wideTools)
+            return layered.length === 0 ? own : withRenderedTools(own, layered, rendered.length > 0)
+        }
+        // `let`: a mid-turn pin or a group load rebuilds it, and the views with it.
+        let baseTools = build()
 
         /**
          * The catalogue as one phase sees it, rebuilt only when the phase changes.
@@ -1421,24 +1468,40 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                               // the price of not asking the person twice (decision 14.96).
                               pinTools: async (slugs: readonly string[]) => {
                                   input.onPinned?.()
-                                  const base = baseTools
-                                  if (base === undefined) return []
-                                  const found = await base.registry.resolveMore(slugs)
+                                  const wide = wideTools
+                                  if (wide === undefined) return []
+                                  const found = await wide.registry.resolveMore(slugs)
                                   if (found.length === 0) return []
-                                  const layered = withRenderedTools(base, found, true)
-                                  // A turn narrowed to some tools (a schedule's `tools.allow`, a peer
-                                  // ask without `handoff`) stays narrowed: a pin cannot widen it.
-                                  baseTools =
-                                      input.toolsAllow === undefined
-                                          ? layered
-                                          : narrowedTools(layered, input.toolsAllow)
+                                  // Pinned onto the wide catalogue and narrowed again by `build`: a
+                                  // turn narrowed to some tools (a schedule's `tools.allow`, a peer ask
+                                  // without `handoff`) stays narrowed, and a pin cannot widen it.
+                                  wideTools = withRenderedTools(wide, found, true)
+                                  baseTools = build()
                                   views.clear()
                                   tools = viewFor(phase)
                                   const now = baseTools
                                   return found
                                       .map((tool) => tool.spec.slug)
-                                      .filter((slug) => now.registry.has(slug))
+                                      .filter((slug) => now?.registry.has(slug) === true)
                               },
+                              // A group loaded by `tools_load` (decision 17.2): in the catalogue from
+                              // the next step of this turn, the way a phase change is — deferring it to
+                              // the next turn would make the backstop a second message from the person.
+                              ...(groups.length === 0
+                                  ? {}
+                                  : {
+                                        loadToolGroup: async (name: string) => {
+                                            loadedGroups.add(name)
+                                            baseTools = build()
+                                            views.clear()
+                                            tools = viewFor(phase)
+                                            const now = baseTools
+                                            const group = groups.find((one) => one.name === name)
+                                            return (group?.tools ?? []).filter(
+                                                (slug) => now?.registry.has(slug) === true,
+                                            )
+                                        },
+                                    }),
                               ...(input.phases === undefined
                                   ? {}
                                   : {
