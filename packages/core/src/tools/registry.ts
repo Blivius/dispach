@@ -30,6 +30,7 @@ import {
 } from "../errors.ts"
 import { visibleIn } from "../loop/phases.ts"
 import { localProvider } from "./local.ts"
+import { normaliseSlug } from "./slug.ts"
 import type { Tool, ToolAvailability, ToolProvider, ToolSpec } from "./types.ts"
 
 export interface ToolBudget {
@@ -55,9 +56,7 @@ export interface RegistryOptions {
 }
 
 /** `Send_Email`, `send email` and `send-email` name the same tool. Nothing looser than that. */
-function normalise(slug: string): string {
-    return slug.toLowerCase().replace(/[\s_.-]+/g, "")
-}
+const normalise = normaliseSlug
 
 export class ToolRegistry {
     readonly #bySlug: ReadonlyMap<string, Tool>

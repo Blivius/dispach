@@ -151,4 +151,28 @@ describe("history cache breakpoints", () => {
         expect(points.length).toBe(2)
         expect(messages[points.at(-1) ?? -1]?.content).toBe("Summary.")
     })
+
+    test("a repair note inside the previous turn does not move the mark the next turn reads at", () => {
+        // A repair or a nudge is `user`-role. Taken for the start of a turn, it put the read mark inside
+        // the previous turn, one place short of where that turn's write mark was, and every turn after a
+        // nudge missed the history cache.
+        const now = assemble([...TURN_ONE], "which is late?").messages
+        const next = assemble(
+            [
+                ...TURN_ONE,
+                { role: "user", content: "which is late?" },
+                {
+                    role: "user",
+                    origin: "repair",
+                    content: "From the runtime, not the person: some of your tools are not loaded.",
+                },
+                { role: "assistant", content: "Gemini is two weeks behind." },
+            ],
+            "and the other?",
+        ).messages
+        const written = marked(now).at(-1) ?? -1
+        const asked = marked(next).at(-2) ?? -2
+        expect(asked).toBe(written)
+        expect(prefix(next, asked)).toBe(prefix(now, written))
+    })
 })

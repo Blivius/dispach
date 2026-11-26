@@ -28,7 +28,7 @@ Open source and self-hosted: one API for agents with memory, tools, schedules, c
   <a href="#architecture">Architecture</a> ·
   <a href="#benchmarks">Benchmarks</a> ·
   <a href="https://arxiv.org/abs/2610.06274">Research</a> ·
-  <a href="CHANGELOG.md">Changelog (<!-- fact:version -->0.2.13<!-- /fact -->)</a> ·
+  <a href="CHANGELOG.md">Changelog (<!-- fact:version -->0.2.14<!-- /fact -->)</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -66,7 +66,7 @@ That half ships in 0.2.x as **experimental**: on the HTTP API and the browser co
 screens yet), and it may change within 0.2.x. Everything else described in this README is stable.
 
 **Quick links:**
-[New in <!-- fact:version -->0.2.13<!-- /fact -->](CHANGELOG.md) ·
+[New in <!-- fact:version -->0.2.14<!-- /fact -->](CHANGELOG.md) ·
 [New since 0.2.0](developer-docs/runtime/whats-new-since-0-2-0.md) ·
 [Limits & evidence](developer-docs/runtime/limits-and-evidence.md) ·
 [Good first issues](https://github.com/blivius/dispach/labels/good%20first%20issue) ·
@@ -98,7 +98,7 @@ One `docker run`, and [Call it over HTTP](#call-it-over-http) creates an agent a
 
 ```bash
 docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach \
-  -e DISPACH_API_TOKEN=pick-a-secret ghcr.io/blivius/dispach:0.2.13
+  -e DISPACH_API_TOKEN=pick-a-secret ghcr.io/blivius/dispach:0.2.14
 ```
 
 - **The named volume** is where the store, every agent and every key live. Without it, a
@@ -220,7 +220,7 @@ decisions, is in [`docs/00-DECISIONS.md`](docs/00-DECISIONS.md).
 ```bash
 export TOKEN=pick-a-secret
 docker run -d --init -p 7420:7420 -v dispach-home:/home/dispach -e DISPACH_API_TOKEN=$TOKEN \
-  ghcr.io/blivius/dispach:0.2.13
+  ghcr.io/blivius/dispach:0.2.14
 
 curl -s -H "Authorization: Bearer $TOKEN" localhost:7420/v1/agents \
   -d '{"answers":{"user":"you","name":"milo","apiKey":"sk-…"}}'
@@ -298,7 +298,7 @@ the [benchmark README](evals/harness/README.md) says why, with every run and rep
 
 ## Status & capabilities
 
-**<!-- fact:version -->0.2.13<!-- /fact -->**, from npm, Homebrew, the container image or the standalone installer. Every install
+**<!-- fact:version -->0.2.14<!-- /fact -->**, from npm, Homebrew, the container image or the standalone installer. Every install
 runs under Node. [`CHANGELOG.md`](CHANGELOG.md) has what landed in each release.
 
 | Area | What ships today |
@@ -322,7 +322,7 @@ runs under Node. [`CHANGELOG.md`](CHANGELOG.md) has what landed in each release.
 | **npm** | `npm i -g dispach` / `npm i dispach` | One package carrying both CLI and `dispach/client` (Node <!-- fact:node -->26.13.0<!-- /fact -->+) |
 | **Standalone (no Node)** | `curl -fsSL https://dispach.blivius.com/install.sh \| sh` | macOS & Linux (glibc), arm64 & x64; bundles checksummed Node <!-- fact:node -->26.13.0<!-- /fact --> |
 | **Homebrew** | `brew install blivius/tap/dispach` | Installs the same npm tarball; supports `brew services start dispach` |
-| **Docker** | `docker pull ghcr.io/blivius/dispach:0.2.13` | `node:26.13.0-trixie-slim` with `git`, `python3`, `uv`, `jq`, and `ffmpeg` |
+| **Docker** | `docker pull ghcr.io/blivius/dispach:0.2.14` | `node:26.13.0-trixie-slim` with `git`, `python3`, `uv`, `jq`, and `ffmpeg` |
 | **From source** | `bun install && bun run build && (cd packages/cli && bun link)` | For contributing or hacking on Dispach itself |
 
 <details>
@@ -334,7 +334,7 @@ One package carrying the command and the client:
 
 ```bash
 npm i -g dispach          # the `dispach` command
-dispach --version         # 0.2.13
+dispach --version         # 0.2.14
 ```
 
 and in an application that talks to a running server:
@@ -378,7 +378,7 @@ Nothing needs root. Run it again to upgrade.
 
 | Variable | Effect |
 | --- | --- |
-| `DISPACH_VERSION=0.2.13` | that release instead of the latest |
+| `DISPACH_VERSION=0.2.14` | that release instead of the latest |
 | `DISPACH_NO_MODIFY_PATH=1` | change no rc file; it prints the line to add |
 | `DISPACH_INSTALL_DIR=<dir>` | install somewhere other than `~/.dispach` |
 
@@ -423,7 +423,7 @@ bun run build                       # builds every package the binary imports
 cd packages/cli && bun link         # puts `dispach` on your PATH
 cd ../..
 
-dispach --version                   # 0.2.13
+dispach --version                   # 0.2.14
 dispach --help
 ```
 
@@ -647,14 +647,14 @@ nothing can inspect. So the deployment supplies the other half:
 ### Docker standalone & image anatomy
 
 ```bash
-docker pull ghcr.io/blivius/dispach:0.2.13          # or build it: docker build -f docker/Dockerfile -t dispach .
+docker pull ghcr.io/blivius/dispach:0.2.14          # or build it: docker build -f docker/Dockerfile -t dispach .
 cp examples/minimal/.env.example examples/minimal/.env  # then MODEL_API_KEY; only the example is tracked
 docker run --rm --init -p 7420:7420 \
   --env-file examples/minimal/.env \
   -e DISPACH_API_TOKEN=pick-something \
   -v "$PWD/examples/minimal:/agent" \
   -v dispach-home:/home/dispach \
-  ghcr.io/blivius/dispach:0.2.13
+  ghcr.io/blivius/dispach:0.2.14
 ```
 
 The image binds `0.0.0.0`, which requires `DISPACH_API_TOKEN` by design. A manifest at `/agent` is

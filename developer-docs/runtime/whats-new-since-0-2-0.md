@@ -2,6 +2,13 @@
 
 What 0.2.1 through the current 0.2.x release added on top of [0.2.0](whats-new-0-2-0.md). A manifest, store or client written for 0.2.0 keeps working. The one breaking change is 0.2.12's: an npm install needs Node 26.13.0 or later (the container image and the standalone archives carry their own Node). The [changelog](https://github.com/blivius/dispach/blob/main/CHANGELOG.md) has every entry, each release's store migrations, and its "Upgrading" notes.
 
+## 0.2.14
+
+- **Native Claude transport:** `api: anthropic-messages` speaks Anthropic's Messages API with prompt caching, so a direct Claude key no longer pays full input price on every step.
+- **Traces:** the bundled `@dispach/trace-otlp` plugin sends every turn to an OpenTelemetry backend (Phoenix, any OTLP/HTTP collector). Metadata only, never prompt or reply text. `init --traces <url>` sets it up.
+- **Plugins** get the agent's `.env`, and their warnings reach `agent.warning` and the `serve` log.
+- **A tool call cut off at the output limit** is repaired, with a hint to split the work, instead of ending the turn.
+
 ## 0.2.13
 
 - **The repository moved to [github.com/blivius/dispach](https://github.com/blivius/dispach).** CI, releases and the `curl … install.sh | sh` one-liner are on GitHub again.

@@ -534,6 +534,8 @@ describe("no progress", () => {
 interface NativeStep {
     readonly text?: string
     readonly calls?: readonly { id: string; name: string; arguments: string }[]
+    /** `finish_reason` on the last frame; omitted, the stream just ends. */
+    readonly finish?: string
 }
 
 function nativeSse(step: NativeStep): Response {
@@ -557,6 +559,12 @@ function nativeSse(step: NativeStep): Response {
                     frame({ tool_calls: [{ index, function: { arguments: piece } }] })
                 }
             }
+            if (step.finish !== undefined)
+                controller.enqueue(
+                    encoder.encode(
+                        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: step.finish }] })}\n\n`,
+                    ),
+                )
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
         },
@@ -705,6 +713,28 @@ describe("native failures the wire format makes possible", () => {
         const repairs = events.filter((event) => event.type === "tool.repair")
         expect(repairs.length).toBe(2)
         await runtime.stop()
+    })
+
+    test("a call cut off at the output limit is repaired with a split-it hint, not ended", async () => {
+        // Live case (0.2.13): a whole web page as one file write ran into maxTokens mid-arguments.
+        // The unreadable call never became an intent, so both limit checks ended the turn - with no
+        // prose `empty_reply_output_exhausted`, after prose `reply_truncated` - and a retry repeated it.
+        for (const text of ["", "Building the page now."]) {
+            const { result, requests, runtime } = await runNative([
+                {
+                    text,
+                    calls: [{ id: "c1", name: "memory_write", arguments: '{"text":"<html><bo' }],
+                    finish: "length",
+                },
+                { calls: [{ id: "c2", name: "memory_write", arguments: '{"text":"part one"}' }] },
+                { text: "Done, written in parts." },
+            ])
+            expect(result.reason).toBe("final")
+            const repair = (requests[1]?.messages ?? []).find((m) => m.tool_call_id === "c1")
+            expect(repair?.content).toContain("cut off at the endpoint's own output limit")
+            expect(repair?.content).toContain("smaller calls")
+            await runtime.stop()
+        }
     })
 
     test("the repair answers every announced call, including the unreadable one", async () => {

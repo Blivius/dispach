@@ -400,7 +400,7 @@ export const ToolsSchema = z
             .strict()
             .prefault({}),
         /**
-         * Pinned tools held out of the catalogue until a conversation needs them (decision 17.2).
+         * Pinned tools held out of the catalogue until a conversation needs them (decision 18.2).
          *
          * Not tool search: every slug here is already pinned, so the working set is still fixed at
          * load. A group only decides *when* its tools are in the request — the harness loads one when

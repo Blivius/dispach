@@ -1,9 +1,9 @@
 /**
- * Tool groups: pinned tools held out of the request until a conversation needs them (decision 17.2).
+ * Tool groups: pinned tools held out of the request until a conversation needs them (decision 18.2).
  *
- * Measured on a real VelaCrew agent, a one-word greeting sent 41k prompt tokens and 34k of them were
- * tool schemas — 33 CRM tools and 11 Gmail tools the greeting never touched, re-read on every model
- * call. A group moves those out of the catalogue without moving them out of the agent:
+ * A catalogue's schemas ride on every model call of every conversation, chit-chat included, and an agent
+ * with a CRM and a mail account connected carries both whether the turn touches them or not. A group
+ * moves those out of the request without moving them out of the agent:
  *
  * - **It is not tool search.** Decision 4.3 refuses search-then-execute because it is two hops. Every
  *   slug in a group is already pinned, so the working set is still fixed at load; the group only
@@ -16,21 +16,26 @@
  *   the catalogue changes at most once per group per conversation, which is the prompt cache's price,
  *   and survives a restart with nothing stored.
  * - **`tools_load` is the backstop, not the mechanism.** Its description names every set that is not
- *   loaded, so a request the keywords missed ("what did John say yesterday?") can still reach Gmail in
- *   the same turn, one step later.
+ *   loaded and that this turn could load, so a request the keywords missed ("what did John say
+ *   yesterday?") can still reach the mail tools in the same turn, one step later.
  *
  * Keywords match at the **start** of a word, where knowledge matches whole words. The two want
  * opposite errors: a knowledge entry that activates wrongly displaces a better one under a budget, while
  * a group that loads wrongly costs only its tokens — and one that fails to load costs a task.
+ *
+ * Every slug comparison goes through `normaliseSlug`, the registry's own rule, so a group spelled
+ * `gmail_fetch_emails` holds back the tool the registry resolved as `GMAIL_FETCH_EMAILS`.
  */
 
-import { isTurnStart } from "../context/compaction/stages.ts"
-import { toolGroupNotAvailable, toolGroupUnknown } from "../errors.ts"
+import { isPersonAuthored } from "../context/compaction/stages.ts"
+import { toolGroupEmpty, toolGroupNotAvailable, toolGroupUnknown } from "../errors.ts"
+import { TOOLS_LOAD } from "../loop/phases.ts"
 import type { ChatMessage } from "../model/provider.ts"
 import { LOCAL_PROVIDER_ID } from "./local.ts"
+import { normaliseSlug } from "./slug.ts"
 import type { Tool } from "./types.ts"
 
-export const TOOLS_LOAD = "tools_load"
+export { TOOLS_LOAD }
 
 export interface ToolGroup {
     readonly name: string
@@ -105,11 +110,13 @@ export function activeToolGroups(
     const called = new Set<string>()
     const loaded = new Set<string>()
     for (const message of history) {
-        if (isTurnStart(message) && message.origin !== "digest") said.push(message.content)
-        for (const call of message.toolCalls ?? []) called.add(call.name)
+        // The person's words only. A runtime note is `user`-role too, and the missed-set nudge names
+        // every unloaded set with its description — counted here, one nudge loaded them all for good.
+        if (isPersonAuthored(message)) said.push(message.content)
+        for (const call of message.toolCalls ?? []) called.add(normaliseSlug(call.name))
         if (message.role === "assistant" && message.origin === "call") {
             for (const match of message.content.matchAll(NLT_ACTION)) {
-                if (match[1] !== undefined) called.add(match[1])
+                if (match[1] !== undefined) called.add(normaliseSlug(match[1]))
             }
         }
         if (message.role === "tool" || message.origin === "observation") {
@@ -122,7 +129,7 @@ export function activeToolGroups(
     for (const group of groups) {
         if (
             loaded.has(group.name) ||
-            group.tools.some((tool) => called.has(tool)) ||
+            group.tools.some((tool) => called.has(normaliseSlug(tool))) ||
             said.some((text) => group.keywords.some((keyword) => mentionsKeyword(text, keyword)))
         ) {
             active.add(group.name)
@@ -155,12 +162,37 @@ export function missedSetNote(notLoaded: readonly ToolGroup[]): string {
     return `From the runtime, not the person: some of your tools are not loaded — ${listed}. If the answer could be in one of these, load it with ${TOOLS_LOAD} and look before you reply. If none of them could hold it, give the person your answer.`
 }
 
-/** The slugs held back while `active` is all that is loaded. */
+/** The slugs held back while `active` is all that is loaded, normalised (see `normaliseSlug`). */
 export function withheldSlugs(
     groups: readonly ToolGroup[],
     active: ReadonlySet<string>,
-): readonly string[] {
-    return groups.filter((group) => !active.has(group.name)).flatMap((group) => group.tools)
+): ReadonlySet<string> {
+    return new Set(
+        groups
+            .filter((group) => !active.has(group.name))
+            .flatMap((group) => group.tools.map(normaliseSlug)),
+    )
+}
+
+/**
+ * The groups this turn could actually load: at least one of the group's tools is in `available`, the
+ * catalogue the turn is allowed before any group is withheld (normalised slugs).
+ *
+ * A set whose every tool the turn's allowlist removed — the owner's own mail in a turn that is not the
+ * owner's — is not offered by `tools_load` and not named by the nudge: offering it sent the model to load
+ * it, nothing came back, and the load was still recorded.
+ */
+export function reachableGroups(
+    groups: readonly ToolGroup[],
+    available: ReadonlySet<string>,
+): readonly ToolGroup[] {
+    return groups.filter((group) => group.tools.some((tool) => available.has(normaliseSlug(tool))))
+}
+
+/** Whether `slug` is one of `groups`' tools, compared the registry's way. */
+export function inAnyGroup(groups: readonly ToolGroup[], slug: string): boolean {
+    const wanted = normaliseSlug(slug)
+    return groups.some((group) => group.tools.some((tool) => normaliseSlug(tool) === wanted))
 }
 
 /**
@@ -206,8 +238,11 @@ export function toolsLoadTool(notLoaded: readonly ToolGroup[]): Tool {
             if (!names.includes(name)) throw toolGroupUnknown(name, names)
             if (context.loadToolGroup === undefined) throw toolGroupNotAvailable()
             const slugs = await context.loadToolGroup(name)
+            // Nothing reachable: an error, never the marker. A "Loaded" line for an empty load would
+            // be read back next turn as a set this session has, and offered as loaded for good.
+            if (slugs.length === 0) throw toolGroupEmpty(name)
             // Carries the marker `activeToolGroups` reads, so the set stays loaded next turn.
-            return `Loaded the "${name}" tools: ${slugs.join(", ") || "none could be loaded"}. They are in your tool list from your next step in this turn.`
+            return `Loaded the "${name}" tools: ${slugs.join(", ")}. They are in your tool list from your next step in this turn.`
         },
     }
 }

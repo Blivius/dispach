@@ -26,7 +26,7 @@ import {
     VOLATILE_END,
     VOLATILE_HEADER,
 } from "./blocks.ts"
-import { isTurnStart } from "./compaction/stages.ts"
+import { isPersonAuthored, isTurnStart } from "./compaction/stages.ts"
 import { estimateMessageTokens, estimateTokens } from "./tokens.ts"
 
 export interface AssembleInput {
@@ -455,8 +455,7 @@ export function assembleContext(input: AssembleInput): AssembledContext {
  * slots after the history — reminder, recalled memory, the note, the input — differ every turn, so the
  * transport's rolling point at the end of a request is never a prefix of the next turn's request. Only
  * A and B were, which meant the first call of every turn paid the cache-*write* price for the whole
- * history (1.25× input, against 0.1× for a read), and a conversation's cost grew with the square of
- * its length. So:
+ * history rather than the read price, again on every turn. So:
  *
  * - **H2, the end of the prior history**, writes this turn's prefix for the next turn to read.
  * - **H1, the end of the turn before the last**, is where the previous turn's H2 *was*. A marker only
@@ -465,9 +464,11 @@ export function assembleContext(input: AssembleInput): AssembledContext {
  *   for an earlier entry — fewer than one tool-heavy turn holds. H1 asks at the exact position.
  *
  * "The prior history" is the history ahead of the input: with `traceAfterInput` the current turn's
- * trace follows the input and is the rolling point's business. A digest is not a turn start, so it
- * never opens one. B is dropped when both history marks are present — a hit at H1 covers everything
- * B would have, and Converse and Anthropic both allow four markers, the fourth being the rolling one.
+ * trace follows the input and is the rolling point's business. A turn opens on the person's own message
+ * (`isPersonAuthored`): a digest, a repair or a nudge is `user`-role and never opens one.
+ *
+ * B is dropped when both history marks are present — a hit at H1 covers everything B would have, and
+ * Converse and Anthropic both allow four markers, the fourth being the rolling one.
  * The prompt is byte-identical either way: only where a provider may cache changes.
  */
 function messagesOf(blocks: readonly ContextBlock[]): ChatMessage[] {
@@ -491,7 +492,9 @@ function messagesOf(blocks: readonly ContextBlock[]): ChatMessage[] {
         const before = prior[i - 1]
         if (at === undefined || before === undefined) continue
         const message = blockMessage(blocks[at])
-        if (message !== undefined && isTurnStart(message) && message.origin !== "digest") {
+        // The person's message, not any `user`-role note: a repair or a nudge inside the previous turn
+        // would otherwise be taken for its start, and H1 would miss the position H2 was written at.
+        if (message !== undefined && isPersonAuthored(message)) {
             turnBefore = before
             break
         }

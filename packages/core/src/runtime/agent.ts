@@ -145,9 +145,9 @@ import { nativeDialect, nativeWireTokens } from "../tools/dialect/native.ts"
 import { nltDialect } from "../tools/dialect/nlt.ts"
 import { eventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
-import { activeToolGroups, type ToolGroup, toolGroupsOf } from "../tools/groups.ts"
+import { activeToolGroups, TOOLS_LOAD, type ToolGroup, toolGroupsOf } from "../tools/groups.ts"
 import { MEMORY_DIR } from "../tools/local.ts"
-import { onceOnlyTools } from "../tools/policy.ts"
+import { decidePolicy, onceOnlyTools } from "../tools/policy.ts"
 import { ToolRegistry } from "../tools/registry.ts"
 import type { ForgetRequest, ForgetResult, ScriptRunner, Tool, ToolSpec } from "../tools/types.ts"
 import { activateKnowledge, type KnowledgeBase, loadKnowledge } from "../workspace/knowledge.ts"
@@ -1796,7 +1796,14 @@ export class Agent {
         // and one on a 1M model sized against a 32k main compacts for nothing (pilot.7).
         const window = named === this.roles.main ? this.window : named.capabilities.contextWindow
         const tools = this.#toolsFor(options.turnTools, child !== undefined)
-        const toolGroups = this.#toolGroupsFor(input, history, source, options, child !== undefined)
+        const toolGroups = await this.#toolGroupsFor(
+            input,
+            sessionKey,
+            history,
+            source,
+            options,
+            child !== undefined,
+        )
         // A child reads its routed call's output up to what its window holds, not the parent's
         // `observationMaxTokens`: reading all of it is the child's job, and it holds nothing else. Cut
         // at the parent's figure, mail triage lost the two messages that mattered and the child
@@ -2277,6 +2284,58 @@ export class Agent {
     }
 
     /**
+     * The tool groups a turn starts with (decision 18.2), or `undefined` for every tool.
+     *
+     * Only a conversation with a person gets groups. Every tool goes to a schedule's run, a subagent's
+     * handed call, a handoff to a team member, a peer ask, any turn an agent sent, and a turn with an
+     * explicit allowlist: nobody is there to rephrase a request the keywords missed, such a turn usually
+     * has no history to have loaded a set, and an allowlist is already the caller's statement of which
+     * tools the turn has. Matched on what the turn *is* rather than a list of conversational sources,
+     * because a channel's turns carry the channel's own configured id as their source.
+     *
+     * A policy that would refuse `tools_load` — `mode: deny`, or `ask` with nobody to approve and no
+     * rule allowing it — gets every tool too: a set the keywords missed could then never be loaded.
+     *
+     * Activation is read from the whole stored conversation once a checkpoint exists. The prompt then
+     * starts from the checkpoint's digest and the person's requests, and the "Loaded the …" results and
+     * the calls that loaded a set are gone from it, so reading the prompt would unload them mid-session.
+     */
+    async #toolGroupsFor(
+        input: string,
+        sessionKey: string,
+        promptHistory: readonly ChatMessage[],
+        source: string,
+        options: AgentSendOptions,
+        child: boolean,
+    ): Promise<
+        { readonly groups: readonly ToolGroup[]; readonly active: ReadonlySet<string> } | undefined
+    > {
+        const groups = toolGroupsOf(this.manifest.tools.groups)
+        if (groups.length === 0 || child || options.toolsAllow !== undefined) return undefined
+        if (source.startsWith("schedule:")) return undefined
+        if (source === "subagent" || source === "handoff" || source === "ask") return undefined
+        if (options.peerAsk !== undefined || options.from?.kind === "agent") return undefined
+        if (!this.#mayLoadGroups()) return undefined
+        const checkpoint = await this.store.sessions.checkpoint(this.id, sessionKey)
+        const history =
+            checkpoint === undefined
+                ? promptHistory
+                : await this.store.messages.history(this.id, sessionKey)
+        return { groups, active: activeToolGroups(groups, input, history) }
+    }
+
+    /** Whether this agent's policy lets `tools_load` run: not denied, and `ask` only with an approver. */
+    #mayLoadGroups(): boolean {
+        const decision = decidePolicy(this.manifest.tools.policy, { slug: TOOLS_LOAD })
+        if (decision.effect === "allow") return true
+        if (decision.effect === "deny") return false
+        return (
+            this.#toolRuntime?.approve !== undefined ||
+            this.manifest.tools.policy.onNoApprover === "allow"
+        )
+    }
+
+    /**
      * The context the next turn on this session would be given, without running one.
      *
      * Exists for `GET /v1/agents/:id/context`, whose whole justification is that "why did it do
@@ -2290,26 +2349,6 @@ export class Agent {
      * `input` defaults to empty, which activates no knowledge and no skill — both are selected from
      * the turn's input, so a preview with no input honestly shows a turn with no input.
      */
-    /**
-     * The tool groups a turn starts with (decision 17.2), or `undefined` for every tool.
-     *
-     * Only a conversation gets groups. A schedule's run, a subagent's handed call and a turn with an
-     * explicit allowlist get every tool: nobody is there to rephrase a request the keywords missed,
-     * and an allowlist is already the caller's statement of which tools the turn has.
-     */
-    #toolGroupsFor(
-        input: string,
-        history: readonly ChatMessage[],
-        source: string,
-        options: AgentSendOptions,
-        child: boolean,
-    ): { readonly groups: readonly ToolGroup[]; readonly active: ReadonlySet<string> } | undefined {
-        const groups = toolGroupsOf(this.manifest.tools.groups)
-        if (groups.length === 0 || child || options.toolsAllow !== undefined) return undefined
-        if (source.startsWith("schedule:") || source === "subagent") return undefined
-        return { groups, active: activeToolGroups(groups, input, history) }
-    }
-
     async previewContext(
         options: { readonly sessionKey?: string; readonly input?: string } = {},
     ): Promise<{
@@ -2379,7 +2418,7 @@ export class Agent {
             undefined,
         )
         // Narrowed the way `send` narrows it: a conversation's groups, from this input and history.
-        const grouped = this.#toolGroupsFor(input, history, "preview", {}, false)
+        const grouped = await this.#toolGroupsFor(input, sessionKey, history, "preview", {}, false)
         const tools =
             this.#toolRuntime === undefined || grouped === undefined
                 ? this.#toolRuntime

@@ -15,6 +15,7 @@ import { apiVersionMismatch, type ErrorDetail, HarnessError } from "../errors.ts
 import { resolveCapabilities } from "../model/capabilities.ts"
 import { nearest } from "../nearest.ts"
 import { parseSchedule } from "../schedule/kinds.ts"
+import { normaliseSlug } from "../tools/slug.ts"
 import { planWorkspace, type WorkspaceFileRef } from "../workspace/load.ts"
 import { planSoul } from "../workspace/soul.ts"
 import type { AgentManifest } from "./schema.ts"
@@ -225,9 +226,11 @@ function validateToolBudget(manifest: AgentManifest): ErrorDetail[] {
  */
 function validateToolGroups(manifest: AgentManifest): ErrorDetail[] {
     const found: ErrorDetail[] = []
+    // Compared the registry's way (`normaliseSlug`): `GMAIL_X` and `gmail_x` are one tool there, so
+    // they are one tool here, or the same tool could sit in two groups unnoticed.
     const owner = new Map<string, string>()
     for (const [name, group] of Object.entries(manifest.tools.groups)) {
-        for (const tool of group.tools) {
+        for (const tool of group.tools.map(normaliseSlug)) {
             const first = owner.get(tool)
             if (first !== undefined && first !== name) {
                 found.push({
@@ -253,9 +256,9 @@ function validateToolGroups(manifest: AgentManifest): ErrorDetail[] {
  * call this.
  */
 export function toolGroupWarnings(manifest: AgentManifest): ErrorDetail[] {
-    const given = new Set([...manifest.tools.pinned, ...manifest.tools.local])
+    const given = new Set([...manifest.tools.pinned, ...manifest.tools.local].map(normaliseSlug))
     return Object.entries(manifest.tools.groups).flatMap(([name, group]) => {
-        const missing = group.tools.filter((tool) => !given.has(tool))
+        const missing = group.tools.filter((tool) => !given.has(normaliseSlug(tool)))
         return missing.length === 0
             ? []
             : [

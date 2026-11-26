@@ -38,7 +38,9 @@ import { nativeWireTokens } from "../tools/dialect/native.ts"
 import type { EventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
 import {
+    inAnyGroup,
     missedSetNote,
+    reachableGroups,
     readsAsMissed,
     TOOLS_LOAD,
     type ToolGroup,
@@ -48,6 +50,7 @@ import {
 import { phaseSetTool } from "../tools/local.ts"
 import type { PolicyConfig } from "../tools/policy.ts"
 import type { ToolRegistry } from "../tools/registry.ts"
+import { normaliseSlug } from "../tools/slug.ts"
 import type { OnMutate } from "../tools/trust.ts"
 import type {
     DisplacedArtifact,
@@ -273,7 +276,7 @@ export interface TurnInput {
      */
     readonly toolsAllow?: readonly string[]
     /**
-     * Pinned tools held out of the catalogue until loaded (decision 17.2): the manifest's groups and
+     * Pinned tools held out of the catalogue until loaded (decision 18.2): the manifest's groups and
      * the ones this turn starts with. A group not in `active` is withheld from slot 1 and the wire
      * schemas, and `tools_load` is offered to load it mid-turn. Absent: every tool, as before.
      */
@@ -592,7 +595,7 @@ function narrowedTools(tools: ToolRuntime, allow: readonly string[]): ToolRuntim
 
 /**
  * The agent's own catalogue as one turn may see it: a schedule's allowlist, minus every slug in a tool
- * group that is not loaded, plus `tools_load` while any group is withheld (decision 17.2).
+ * group that is not loaded, plus `tools_load` while any group is withheld (decision 18.2).
  *
  * One function for the turn and for `Agent.previewContext`, so `GET /context` reports the catalogue a
  * turn would actually send rather than the agent's whole one. With no allowlist and nothing withheld it
@@ -605,15 +608,32 @@ export function turnCatalogue(
     loaded: ReadonlySet<string>,
 ): ToolRuntime {
     const held = withheldSlugs(groups, loaded)
+    const allowed = toolsAllow ?? wide.registry.specs().map((spec) => spec.slug)
     const allow =
-        held.length === 0
-            ? toolsAllow
-            : (toolsAllow ?? wide.registry.specs().map((spec) => spec.slug)).filter(
-                  (slug) => !held.includes(slug),
-              )
+        held.size === 0 ? toolsAllow : allowed.filter((slug) => !held.has(normaliseSlug(slug)))
     const own = allow === undefined ? wide : narrowedTools(wide, allow)
-    const notLoaded = groups.filter((group) => !loaded.has(group.name))
+    const notLoaded = unloadedReachable(wide, toolsAllow, groups, loaded)
     return notLoaded.length === 0 ? own : withRenderedTools(own, [toolsLoadTool(notLoaded)], true)
+}
+
+/**
+ * The groups this turn has not loaded and could load: one of their tools is in the catalogue the turn
+ * is allowed. What `tools_load` offers and what the missed-set nudge names — one function, so the two
+ * cannot offer a non-owner a set of the owner's that neither could deliver.
+ */
+export function unloadedReachable(
+    wide: ToolRuntime,
+    toolsAllow: readonly string[] | undefined,
+    groups: readonly ToolGroup[],
+    loaded: ReadonlySet<string>,
+): readonly ToolGroup[] {
+    if (groups.length === 0) return []
+    const inCatalogue = new Set(wide.registry.specs().map((spec) => normaliseSlug(spec.slug)))
+    const available =
+        toolsAllow === undefined
+            ? inCatalogue
+            : new Set(toolsAllow.map(normaliseSlug).filter((slug) => inCatalogue.has(slug)))
+    return reachableGroups(groups, available).filter((group) => !loaded.has(group.name))
 }
 
 async function runTurnCore(input: TurnInput): Promise<TurnResult> {
@@ -814,7 +834,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
          */
         const rendered = input.turnTools ?? []
         const layered = [...turnScripts, ...rendered]
-        // Tool groups (decision 17.2): the sets loaded so far this turn. `tools_load` adds to it.
+        // Tool groups (decision 18.2): the sets loaded so far this turn. `tools_load` adds to it.
         const groups = input.toolGroups?.groups ?? []
         const loadedGroups = new Set(input.toolGroups?.active ?? [])
         /**
@@ -1221,10 +1241,17 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     ? "Set model.<role>.maxTokens to raise the ceiling, if one is configured. Otherwise this is the endpoint's own limit and the request needs to ask for less."
                     : "This model bills its thinking to the output budget and thinks harder the more it is constrained, so a ceiling that fits a bare question may leave nothing for the answer under a longer prompt. Either raise model.<role>.maxTokens, or set model.<role>.reasoningEffort — `none` is the measured fix when the work is short and well specified."
 
+            // A call cut off mid-`arguments` is unreadable JSON, so it lands in `malformed`, never in
+            // `intents`. Both limit checks below skip such a step so it reaches the repair, which
+            // tells the model to split the work (a whole web page in one file write is the live
+            // case). Before this, both checks saw "no intents" and ended the turn.
+            const cutCall = (parsed.malformed?.length ?? 0) > 0
+
             if (
                 step.finishReason === "length" &&
                 text.trim() === "" &&
-                parsed.intents.length === 0
+                parsed.intents.length === 0 &&
+                !cutCall
             ) {
                 reason = "error"
                 const detail: ErrorDetail = {
@@ -1268,10 +1295,10 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
             // reads. The empty case above was handled and this one was not, which is the harder half
             // to notice, because the output looks like an answer.
             //
-            // Intents are excluded deliberately. A `length` finish mid-`arguments` produces invalid
-            // JSON under `native`, which `readArguments` catches and turns into a repair — a better
-            // remedy than ending the turn, and one that already exists.
-            if (step.finishReason === "length" && parsed.intents.length === 0) {
+            // Calls are excluded deliberately, the cut-off ones (`cutCall`) included. A `length` finish
+            // mid-`arguments` produces invalid JSON under `native`, which `readArguments` catches and
+            // turns into a repair — a better remedy than ending the turn, and one that already exists.
+            if (step.finishReason === "length" && parsed.intents.length === 0 && !cutCall) {
                 reason = "truncated"
                 const detail: ErrorDetail = {
                     code: "reply_truncated",
@@ -1301,8 +1328,20 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
             }
 
             const output: StepOutput = { text: step.text, calls: step.calls }
-            /** Calls the dialect could not read at all. Only `native` can produce these. */
-            const unreadable = parsed.malformed ?? []
+            /**
+             * Calls the dialect could not read at all. Only `native` can produce these. One cut off by
+             * the output limit says so: "send it again" alone repeats the same call into the same
+             * limit, and the single repair is spent on it.
+             */
+            const unreadable = (parsed.malformed ?? []).map((problem) =>
+                step.finishReason === "length"
+                    ? {
+                          ...problem,
+                          message: `was cut off at ${cap} before its arguments ended, so nothing ran.`,
+                          hint: "Sent again whole, it will be cut off the same way. Split the work across several smaller calls instead: for a long file, write the first part, then add the rest one part per call.",
+                      }
+                    : problem,
+            )
 
             // No tool call means this reply is the answer. The overwhelming majority of steps.
             // An unreadable call counts as work: breaking here would drop it silently and report the
@@ -1314,24 +1353,32 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     tools === undefined || nudged
                         ? undefined
                         : silenceOf(parsed.text, trace, sideEffects)
-                // Decision 17.2's backstop: a reply that says it has nothing, cannot see or check
+                // Decision 18.2's backstop: a reply that says it has nothing, cannot see or check
                 // something, or offers to look, while tool sets are still unloaded. The keywords missed
                 // and the model did not load a set itself, so it answered from what it had — the one way
                 // a withheld group turns into a wrong answer. Same single nudge per turn as the rest.
                 // Only a turn that did not look: once it ran `tools_load` or a tool from any set, "I
                 // found nothing" is a finding, and nudging it sent the model on into every other set —
-                // measured live, a Gmail search that found nothing went on to load and search the CRM,
-                // 2–3 steps and ~25k tokens for nothing (2026-11-26).
-                const notLoaded = groups.filter((group) => !loadedGroups.has(group.name))
-                const looked =
-                    ranThisTurn.has(TOOLS_LOAD) ||
-                    groups.some((group) => group.tools.some((slug) => ranThisTurn.has(slug)))
+                // seen live, a mail search that found nothing went on to load and search the CRM too.
+                // Only sets this turn could load, and only while the view in force offers the loader:
+                // a phase or a policy that leaves `tools_load` out would make the note an instruction to
+                // call a tool that is not there.
+                const notLoaded =
+                    wideTools === undefined
+                        ? []
+                        : unloadedReachable(wideTools, input.toolsAllow, groups, loadedGroups)
+                const looked = [...ranThisTurn].some(
+                    (slug) =>
+                        normaliseSlug(slug) === normaliseSlug(TOOLS_LOAD) ||
+                        inAnyGroup(groups, slug),
+                )
                 const missed =
                     silence === undefined &&
                     tools !== undefined &&
                     !nudged &&
                     !looked &&
                     notLoaded.length > 0 &&
+                    tools.registry.has(TOOLS_LOAD) &&
                     readsAsMissed(parsed.text)
                 if ((silence !== undefined || missed) && tools !== undefined) {
                     nudged = true
@@ -1523,7 +1570,7 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                                       .map((tool) => tool.spec.slug)
                                       .filter((slug) => now?.registry.has(slug) === true)
                               },
-                              // A group loaded by `tools_load` (decision 17.2): in the catalogue from
+                              // A group loaded by `tools_load` (decision 18.2): in the catalogue from
                               // the next step of this turn, the way a phase change is — deferring it to
                               // the next turn would make the backstop a second message from the person.
                               ...(groups.length === 0
@@ -1534,7 +1581,9 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                                             baseTools = build()
                                             views.clear()
                                             tools = viewFor(phase)
-                                            const now = baseTools
+                                            // The view in force — a phase may hide some of the set —
+                                            // so an empty answer means nothing reached the model.
+                                            const now = tools
                                             const group = groups.find((one) => one.name === name)
                                             return (group?.tools ?? []).filter(
                                                 (slug) => now?.registry.has(slug) === true,

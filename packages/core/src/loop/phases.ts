@@ -25,6 +25,7 @@
  * so the cost is one uncached prefix on the turns where the agent changed what it was doing.
  */
 
+import { normaliseSlug } from "../tools/slug.ts"
 import type { ToolSpec } from "../tools/types.ts"
 
 /**
@@ -43,6 +44,14 @@ export type PhaseMap = Readonly<Record<string, PhaseConfig>>
 
 /** The slug the runtime registers when more than one phase is declared. */
 export const PHASE_SET = "phase_set"
+
+/**
+ * The tool-group loader (decision 18.2). Defined here beside `phase_set`, and added to every phase the
+ * same way, for the same reason: a phase that lists slugs would otherwise drop it, the turn's withheld
+ * sets could not be loaded in that phase, and the missed-set nudge would point the model at a tool that
+ * is not there. `tools/groups.ts` builds the tool; this module owns the name so neither imports the other.
+ */
+export const TOOLS_LOAD = "tools_load"
 
 /** Matches every tool. The single-phase default, and the escape for a phase that constrains nothing. */
 export const ALLOW_ALL = "*"
@@ -63,9 +72,7 @@ export function entryPhase(phases: PhaseMap): string | undefined {
 }
 
 /** Slug comparison, matching the registry's own normalisation so `memory-write` finds `memory_write`. */
-function normalise(slug: string): string {
-    return slug.toLowerCase().replace(/[\s_.-]+/g, "")
-}
+const normalise = normaliseSlug
 
 /**
  * Does one `allow` entry name this tool?
@@ -110,7 +117,7 @@ export function unmatchedAllows(
         for (const entry of config.allow) {
             // `phase_set` is registered by the runtime rather than pinned, so an author who lists it
             // explicitly is not making a mistake — and it is always visible anyway, see `allowFor`.
-            if (entry === PHASE_SET) continue
+            if (entry === PHASE_SET || entry === TOOLS_LOAD) continue
             if (!specs.some((spec) => allowMatches(entry, spec))) found.push({ phase, entry })
         }
     }
@@ -136,7 +143,10 @@ export function unmatchedEntries(
 export function allowFor(phases: PhaseMap, phase: string): readonly string[] {
     const config = phases[phase]
     if (config === undefined) return [ALLOW_ALL]
-    return config.allow.includes(PHASE_SET) ? config.allow : [...config.allow, PHASE_SET]
+    // `tools_load` rides along for the same reason: it is registered by the runtime, and only when a
+    // turn withholds a tool group, so an entry for it costs nothing where there is none.
+    const runtime = [PHASE_SET, TOOLS_LOAD].filter((slug) => !config.allow.includes(slug))
+    return runtime.length === 0 ? config.allow : [...config.allow, ...runtime]
 }
 
 /** Whether `phases` describes more than one phase, which is what makes `phase_set` worth registering. */

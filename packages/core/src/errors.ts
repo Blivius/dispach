@@ -923,6 +923,14 @@ export function toolGroupUnknown(name: string, groups: readonly string[]): ToolE
     })
 }
 
+export function toolGroupEmpty(name: string): ToolError {
+    return new ToolError({
+        code: "tool_group_empty",
+        message: `None of the "${name}" tools are available in this turn, so nothing was loaded.`,
+        hint: "They may be withheld from this turn — a set of the owner's own tools in a turn that is not the owner's, or tools outside the current phase. Answer with the tools you have, and say what you could not check.",
+    })
+}
+
 export function toolGroupNotAvailable(): ToolError {
     return new ToolError({
         code: "tool_group_not_available",

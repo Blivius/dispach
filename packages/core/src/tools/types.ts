@@ -229,7 +229,7 @@ export interface ToolContext {
      */
     readonly pinTools?: (slugs: readonly string[]) => Promise<readonly string[]>
     /**
-     * Load a withheld tool group for the rest of this turn (decision 17.2), returning the slugs now
+     * Load a withheld tool group for the rest of this turn (decision 18.2), returning the slugs now
      * in the catalogue. Resolved by the turn, which owns the catalogue it changes; absent where no
      * turn withheld one, and `tools_load` refuses rather than reporting a load that did not happen.
      */

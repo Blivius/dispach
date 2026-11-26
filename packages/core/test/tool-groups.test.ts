@@ -1,5 +1,5 @@
 /**
- * Tool groups (decision 17.2): pinned tools held out of the request until a conversation needs them.
+ * Tool groups (decision 18.2): pinned tools held out of the request until a conversation needs them.
  *
  * The property that saves the money and the property that keeps the accuracy are both read at the far
  * end — the `tools` a model request actually carries — because every layer can be right while the value
@@ -27,9 +27,12 @@ import { toolGroupWarnings } from "../src/manifest/validate.ts"
 import {
     activeToolGroups,
     mentionsKeyword,
+    missedSetNote,
     readsAsMissed,
     type ToolGroup,
+    toolsLoadTool,
 } from "../src/tools/groups.ts"
+import { toolContext } from "../src/tools/local.ts"
 import { describe, expect, test } from "./_harness.ts"
 
 const GROUPS: readonly ToolGroup[] = [
@@ -211,11 +214,12 @@ describe("the config surface", () => {
 
 // ─── At the far end: what each model request carries ─────────────────────────────────────────
 
-function tool(slug: string, ran: string[]): Tool {
+function tool(slug: string, ran: string[], personal = false): Tool {
     return {
         spec: {
             slug,
             provider: "cache",
+            ...(personal ? { personal: true } : {}),
             summary: `The ${slug} tool.`,
             whenToUse: "When asked.",
             whenNotToUse: "Otherwise.",
@@ -230,18 +234,7 @@ function tool(slug: string, ran: string[]): Tool {
     }
 }
 
-/**
- * One agent, three tools in two groups plus one ungrouped. `script` is what the model does per step,
- * by request number: a tool call, or text.
- */
-async function agentWith(
-    script: (step: number) => { call?: string; args?: string; text?: string },
-) {
-    const dir = mkdtempSync(join(tmpdir(), "tool-groups-"))
-    const path = join(dir, "agent.yaml")
-    writeFileSync(
-        path,
-        `apiVersion: ${BRAND.apiVersion}
+const GROUPED_YAML = `apiVersion: ${BRAND.apiVersion}
 id: grouped
 model:
   main:
@@ -265,15 +258,29 @@ tools:
       keywords: [email, inbox]
 limits:
   turnTimeoutMs: 5000
-`,
-    )
+`
+
+/**
+ * One agent, three tools in two groups plus one ungrouped. `script` is what the model does per step,
+ * by request number: a tool call, or text.
+ */
+async function agentWith(
+    script: (step: number) => { call?: string; args?: string; text?: string },
+    /** Rewrites the manifest before it is written: a phase, a policy, a slug spelled another way. */
+    edit: (yaml: string) => string = (yaml) => yaml,
+    /** Slugs whose specs are `personal`: withheld from a turn that is not the owner's. */
+    personal: readonly string[] = [],
+) {
+    const dir = mkdtempSync(join(tmpdir(), "tool-groups-"))
+    const path = join(dir, "agent.yaml")
+    writeFileSync(path, edit(GROUPED_YAML))
     const ran: string[] = []
     const cache: ToolProviderFactory = () => ({
         id: "cache",
         resolve: async (slugs) =>
             ["projects", "crm_list", "gmail_fetch"]
                 .filter((slug) => slugs.includes(slug))
-                .map((slug) => tool(slug, ran)),
+                .map((slug) => tool(slug, ran, personal.includes(slug))),
     })
     const requests: ChatRequest[] = []
     let inTurn = 0
@@ -490,5 +497,154 @@ describe("loading the last withheld set", () => {
         // Nothing is withheld any more, so the last request has every tool and no tools_load.
         expect(names(requests[2])).toEqual(["crm_list", "gmail_fetch", "projects"])
         await runtime.stop()
+    })
+})
+
+// ─── Review fixes: each was a defect found reading the change, and each test fails without its fix ───
+
+/** The `group` enum `tools_load` offered in a request, or undefined when it was not offered. */
+function offered(request: ChatRequest | undefined): readonly string[] | undefined {
+    const loader = request?.tools?.find((spec) => spec.name === "tools_load")
+    if (loader === undefined) return undefined
+    const parameters = loader.parameters as {
+        readonly properties?: { readonly group?: { readonly enum?: readonly string[] } }
+    }
+    return parameters.properties?.group?.enum
+}
+
+describe("the runtime's own notes are not the person's words", () => {
+    test("a nudge that names every unloaded set, read back next turn, loads none of them", () => {
+        // The nudge lists each set with its description, and a description holds the set's own keywords.
+        const history: ChatMessage[] = [
+            { role: "user", content: "what did John say?" },
+            { role: "user", origin: "repair", content: missedSetNote(GROUPS) },
+            { role: "assistant", content: "Nothing from John." },
+        ]
+        expect([...activeToolGroups(GROUPS, "ok", history)]).toEqual([])
+    })
+})
+
+describe("tools_load is there wherever the turn withholds a set", () => {
+    test("in a phase whose allow list names its tools, as phase_set is", async () => {
+        const { runtime, requests, names, send } = await agentWith(
+            () => ({ text: "hello" }),
+            (yaml) =>
+                `${yaml}phases:\n  work:\n    entry: true\n    allow: [projects]\n  all:\n    allow: ["*"]\n`,
+        )
+        await send("hi")
+        expect(names(requests[0])).toContain("tools_load")
+        expect(offered(requests[0])).toEqual(["crm", "gmail"])
+        await runtime.stop()
+    })
+
+    test("a policy that would refuse it gets every tool instead: a missed set could never load", async () => {
+        const refusing = [
+            "  policy:\n    mode: deny\n    allow: [projects, crm_list, gmail_fetch]\n",
+            "  policy:\n    mode: ask\n    onNoApprover: deny\n    allow: [projects, crm_list, gmail_fetch]\n",
+        ]
+        for (const policy of refusing) {
+            const { runtime, requests, names, send } = await agentWith(
+                () => ({ text: "hello" }),
+                (yaml) => yaml.replace("limits:", `${policy}limits:`),
+            )
+            await send("hi")
+            expect(names(requests[0])).toEqual(["crm_list", "gmail_fetch", "projects"])
+            await runtime.stop()
+        }
+    })
+})
+
+describe("a checkpoint does not unload what the conversation loaded", () => {
+    test("a set loaded by tools_load before a compaction is still loaded after it", async () => {
+        let turn = 0
+        // The first turn's long reply is what the compaction has to shrink; a short history is refused.
+        const long = "Here is what I found in the thread, message by message. ".repeat(120)
+        const { runtime, agent, requests, names, send } = await agentWith((step) =>
+            turn === 1 && step === 1
+                ? { call: "tools_load", args: '{"group":"gmail"}' }
+                : { text: turn === 1 ? long : "done" },
+        )
+        turn = 1
+        await send("what did John say yesterday?")
+        turn = 2
+        await send("and before that?")
+        await agent.compactSession("api:ada", { keepTurns: 1 })
+        turn = 3
+        await send("thanks")
+        // No keyword in any request: only the load, now behind the checkpoint, keeps the set.
+        expect(names(requests.at(-1))).toContain("gmail_fetch")
+        await runtime.stop()
+    })
+})
+
+describe("turns with nobody to rephrase get every tool", () => {
+    test("a peer ask, a handoff and a turn another agent sent", async () => {
+        const { runtime, requests, names, send } = await agentWith(() => ({ text: "hello" }))
+        const cases = [
+            { source: "ask", sessionKey: "ask:r1" },
+            { source: "handoff", sessionKey: "handoff:r2" },
+            { from: { id: "agent:helper", kind: "agent" as const }, sessionKey: "api:helper" },
+        ]
+        for (const options of cases) {
+            await send("hi", options)
+            expect(names(requests.at(-1))).toEqual(["crm_list", "gmail_fetch", "projects"])
+        }
+        await runtime.stop()
+    })
+})
+
+describe("a set the turn cannot reach is not offered", () => {
+    test("a turn that is not the owner's is not offered the owner's personal set", async () => {
+        const { runtime, agent, requests } = await agentWith(() => ({ text: "hello" }), undefined, [
+            "gmail_fetch",
+        ])
+        await runtime.conversations.registerParticipant({ id: "user:owner", name: "Owner" })
+        await runtime.conversations.registerParticipant({ id: "user:bob", name: "Bob" })
+        await runtime.conversations.assign({
+            agentId: "grouped",
+            participantId: "user:owner",
+            channelIds: [],
+        })
+        await agent.send("hi", {
+            sessionKey: "api:bob",
+            participant: { id: "user:bob", via: "api" },
+        })
+        expect(offered(requests.at(-1))).toEqual(["crm"])
+        await runtime.stop()
+    })
+
+    test("a load that reaches no tool is an error, never a Loaded result", async () => {
+        const loader = toolsLoadTool(GROUPS)
+        let error: unknown
+        try {
+            await loader.handler({ group: "gmail" }, toolContext({ loadToolGroup: async () => [] }))
+        } catch (caught) {
+            error = caught
+        }
+        expect((error as { code?: string } | undefined)?.code).toBe("tool_group_empty")
+    })
+})
+
+describe("slugs compare the registry's way", () => {
+    test("a group spelled differently from the resolved tool still holds it back", async () => {
+        const { runtime, requests, names, send } = await agentWith(
+            () => ({ text: "hello" }),
+            (yaml) => yaml.replace("tools: [gmail_fetch]", "tools: [GMAIL-FETCH]"),
+        )
+        await send("hi")
+        expect(names(requests[0])).toEqual(["projects", "tools_load"])
+        await runtime.stop()
+    })
+
+    test("and is not warned about as unpinned", () => {
+        const { manifest } = loadYaml(`${MODEL}tools:
+  local: [now]
+  pinned: [crm_list]
+  groups:
+    crm:
+      description: deals
+      tools: [CRM-LIST]
+`)
+        expect(toolGroupWarnings(manifest)).toEqual([])
     })
 })

@@ -21,6 +21,7 @@ import {
     otherPhases,
     PHASE_SET,
     type PhaseMap,
+    TOOLS_LOAD,
     unmatchedAllows,
     visibleIn,
 } from "../src/loop/phases.ts"
@@ -100,9 +101,15 @@ describe("the entry phase", () => {
 
 describe("phase_set is added to every phase", () => {
     test("a phase that omitted it would be a phase with no way out", () => {
-        expect(allowFor(PHASES, "triage")).toEqual(["tag:read", PHASE_SET])
-        // Not added twice when an author lists it.
-        expect(allowFor({ x: { allow: ["*", PHASE_SET] } }, "x")).toEqual(["*", PHASE_SET])
+        // `tools_load` rides along (decision 18.2): a phase listing its tools would otherwise drop the
+        // loader, and a withheld tool group could not be loaded in that phase.
+        expect(allowFor(PHASES, "triage")).toEqual(["tag:read", PHASE_SET, TOOLS_LOAD])
+        // Not added twice when an author lists them.
+        expect(allowFor({ x: { allow: ["*", PHASE_SET, TOOLS_LOAD] } }, "x")).toEqual([
+            "*",
+            PHASE_SET,
+            TOOLS_LOAD,
+        ])
     })
 
     test("an undeclared phase falls back to everything rather than to nothing", () => {
