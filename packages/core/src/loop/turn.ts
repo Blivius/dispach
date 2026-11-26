@@ -37,7 +37,14 @@ import type { ParsedOutput, StepOutput, ToolDialect } from "../tools/dialect/dia
 import { nativeWireTokens } from "../tools/dialect/native.ts"
 import type { EventDetail } from "../tools/event-detail.ts"
 import { type ApprovalRequest, type ExecuteInput, executeIntents } from "../tools/execute.ts"
-import { type ToolGroup, toolsLoadTool, withheldSlugs } from "../tools/groups.ts"
+import {
+    missedSetNote,
+    readsAsMissed,
+    TOOLS_LOAD,
+    type ToolGroup,
+    toolsLoadTool,
+    withheldSlugs,
+} from "../tools/groups.ts"
 import { phaseSetTool } from "../tools/local.ts"
 import type { PolicyConfig } from "../tools/policy.ts"
 import type { ToolRegistry } from "../tools/registry.ts"
@@ -684,6 +691,8 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
     let repairs = 0
     /** The silence nudge has been spent this turn: once, then the reply stands (decision 14.123). */
     let nudged = false
+    /** Every slug a step of this turn ran, for the missed-set nudge: a turn that looked is not a miss. */
+    const ranThisTurn = new Set<string>()
     /**
      * Signatures of the most recent tool-calling steps, oldest first, capped at the threshold.
      *
@@ -1304,7 +1313,26 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                     tools === undefined || nudged
                         ? undefined
                         : silenceOf(parsed.text, trace, sideEffects)
-                if (silence !== undefined && tools !== undefined) {
+                // Decision 17.2's backstop: a reply that says it has nothing, cannot see or check
+                // something, or offers to look, while tool sets are still unloaded. The keywords missed
+                // and the model did not load a set itself, so it answered from what it had — the one way
+                // a withheld group turns into a wrong answer. Same single nudge per turn as the rest.
+                // Only a turn that did not look: once it ran `tools_load` or a tool from any set, "I
+                // found nothing" is a finding, and nudging it sent the model on into every other set —
+                // measured live, a Gmail search that found nothing went on to load and search the CRM,
+                // 2–3 steps and ~25k tokens for nothing (2026-11-26).
+                const notLoaded = groups.filter((group) => !loadedGroups.has(group.name))
+                const looked =
+                    ranThisTurn.has(TOOLS_LOAD) ||
+                    groups.some((group) => group.tools.some((slug) => ranThisTurn.has(slug)))
+                const missed =
+                    silence === undefined &&
+                    tools !== undefined &&
+                    !nudged &&
+                    !looked &&
+                    notLoaded.length > 0 &&
+                    readsAsMissed(parsed.text)
+                if ((silence !== undefined || missed) && tools !== undefined) {
                     nudged = true
                     const said: ChatMessage[] =
                         parsed.text === ""
@@ -1312,7 +1340,10 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                             : [{ ...tools.dialect.renderCall(output), origin: "call" }]
                     const note: ChatMessage = {
                         role: "user",
-                        content: SILENCE_NOTE[silence],
+                        content:
+                            silence === undefined
+                                ? missedSetNote(notLoaded)
+                                : SILENCE_NOTE[silence],
                         origin: "repair",
                     }
                     history.push(...said, note)
@@ -1323,11 +1354,13 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                         {
                             slugs: [],
                             errors: [
-                                silence === "empty"
-                                    ? "no visible reply after a tool result"
-                                    : silence === "claim"
-                                      ? "said it was done and nothing that acts ran"
-                                      : "said it would act and made no call",
+                                silence === undefined
+                                    ? "said it had nothing while tool sets were not loaded"
+                                    : silence === "empty"
+                                      ? "no visible reply after a tool result"
+                                      : silence === "claim"
+                                        ? "said it was done and nothing that acts ran"
+                                        : "said it would act and made no call",
                             ],
                         },
                         context,
@@ -1417,6 +1450,11 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                 )
             }
 
+            // The catalogue these calls run against, kept: a call in this step may replace `tools`
+            // (`phase_set`, `tools_load`, a mid-turn pin), and what a call *was* is a fact about the
+            // catalogue that ran it. Read from the new one, the last group's `tools_load` was gone from
+            // it, and asking whether that call changed anything failed the whole turn (2026-11-26).
+            const ranWith = tools.registry
             // A step is all-or-nothing, so an unreadable call stops it before anything runs.
             // Executing the readable calls and repairing the rest would re-run a mutating call that
             // had already succeeded, and there is no idempotency key at this layer to make that safe.
@@ -1559,19 +1597,22 @@ async function runTurnCore(input: TurnInput): Promise<TurnResult> {
                               : { claimDelegated: input.claimDelegated }),
                       })
 
+            for (const result of outcome.results) ranThisTurn.add(result.slug)
+
             transientFailed =
                 outcome.results.length > 0 && outcome.results.every(failedTransiently)
                     ? signature
                     : undefined
 
             if (outcome.results.some((result) => result.ok)) {
-                // Optional-chained rather than narrowed: `tools` became reassignable when phases landed,
-                // so TypeScript correctly stops narrowing it across the await above — `phase_set` may
-                // have swapped the view in between. The registry wanted here is whichever one resolved
-                // the call, and a slug missing from it is not a side effect.
+                // The registry that ran the call (`ranWith`), not `tools`: `phase_set` or `tools_load`
+                // may have swapped the view during the await above, and the new one need not hold the
+                // tool that swapped it.
                 sideEffects ||= outcome.results.some(
                     (result) =>
-                        result.ok && tools?.registry.resolve(result.slug).spec.mutating === true,
+                        result.ok &&
+                        ranWith.has(result.slug) &&
+                        ranWith.resolve(result.slug).spec.mutating === true,
                 )
             }
 

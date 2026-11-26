@@ -131,6 +131,30 @@ export function activeToolGroups(
     return active
 }
 
+/**
+ * A reply that says the agent has nothing, cannot see or check something, or offers to go and look.
+ *
+ * The shape of a miss: the keywords did not load the set that held the answer and the model did not load
+ * it either, so it answered from what it had. Matched on the reply because that is the only place a miss
+ * shows — the model never says "I lack the Gmail tools", it says "I don't have anything from John" or
+ * "want me to search your mailbox?". Broad on purpose: a false match costs one extra step, a missed one
+ * leaves a wrong answer standing.
+ */
+const MISSED =
+    /\b(?:i\s+(?:do\s+not|don['’]t|didn['’]t|did\s+not)\s+(?:have|see|find|know)|i\s+(?:can['’]t|cannot|can\s+not|couldn['’]t|could\s+not|was\s+not\s+able\s+to|wasn['’]t\s+able\s+to|am\s+unable\s+to|['’]m\s+unable\s+to|am\s+not\s+able\s+to|['’]m\s+not\s+able\s+to)\s+(?:find|see|access|check|search|look|read|open|get|reach|tell)|(?:no|don['’]t\s+have)\s+access|nothing\s+(?:from|about|on|in|for|matching)|no\s+(?:record|mention|sign|trace|information|details?|messages?|emails?|mail|results?)\s+(?:of|from|about|on|for|matching)|(?:i\s+can|i\s+could|want\s+me\s+to|shall\s+i|should\s+i|would\s+you\s+like\s+me\s+to)\s+(?:search|check|look|pull|fetch|go\s+through))/i
+
+/** Whether a reply reads as a miss (see `MISSED`). An empty reply is the silence nudge's, not this. */
+export function readsAsMissed(text: string): boolean {
+    const visible = text.trim()
+    return visible !== "" && MISSED.test(visible)
+}
+
+/** The note sent once when a reply reads as a miss while sets are still unloaded. */
+export function missedSetNote(notLoaded: readonly ToolGroup[]): string {
+    const listed = notLoaded.map((group) => `${group.name} (${group.description})`).join("; ")
+    return `From the runtime, not the person: some of your tools are not loaded — ${listed}. If the answer could be in one of these, load it with ${TOOLS_LOAD} and look before you reply. If none of them could hold it, give the person your answer.`
+}
+
 /** The slugs held back while `active` is all that is loaded. */
 export function withheldSlugs(
     groups: readonly ToolGroup[],
@@ -154,11 +178,15 @@ export function toolsLoadTool(notLoaded: readonly ToolGroup[]): Tool {
         spec: {
             slug: TOOLS_LOAD,
             provider: LOCAL_PROVIDER_ID,
-            summary: `Loads a set of your tools that is not in your list yet. Not loaded: ${listed}.`,
+            // The second sentence is written against a measured miss (2026-11-26): asked "what did John
+            // say yesterday?" with Gmail not loaded, the model answered from memory that it had nothing
+            // and offered to search, where with every tool loaded it searched. Saying "I have nothing"
+            // without looking is the one outcome that is a wrong answer rather than a slower one.
+            summary: `Loads a set of your tools that is not in your list yet. Not loaded: ${listed}. Before telling the person you have nothing, cannot see something or cannot check it, load the set where the answer could be and look.`,
             whenToUse:
-                "the person's request needs a tool from one of the sets named here — load that set, then use its tools in your next step of this turn",
+                "the request needs a tool from one of the sets named here, or asks about something that could be in one of them (a message, a deal, an event) — load that set, then use its tools in your next step of this turn",
             whenNotToUse:
-                "the tools you already have can do it, the person only wants an answer or a draft, or the right response is to call no tool at all",
+                "the tools you already have can do it, or the person only wants an answer, an opinion or a draft that needs nothing from these sets",
             mutating: false,
             tags: ["read", "control"],
             parameters: {

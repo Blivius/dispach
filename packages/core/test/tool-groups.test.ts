@@ -24,7 +24,12 @@ import {
 } from "../src/index.ts"
 import { loadManifest } from "../src/manifest/load.ts"
 import { toolGroupWarnings } from "../src/manifest/validate.ts"
-import { activeToolGroups, mentionsKeyword, type ToolGroup } from "../src/tools/groups.ts"
+import {
+    activeToolGroups,
+    mentionsKeyword,
+    readsAsMissed,
+    type ToolGroup,
+} from "../src/tools/groups.ts"
 import { describe, expect, test } from "./_harness.ts"
 
 const GROUPS: readonly ToolGroup[] = [
@@ -368,6 +373,122 @@ describe("a turn's catalogue", () => {
         // And the greeting's figure is the one a real turn sends.
         await send("hi", { sessionKey: "api:fresh" })
         expect(requests[0]?.tools?.length).toBe(2)
+        await runtime.stop()
+    })
+})
+
+describe("readsAsMissed", () => {
+    test("a reply that has nothing, cannot see or check something, or offers to look", () => {
+        // The reply measured on a real silo with Gmail withheld (2026-11-26).
+        expect(
+            readsAsMissed(
+                "I don't have anything from John in what I can see. If John messaged you by email, I can search your mailbox.",
+            ),
+        ).toBe(true)
+        expect(readsAsMissed("I couldn't find any emails from her.")).toBe(true)
+        expect(readsAsMissed("Want me to check your inbox?")).toBe(true)
+        expect(readsAsMissed("There's no record of that deal.")).toBe(true)
+    })
+
+    test("an ordinary answer is not a miss", () => {
+        expect(readsAsMissed("Here are your three projects.")).toBe(false)
+        expect(readsAsMissed("Done, it is saved.")).toBe(false)
+        expect(readsAsMissed("I don't think that is a good idea, but here is a draft.")).toBe(false)
+        expect(readsAsMissed("")).toBe(false)
+    })
+})
+
+describe("a reply that reads as a miss while a set is unloaded", () => {
+    const NOTE = "some of your tools are not loaded"
+    const carries = (request: ChatRequest | undefined, text: string) =>
+        (request?.messages ?? []).some((message) => message.content.includes(text))
+
+    test("is nudged once, and the model loads the set and looks", async () => {
+        const { runtime, requests, ran, send } = await agentWith((step) =>
+            step === 1
+                ? {
+                      text: "I don't have anything from John. I can search your mailbox if you like.",
+                  }
+                : step === 2
+                  ? { call: "tools_load", args: '{"group":"gmail"}' }
+                  : step === 3
+                    ? { call: "gmail_fetch" }
+                    : { text: "John said yes." },
+        )
+        const result = await send("what did John say yesterday?")
+        // The answer alone is the one that looked; `text` keeps the earlier prose as well, because it
+        // streamed to the screen as it was written and a stored turn must match what was shown.
+        expect(result.finalText).toBe("John said yes.")
+        expect(result.text.endsWith("John said yes.")).toBe(true)
+        expect(carries(requests[0], NOTE)).toBe(false)
+        // The second request carries the runtime's note naming both unloaded sets.
+        expect(carries(requests[1], NOTE)).toBe(true)
+        expect(carries(requests[1], "gmail (")).toBe(true)
+        expect(ran).toEqual(["gmail_fetch"])
+        await runtime.stop()
+    })
+
+    test("is nudged once only: the second such reply stands", async () => {
+        const { runtime, requests, send } = await agentWith(() => ({
+            text: "I don't have anything about that.",
+        }))
+        const result = await send("what did John say yesterday?")
+        expect(requests.length).toBe(2)
+        expect(result.finalText).toBe("I don't have anything about that.")
+        await runtime.stop()
+    })
+
+    test("is not nudged once the turn has looked in a set: finding nothing there is an answer", async () => {
+        // Measured live: Gmail searched, nothing from John, and the nudge sent the model on into the
+        // CRM for 2–3 more steps. A turn that ran tools_load or a set's tool did look.
+        const { runtime, requests, ran, send } = await agentWith((step) =>
+            step === 1
+                ? { call: "tools_load", args: '{"group":"gmail"}' }
+                : step === 2
+                  ? { call: "gmail_fetch" }
+                  : { text: "I couldn't find anything from John yesterday." },
+        )
+        const result = await send("what did John say yesterday?")
+        expect(requests.length).toBe(3)
+        expect(carries(requests[2], NOTE)).toBe(false)
+        expect(ran).toEqual(["gmail_fetch"])
+        expect(result.finalText).toBe("I couldn't find anything from John yesterday.")
+        await runtime.stop()
+    })
+
+    test("is not nudged when every set is loaded, or when the reply is an ordinary answer", async () => {
+        const { runtime, requests, send } = await agentWith(() => ({
+            text: "I couldn't find any emails from John.",
+        }))
+        // "email" and "deal" load both sets, so nothing is withheld and the reply stands.
+        await send("any email from John about the deal?")
+        expect(requests.length).toBe(1)
+        await runtime.stop()
+
+        const plain = await agentWith(() => ({ text: "Hello! How can I help?" }))
+        await plain.send("hi")
+        expect(plain.requests.length).toBe(1)
+        await plain.runtime.stop()
+    })
+})
+
+describe("loading the last withheld set", () => {
+    test("does not fail the turn: the call is judged by the catalogue that ran it", async () => {
+        // Found live (2026-11-26): loading the last set removes `tools_load` from the catalogue, and the
+        // loop then asked the *new* catalogue whether that call changed anything. Every such turn failed
+        // with unknown_tool_at_runtime after it had already done its work.
+        const { runtime, requests, names, send } = await agentWith((step) =>
+            step === 1
+                ? { call: "tools_load", args: '{"group":"crm"}' }
+                : step === 2
+                  ? { call: "tools_load", args: '{"group":"gmail"}' }
+                  : { text: "Both sets are loaded." },
+        )
+        const result = await send("look into it")
+        expect(result.reason).toBe("final")
+        expect(result.finalText).toBe("Both sets are loaded.")
+        // Nothing is withheld any more, so the last request has every tool and no tools_load.
+        expect(names(requests[2])).toEqual(["crm_list", "gmail_fetch", "projects"])
         await runtime.stop()
     })
 })

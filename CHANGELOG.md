@@ -4,7 +4,7 @@
 
 ### Added
 
-- `tools.groups`: pinned tools kept out of the request until a conversation needs them. A group loads when the person's message mentions one of its keywords and stays loaded for the session; `tools_load` loads one the keywords missed, from the next step of the same turn. Schedules, subagents and a turn with an explicit allowlist get every tool. Measured on a real agent, the schemas were 34k of a 41k-token greeting.
+- `tools.groups`: pinned tools kept out of the request until a conversation needs them. A group loads when the person's message mentions one of its keywords and stays loaded for the session; `tools_load` loads one the keywords missed, from the next step of the same turn, and a reply that says it has nothing while a set is unloaded is nudged once to load it and look. Schedules, subagents and a turn with an explicit allowlist get every tool. Measured on a real agent, the schemas were 34k of a 41k-token greeting.
 - Traces: name the bundled `@dispach/trace-otlp` plugin and every turn reaches an OpenTelemetry backend (Phoenix, any OTLP/HTTP collector) as a trace: model calls with tokens and latency, tool calls, delegations, nested. Metadata only, never prompt or reply text. `init --traces <url>` writes it for a new agent.
 - A plugin's `logger.warn` and `logger.error` now arrive as `agent.warning`. They were discarded before.
 
