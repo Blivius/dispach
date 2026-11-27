@@ -21,6 +21,8 @@ Open source and self-hosted: one API for agents with memory, tools, schedules, c
   <a href="https://hub.xerj.org/contributors/moeen-mahmud"><img src="https://hub.xerj.org/contributors/moeen-mahmud/badge.svg" alt="XERJ Corpus Hub contributor"></a>
 </p>
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/blivius-dispach-7x4yc3?v=057b96ef57c82986b4ee2225060bbb2d)](https://m8ven.ai/mcp/blivius-dispach-7x4yc3?s=readme)
+
 <p>
   <a href="https://dispach.blivius.com/docs"><strong>Docs</strong></a> ·
   <a href="#quickstart">Quickstart</a> ·
