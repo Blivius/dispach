@@ -5,7 +5,7 @@
 | Area | Controls |
 | --- | --- |
 | Identity | `apiVersion` and `id` (required), `name`, a one-line `description` (at most 200 characters, shown to peers and in `GET /v1/agents`), and `extends`, a base manifest merged shallowly with arrays replaced |
-| `model` | Roles, model IDs, endpoints, key environment names, and capabilities, including `promptStyle` and its `examplesIn` placement. `model.<role>.fallbacks` lists whole roles tried in order when the endpoint fails (unreachable, a 5xx, or 408/429 after retries) before the first chunk |
+| `model` | Roles, model IDs, endpoints, key environment names, and capabilities, including `promptStyle` and its `examplesIn` placement. `model.<role>.fallbacks` lists whole roles tried in order when the endpoint fails (unreachable, a 5xx, or 408/429 after retries) or the account is out of credit, before the first chunk |
 | `context` | Workspace tiers, budgets, soul selection, output reserve, observation size, and compaction thresholds as shares of the window: `context.thresholds.snip` <!-- fact:default:context.thresholds.snip -->0.6<!-- /fact -->, `micro` <!-- fact:default:context.thresholds.micro -->0.7<!-- /fact -->, `collapse` <!-- fact:default:context.thresholds.collapse -->0.8<!-- /fact -->, `reset` <!-- fact:default:context.thresholds.reset -->0.88<!-- /fact -->, `trim` <!-- fact:default:context.thresholds.trim -->0.95<!-- /fact --> |
 | `tools` | Dialect, pinned providers and tools, policy, untrusted-write behavior, and provider settings |
 | `phases` | Per-phase instructions, transitions, and visible tools |
