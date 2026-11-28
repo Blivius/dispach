@@ -389,6 +389,21 @@ export interface AttemptFailure {
     readonly errorType?: string
     /** The `x-should-retry` header, when the API sent one: its own verdict on this failure. */
     readonly shouldRetry?: boolean
+    /** The account cannot pay (`outOfCredit`): the same request fails until someone adds credit. */
+    readonly outOfCredit?: boolean
+}
+
+/**
+ * The three ways Anthropic says the account behind a key cannot pay, per its API errors reference: an
+ * empty prepaid balance (a 400), a billing problem (402 `billing_error`), and the monthly spend cap
+ * (a 429 with `enforced_spend_limit_reached` and no `retry-after`). None is the request's fault, and
+ * none clears on a retry, so each ends the attempt and lets a fallback on another account answer.
+ */
+export function outOfCredit(status: number, body: string): boolean {
+    if (status === 402) return true
+    if (status === 400) return /credit balance is too low/i.test(body)
+    if (status === 429) return body.includes("enforced_spend_limit_reached")
+    return false
 }
 
 /**
@@ -399,6 +414,7 @@ export interface AttemptFailure {
  * In order:
  * - **403 never.** An embedder may revoke or cap a key as its budget stop, and a retry, even one
  *   the API invites with `x-should-retry`, would spend past it.
+ * - **Out of credit never.** Every retry fails the same way until the account is topped up.
  * - **`x-should-retry` next.** It is the API's own verdict on this failure, and the official SDKs
  *   obey it both ways.
  * - **Otherwise by status.**
@@ -407,7 +423,7 @@ export interface AttemptFailure {
  *   - Final: a 400, 401, 404 or 413, because the same request fails the same way.
  */
 export function retryable(failure: AttemptFailure): boolean {
-    if (failure.status === 403) return false
+    if (failure.status === 403 || failure.outOfCredit === true) return false
     if (failure.shouldRetry !== undefined) return failure.shouldRetry
     return failure.status === 0 || failure.status === 529 || RETRYABLE_STATUS.has(failure.status)
 }
@@ -434,13 +450,13 @@ function hintFor(status: number, field: string, keyEnv: string): string {
     if (status === 401)
         return `Check the key in ${keyEnv} (${field}.apiKeyEnv): it must be a Claude API key from the Console, not a claude.ai login.`
     if (status === 403)
-        return "The key lacks permission for this model or workspace, or its workspace spend limit is reached. Not retried: an embedder may use a 403 as its budget stop."
+        return "The key lacks permission for this model or workspace. Not retried: an embedder may use a 403 as its budget stop."
     if (status === 404)
         return `The model id is not served by this endpoint. Check ${field}.id against Anthropic's model list, and that ${field}.baseUrl ends at /v1.`
     if (status === 413)
         return "The request is larger than the API accepts. Compaction should have prevented this; check the role's contextWindow."
     if (status === 400)
-        return "Anthropic refused the request as sent. The body above says which field; a low credit balance is also reported as a 400."
+        return "Anthropic refused the request as sent. The body above says which field."
     return "Retried already where the failure allowed it. If this persists, Anthropic is overloaded or unavailable; a fallback role can take over."
 }
 
@@ -478,9 +494,12 @@ export const ANTHROPIC_MESSAGES_TRANSPORT: ModelTransport = {
             return new ModelError({
                 status: failure.status,
                 ...(retryAfter === undefined ? {} : { retryAfterSeconds: retryAfter / 1000 }),
-                code: "model_http_error",
+                code: failure.outOfCredit === true ? "model_out_of_credit" : "model_http_error",
                 message: `Anthropic returned ${failure.status}${failure.errorType === undefined ? "" : ` (${failure.errorType})`} for ${url}: ${trimmed}`,
-                hint: hintFor(failure.status, field, keyEnv),
+                hint:
+                    failure.outOfCredit === true
+                        ? `The account behind ${keyEnv} cannot pay: its credit is spent, its billing failed, or its monthly spend cap is reached. Not retried. Add credit or raise the cap in the Console, or give ${field} a fallback on a key from another organization.`
+                        : hintFor(failure.status, field, keyEnv),
             })
         }
 
@@ -520,6 +539,7 @@ export const ANTHROPIC_MESSAGES_TRANSPORT: ModelTransport = {
                             status: response.status,
                             ...(type === undefined ? {} : { errorType: type }),
                             ...(should === null ? {} : { shouldRetry: should === "true" }),
+                            ...(outOfCredit(response.status, detail) ? { outOfCredit: true } : {}),
                         }
                         // The documented recovery for a stale signed thinking block: send it again
                         // without thinking, once. Reported as a retry, so it is never silent.

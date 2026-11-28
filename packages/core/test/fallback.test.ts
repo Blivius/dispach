@@ -74,8 +74,30 @@ describe("the fallback chain", () => {
         }
     })
 
+    test("an account that cannot pay hands the call to the next one", async () => {
+        const dry = new ModelError({
+            code: "model_out_of_credit",
+            message: "m",
+            hint: "h",
+            status: 400,
+        })
+        const moves: FallbackInfo[] = []
+        const chain = withFallbacks(
+            "p",
+            [
+                { model: "primary", provider: failing(dry) },
+                { model: "backup", provider: answering("paid") },
+            ],
+            (info) => moves.push(info),
+        )
+        const chunks = await drain(chain)
+        expect(chunks[0]).toEqual({ type: "model", id: "backup" })
+        expect(moves).toEqual([{ from: "primary", to: "backup", reason: "model_out_of_credit" }])
+    })
+
     test("which failures count is decided structurally, so a foreign copy of the error class works", () => {
         expect(fallbackReason(http(429))).toBe("HTTP 429")
+        expect(fallbackReason(http(402))).toBe("HTTP 402")
         expect(fallbackReason(http(403))).toBeUndefined()
         expect(
             fallbackReason(

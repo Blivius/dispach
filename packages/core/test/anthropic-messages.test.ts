@@ -413,6 +413,50 @@ describe("retry", () => {
         expect(result).toEqual({ calls: 2 })
     })
 
+    test("an account that cannot pay is sent once, and the error says so", async () => {
+        const refusals: [number, string][] = [
+            [
+                400,
+                errorBody(
+                    "invalid_request_error",
+                    "Your credit balance is too low to access the Anthropic API.",
+                ),
+            ],
+            [402, errorBody("billing_error")],
+            [
+                429,
+                JSON.stringify({
+                    type: "error",
+                    error: {
+                        type: "rate_limit_error",
+                        message: "spend cap",
+                        details: { error_code: "enforced_spend_limit_reached" },
+                    },
+                }),
+            ],
+        ]
+        for (const [status, body] of refusals) {
+            const result = await attempts([
+                () => new Response(body, { status }),
+                () => sseResponse(reply()),
+            ])
+            expect(result.calls).toBe(1)
+            expect((result.error as ModelError).code).toBe("model_out_of_credit")
+            expect((result.error as ModelError).status).toBe(status)
+        }
+    })
+
+    test("any other 400 is still the request's fault", async () => {
+        const result = await attempts([
+            () =>
+                new Response(errorBody("invalid_request_error", "max_tokens: required"), {
+                    status: 400,
+                }),
+        ])
+        expect(result.calls).toBe(1)
+        expect((result.error as ModelError).code).toBe("model_http_error")
+    })
+
     test("403 is never retried: it may be an embedder's budget stop", async () => {
         const result = await attempts([
             () => new Response(errorBody("permission_error"), { status: 403 }),

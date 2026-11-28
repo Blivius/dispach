@@ -12,6 +12,10 @@
  * are spent, so a fallback starts after the retries rather than instead of them. **Never on a 4xx
  * the caller caused, and never on a 403**: an embedder may use a credential refusal as its budget
  * stop (an embedder may), and a fallback that answered anyway would spend past it.
+ *
+ * **An account that cannot pay moves on too** (17.2): a 402, or a transport's `model_out_of_credit`
+ * (Anthropic's empty balance or spend cap). It is the account's state, not the request's fault, and a
+ * fallback on another account is what the manifest listed for exactly that.
  */
 
 import { isHarnessError } from "../errors.ts"
@@ -33,10 +37,11 @@ export interface FallbackInfo {
 /** Structural rather than `instanceof`: a transport package may carry its own copy of core. */
 export function fallbackReason(error: unknown): string | undefined {
     if (!isHarnessError(error)) return undefined
-    if (error.code === "model_unreachable") return error.code
+    if (error.code === "model_unreachable" || error.code === "model_out_of_credit")
+        return error.code
     const status = (error as { status?: unknown }).status
     if (typeof status !== "number") return undefined
-    if (status >= 500 || status === 408 || status === 429) return `HTTP ${status}`
+    if (status >= 500 || status === 402 || status === 408 || status === 429) return `HTTP ${status}`
     return undefined
 }
 
